@@ -23,7 +23,7 @@ dotnet --version
 
 Đối chiếu engine với [PROVENANCE](PROVENANCE.md). Không dùng `--remote`; không tiếp tục bằng cách ghi đè vendor changes. Một clean-restore claim cần checkout sạch và cache/package folder mới hoặc môi trường tương đương được ghi rõ; không suy từ warm restore.
 
-Bảy projects thuộc toolkit giữ `packages.lock.json`; `build.ps1` mặc định restore bằng `--locked-mode`. Root targets pin build-only `Microsoft.NETFramework.ReferenceAssemblies` `1.0.3` cho `net48`, với `VersionOverride` ở SourceGrid CPM, để tránh implicit reference khác nhau theo targeting pack trên máy. Engine giữ central package versions của nó và không ghi vendor lockfile.
+Bảy projects thuộc toolkit giữ `packages.lock.json`; `build.ps1` mặc định restore bằng `--locked-mode`. Root targets pin build-only `Microsoft.NETFramework.ReferenceAssemblies` `1.0.3` cho `net48`, với `VersionOverride` ở SourceGrid CPM, để tránh implicit reference khác nhau theo targeting pack trên máy. Engine giữ central package versions của nó và không ghi vendor lockfile. Executable `net48` restore cả `win7-x86;win7-x64` trên mọi host; đây là restore set để khớp RID mặc định của Windows SDK, không đổi TFM hoặc ép bitness. Lockfiles giữ định dạng do NuGet sinh.
 
 Chỉ khi chủ đích sửa dependency graph, regenerate locks rồi review diff trước khi quay lại locked build:
 

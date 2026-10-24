@@ -2,6 +2,12 @@
   <!-- Use the same net48 reference pack on Windows and during cross-compilation.
        Otherwise SDK implicit references depend on locally installed targeting packs
        and produce different NuGet lock files. SourceGrid uses central versions. -->
+  <!-- Restore both Windows RID graphs for net48 executables on every host.
+       The SDK still chooses the effective RID/bitness on Windows; declaring the
+       restore set prevents its implicit win7-x86 default from invalidating locks. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48' and ('$(OutputType)' == 'WinExe' or '$(OutputType)' == 'Exe')">
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">win7-x86;win7-x64</RuntimeIdentifiers>
+  </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies"
                       Version="1.0.3" PrivateAssets="All"

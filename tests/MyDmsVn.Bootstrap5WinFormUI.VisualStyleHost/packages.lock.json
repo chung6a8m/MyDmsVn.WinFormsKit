@@ -20,10 +20,14 @@
         "type": "Project"
       }
     },
+    ".NETFramework,Version=v4.8/win7-x64": {},
+    ".NETFramework,Version=v4.8/win7-x86": {},
     "net8.0-windows7.0": {
       "mydmsvn.bootstrap5winformui": {
         "type": "Project"
       }
-    }
+    },
+    "net8.0-windows7.0/win7-x64": {},
+    "net8.0-windows7.0/win7-x86": {}
   }
 }
