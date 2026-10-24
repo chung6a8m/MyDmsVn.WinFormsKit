@@ -20,6 +20,11 @@ public sealed class BootstrapDateInputInteractionTests
 {
     [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool PostMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetForegroundWindow(IntPtr handle);
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
     private const int WmChar = 0x0102;
     private const int WmKeyDown = 0x0100;
     private const int WmLButtonDown = 0x0201;
@@ -725,9 +730,21 @@ public sealed class BootstrapDateInputInteractionTests
         form.Controls.Add(input);
         form.Show();
         form.Activate();
+        // Prior native fixtures can return foreground ownership to another process.
+        // Attach only while activating this real WinForms test window, then detach.
+        var foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), out _);
+        var currentThread = GetCurrentThreadId();
+        var attached = foregroundThread != 0 && foregroundThread != currentThread && AttachThreadInput(currentThread, foregroundThread, true);
+        bool foregroundSet;
+        try { foregroundSet = SetForegroundWindow(form.Handle); }
+        finally { if (attached) AttachThreadInput(currentThread, foregroundThread, false); }
         input.BeginEditSession(new DateTime(2026, 10, 23));
         input.NativeEditor.Focus();
         Application.DoEvents();
+        var foreground = GetForegroundWindow();
+        GetWindowThreadProcessId(foreground, out var foregroundProcess);
+        Assert.That(Form.ActiveForm, Is.SameAs(form), $"DateInput native test host must be active. SetForegroundWindow={foregroundSet}, foregroundProcess={foregroundProcess}, testProcess={System.Diagnostics.Process.GetCurrentProcess().Id}, foregroundHandle={foreground}, formHandle={form.Handle}.");
+        Assert.That(input.NativeEditor.Focused, Is.True, "DateInput native editor must have focus before input.");
         return form;
     }
 }
