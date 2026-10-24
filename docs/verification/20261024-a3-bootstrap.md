@@ -1,6 +1,6 @@
 # Kiểm chứng candidate bootstrap A3
 
-**Phạm vi:** lần khởi tạo repository theo yêu cầu ngày 24/10/2026. Candidate source hiện tại là [`bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6), tree `3349567b3ed07379d95fb491684400a3ada54880`, gồm bootstrap và correction cho dependency locks trên Windows. Bootstrap gốc là [`ccba9e7245a5af2db8c9dec0c542c5896f5a36e0`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/ccba9e7245a5af2db8c9dec0c542c5896f5a36e0), tree `370cf716672cdc304a05c7358765af88850518cb`. Evidence được thu trực tiếp trên các candidates nêu rõ bên dưới; không lấy PASS lịch sử của repository nguồn. [Plan A3](../plans/20261024-001-a3-winformskit.md) là owner trạng thái tổng thể.
+**Phạm vi:** lần khởi tạo repository theo yêu cầu ngày 24/10/2026. Candidate Windows build đầu tiên là [`bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6), tree `3349567b3ed07379d95fb491684400a3ada54880`, gồm bootstrap và correction cho dependency locks trên Windows. Bootstrap gốc là [`ccba9e7245a5af2db8c9dec0c542c5896f5a36e0`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/ccba9e7245a5af2db8c9dec0c542c5896f5a36e0), tree `370cf716672cdc304a05c7358765af88850518cb`. Kết quả build/test mới của candidates `a176723` và `0407c47` được ghi ở cuối báo cáo. Evidence được thu trực tiếp trên các candidates nêu rõ bên dưới; không lấy PASS lịch sử của repository nguồn. [Plan A3](../plans/20261024-001-a3-winformskit.md) là owner trạng thái tổng thể.
 
 ## Môi trường và baseline
 
@@ -86,8 +86,59 @@ Correction khai báo **restore set** `win7-x86;win7-x64` cho executable `net48` 
 
 Đã quan sát chu kỳ RED → GREEN: locked restore với restore set mới và locks cũ thất bại `NU1004` đúng ba project; regenerate locks có chủ đích; locked restore exit 0; full Release build hai targets exit 0, **0 warnings / 0 errors**, 15,90 giây. SourceGrid worktree sạch. Sau đó [Windows CI của correction commit](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/actions/runs/40115483052) đã **PASS**: locked restore thành công, cả tám projects build cho cả hai targets, **0 warnings / 0 errors**, locks và vendor không đổi. Review hẹp cho correction không còn finding cần xử lý. Native tests vẫn chưa chạy.
 
-## Phần nghiệm thu tiếp theo
+## Phần nghiệm thu còn lại sau Windows CI
 
-Build graph mới đã đạt trên Windows. Phần còn lại là thực hiện native-test commands của [TESTING](../TESTING.md), ghi actual discovery/pass/fail/skip theo từng owner/framework, mở hai galleries và kiểm native seams bị ảnh hưởng. CI build không thay GUI acceptance.
+Tại candidate `bdc5c12`, build graph mới đã đạt trên Windows nhưng native tests và galleries chưa chạy. Lượt chạy tiếp theo trên candidate `a176723` được ghi bên dưới. CI build không thay GUI acceptance.
 
 Sau đó consumer migration được giao riêng theo [CONSUMER_MIGRATION](../CONSUMER_MIGRATION.md). Một source bootstrap có thể dùng để tiếp tục phát triển toolkit, nhưng **A3 toàn phần chưa hoàn tất** khi native và consumer acceptance còn mở.
+
+## Kiểm tra Windows ngày 25/10/2026 trên candidate `a176723`
+
+Candidate `a1767236c144fa8e9a43a002aa68e97dfbb7a662` (`main`), working tree sạch trước khi kiểm; khác `bdc5c12` chỉ ở tài liệu. SourceGrid tại gitlink `f4e457b43582bf01892f50bdc74aa480531e5944`, vendor worktree sạch. Máy là Windows 11 Home Single Language 64-bit, version `10.0.26300`, .NET SDK `8.0.426`, VSTest `17.11.1` x64; .NET 8 Desktop runtime `8.0.32` có mặt. Build dùng `Release`, locked restore trên package cache hiện có; đây không phải clean-restore evidence.
+
+Chạy tuần tự từ repository root, không filter:
+
+```powershell
+.\build.ps1 -Configuration Release -Scope All
+.\test.ps1 -Configuration Release -Scope All -Framework All -SkipBuild
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --no-restore --blame-hang --blame-hang-timeout 5m --results-directory artifacts/test-results --logger "trx;LogFileName=MyDmsVn.Bootstrap5WinFormUI.Tests.net8.0-windows.trx"
+dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Release -f net48 --no-build --no-restore --blame-hang --blame-hang-timeout 5m --results-directory artifacts/test-results --logger "trx;LogFileName=MyDmsVn.BootstrapSourceGrid.Tests.net48.trx"
+dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Release -f net8.0-windows --no-build --no-restore --blame-hang --blame-hang-timeout 5m --results-directory artifacts/test-results --logger "trx;LogFileName=MyDmsVn.BootstrapSourceGrid.Tests.net8.0-windows.trx"
+```
+
+Locked restore và full solution build: **PASS**, cả tám projects trên `net48` và `net8.0-windows`, 0 warnings / 0 errors. `test.ps1` dừng sau controls `net48` thất bại; ba tổ hợp còn lại được chạy riêng với cùng build và hang timeout. TRX thô nằm trong `artifacts/test-results/`, không commit.
+
+| Owner / target | Discovered | Executed | Pass | Fail | Không chạy | Kết quả |
+|---|---:|---:|---:|---:|---:|---|
+| Controls `net48` | 2359 | 2357 | 2351 | 6 | 2 | FAIL |
+| Controls `net8.0-windows` | 2359 | 2357 | 2351 | 6 | 2 | FAIL |
+| Adapter `net48` | 256 | 256 | 256 | 0 | 0 | PASS |
+| Adapter `net8.0-windows` | 256 | 256 | 256 | 0 | 0 | PASS |
+
+Hai ca controls `NotExecuted` trong TRX là “Native first content click from another control keeps popup and search focus” và “Native first arrow click from another control keeps popup and search focus”. VSTest console ghi hai dòng `Skipped` nhưng tổng kết của runner ghi `Skipped: 0`; bảng trên dùng số test entries và outcomes trong TRX, không diễn giải hai ca đó là PASS.
+
+Cùng sáu ca `BootstrapDateInputInteractionTests` fail ở cả hai targets: hai biến thể pointer của `DateInputCorrection_Canceled_popup_restores_native_range_before_notification`, `DateInputCorrection_External_dismissal_does_not_steal_new_focus`, `DateInputCorrection_F4_popup_closed_by_trigger_restores_native_editor_focus`, `DateInputCorrection_Pointer_calendar_cancel_returns_focus_to_native_editor` và `Native_alt_down_opens_calendar_without_accepting_candidate`. Quan sát gồm `PendingText` còn `5/11` thay vì `06/11/2026`, `Calendar.SelectedDate` null, native editor không lấy lại focus và sự kiện mở calendar không phát. Chưa xác định root cause; cần điều tra trên desktop trước khi kết luận regression source hay điều kiện chạy. Hai galleries, physical DPI, Designer và consumer app: **NOT RUN** trong lượt này. V1 và A3 vẫn mở.
+
+## Kiểm tra V1 sau điều tra focus, candidate `0407c47`
+
+Candidate `0407c47699cd57c08f96d3b05ea438fc23709d26` chỉ đổi test host DateInput so với source ở `a176723`; production controls/adapter và engine gitlink không đổi. Khi chạy fixture DateInput riêng, 38/38 đạt. Chạy một fixture tạo form trên STA thread riêng trước DateInput tái hiện việc `Form.ActiveForm` thành null: foreground chuyển về process ChatGPT sau khi form trước đóng, và `SetForegroundWindow` đơn lẻ trả false. Test host DateInput hiện gắn input threads tạm thời khi kích hoạt form WinForms thật, rồi detach ngay; không thêm timeout/fail-fast vào production. Tổ hợp gây lỗi đạt 41/41 sau thay đổi; ba tests context menu vẫn giữ nguyên source ban đầu.
+
+Trên cùng Windows 11/SDK/runtime/cache nêu ở mục trước, chạy từ root, `Release`, không filter cho full suites:
+
+```powershell
+.\build.ps1 -Configuration Release -Scope All
+.\test.ps1 -Configuration Release -Scope All -Framework All -SkipBuild
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --no-restore --filter "FullyQualifiedName~NativeFirstClickFromAnotherControlKeepsPopupAndSearchFocus" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --no-build --no-restore --filter "FullyQualifiedName~NativeFirstClickFromAnotherControlKeepsPopupAndSearchFocus" --blame-hang --blame-hang-timeout 5m
+```
+
+Locked restore và full Release build: **PASS**, 0 warnings / 0 errors. `test.ps1`: **PASS**, exit 0, bốn combinations chạy tuần tự. Hai explicit `SendInput` cases được chọn trực tiếp bằng filter đã xác minh: 2/2 **PASS** trên mỗi framework. TRX full-suite cho số liệu:
+
+| Owner / target | Discovered | Executed | Pass | Fail | Explicit không chạy trong full suite |
+|---|---:|---:|---:|---:|---:|
+| Controls `net48` | 2359 | 2357 | 2357 | 0 | 2 |
+| Controls `net8.0-windows` | 2359 | 2357 | 2357 | 0 | 2 |
+| Adapter `net48` | 256 | 256 | 256 | 0 | 0 |
+| Adapter `net8.0-windows` | 256 | 256 | 256 | 0 | 0 |
+
+Gallery observations trên **.NET 8 Desktop**, window DPI `96` từ GridGallery diagnostics; physical monitor scale chưa đo. ControlGallery mở trang Advanced Inputs; `Backspace` rồi phím `7` đổi date formatted input `31/08/2026` → `31/08/2027`, raw `31082026` → `31082027`; chuyển Light → Dark cập nhật nền/chữ mà giữ nội dung. GridGallery: F2 mở Bootstrap text editor, Enter commit `Edited 01`, lần sửa tiếp Escape giữ `Edited 01`; Bootstrap lookup popup mở bằng chuột, Escape đóng popup rồi hủy editor; Light → Dark cập nhật grid. Cả hai host đóng sạch trong quan sát UI. Đây là hosted interaction, không chứng minh physical DPI, IME hay Designer construction; các mục đó **NOT RUN**. Consumer app và rollback thuộc M1, không được suy từ V1.
