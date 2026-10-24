@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5738A946-4E24-4632-B027-3CDDB6AD8013}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyDmsVn.Bootstrap5WinFormUI", "src\MyDmsVn.Bootstrap5WinFormUI\MyDmsVn.Bootstrap5WinFormUI.csproj", "{8F7A3831-44B1-4F43-882C-386F0576EB35}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{E08D3A54-FC65-4458-9731-E33C7B2CEE43}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyDmsVn.Bootstrap5WinFormUI.Demo", "samples\ControlGallery\MyDmsVn.Bootstrap5WinFormUI.Demo.csproj", "{DFC7BB14-CE23-48C7-980D-2662054D0ADE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B7442FC9-D1B5-4344-97C7-FA2C26257DD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyDmsVn.Bootstrap5WinFormUI.Tests", "tests\MyDmsVn.Bootstrap5WinFormUI.Tests\MyDmsVn.Bootstrap5WinFormUI.Tests.csproj", "{650E5C50-A55D-4214-9055-5C1A856A858E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost", "tests\MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost\MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj", "{87AC772A-F275-48E6-9AF1-2CF3B25BD5AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8F7A3831-44B1-4F43-882C-386F0576EB35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F7A3831-44B1-4F43-882C-386F0576EB35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F7A3831-44B1-4F43-882C-386F0576EB35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F7A3831-44B1-4F43-882C-386F0576EB35}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFC7BB14-CE23-48C7-980D-2662054D0ADE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFC7BB14-CE23-48C7-980D-2662054D0ADE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFC7BB14-CE23-48C7-980D-2662054D0ADE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFC7BB14-CE23-48C7-980D-2662054D0ADE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{650E5C50-A55D-4214-9055-5C1A856A858E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{650E5C50-A55D-4214-9055-5C1A856A858E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{650E5C50-A55D-4214-9055-5C1A856A858E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{650E5C50-A55D-4214-9055-5C1A856A858E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87AC772A-F275-48E6-9AF1-2CF3B25BD5AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87AC772A-F275-48E6-9AF1-2CF3B25BD5AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87AC772A-F275-48E6-9AF1-2CF3B25BD5AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87AC772A-F275-48E6-9AF1-2CF3B25BD5AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8F7A3831-44B1-4F43-882C-386F0576EB35} = {5738A946-4E24-4632-B027-3CDDB6AD8013}
+		{DFC7BB14-CE23-48C7-980D-2662054D0ADE} = {E08D3A54-FC65-4458-9731-E33C7B2CEE43}
+		{650E5C50-A55D-4214-9055-5C1A856A858E} = {B7442FC9-D1B5-4344-97C7-FA2C26257DD7}
+		{87AC772A-F275-48E6-9AF1-2CF3B25BD5AA} = {B7442FC9-D1B5-4344-97C7-FA2C26257DD7}
+	EndGlobalSection
+EndGlobal

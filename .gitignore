@@ -1,0 +1,15 @@
+.vs/
+.idea/
+**/bin/
+**/obj/
+**/TestResults/
+artifacts/
+packages/
+.worktrees/
+.superpowers/
+*.user
+*.suo
+*.nupkg
+*.snupkg
+*.dmp
+*.binlog

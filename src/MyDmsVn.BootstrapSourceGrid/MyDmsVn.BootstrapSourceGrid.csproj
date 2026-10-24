@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>MyDmsVn.BootstrapSourceGrid</AssemblyName>
+    <RootNamespace>MyDmsVn.Bootstrap5WinFormUI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <PackageId>MyDmsVn.BootstrapSourceGrid</PackageId>
+    <Title>MyDmsVn.BootstrapSourceGrid</Title>
+    <Description>Bootstrap-themed SourceGrid control for native Windows Forms applications targeting .NET Framework 4.8 and .NET 8 on Windows.</Description>
+    <Authors>chung6a8m</Authors>
+    <PackageProjectUrl>https://github.com/chung6a8m/MyDmsVn.WinFormsKit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chung6a8m/MyDmsVn.WinFormsKit</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>winforms;sourcegrid;bootstrap;grid;desktop;net48;net8</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>preview.1</VersionSuffix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyDmsVn.Bootstrap5WinFormUI\MyDmsVn.Bootstrap5WinFormUI.csproj" />
+    <ProjectReference Include="..\..\vendor\sourcegrid\SourceGrid\SourceGrid.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\components\grid\PACKAGE_README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

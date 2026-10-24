@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Immutable import provenance; current SourceGrid revision is the Git submodule gitlink.",
+  "docs": {
+    "repository": "https://github.com/chung6a8m/MyDmsVn.Docs",
+    "commit": "57cf5e0f506ac0c313e9d659939d863325250b53"
+  },
+  "consumer": {
+    "repository": "https://github.com/chung6a8m/MyDmsVn",
+    "branchAtInspection": "v1a-pro-ui-next",
+    "commit": "6c385d7630b6b21e915e244113c214aa616327f6"
+  },
+  "imports": [
+    {
+      "repository": "https://github.com/chung6a8m/MyDmsVn.Bootstrap5WinFormUI",
+      "commit": "8ae217ea8aa9a938ebd558f7071dc737f909e6a5",
+      "mode": "source-copy-with-documented-project-path-adaptations",
+      "paths": [
+        {
+          "source": "src/MyDmsVn.Bootstrap5WinFormUI",
+          "destination": "src/MyDmsVn.Bootstrap5WinFormUI"
+        },
+        {
+          "source": "demo/MyDmsVn.Bootstrap5WinFormUI.Demo",
+          "destination": "samples/ControlGallery"
+        },
+        {
+          "source": "tests/MyDmsVn.Bootstrap5WinFormUI.Tests",
+          "destination": "tests/MyDmsVn.Bootstrap5WinFormUI.Tests"
+        },
+        {
+          "source": "tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost",
+          "destination": "tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost"
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/chung6a8m/MyDmsVn.BootstrapSourceGrid",
+      "commit": "e311144c27cd79a6c34aa0308ad029651c9e03c9",
+      "mode": "source-copy-with-documented-project-path-adaptations",
+      "paths": [
+        {
+          "source": "src/MyDmsVn.BootstrapSourceGrid",
+          "destination": "src/MyDmsVn.BootstrapSourceGrid"
+        },
+        {
+          "source": "samples/MyDmsVn.BootstrapSourceGrid.Demo",
+          "destination": "samples/GridGallery"
+        },
+        {
+          "source": "tests/MyDmsVn.BootstrapSourceGrid.Tests",
+          "destination": "tests/MyDmsVn.BootstrapSourceGrid.Tests"
+        }
+      ]
+    }
+  ],
+  "vendor": {
+    "repository": "https://github.com/chung6a8m/sourcegrid",
+    "commit": "f4e457b43582bf01892f50bdc74aa480531e5944",
+    "destination": "vendor/sourcegrid",
+    "mode": "git-submodule"
+  }
+}
