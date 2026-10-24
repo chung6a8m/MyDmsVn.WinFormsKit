@@ -1,8 +1,10 @@
 # Kiểm chứng candidate bootstrap A3
 
-**Phạm vi:** lần khởi tạo repository theo yêu cầu ngày 24/10/2026. Candidate source là [`ccba9e7245a5af2db8c9dec0c542c5896f5a36e0`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/ccba9e7245a5af2db8c9dec0c542c5896f5a36e0), tree `370cf716672cdc304a05c7358765af88850518cb`. Evidence được thu trực tiếp trên cây source này, sau đó đối chiếu chính xác với GitHub và recursive clone sạch; không lấy PASS lịch sử của repository nguồn. [Plan A3](../plans/20261024-001-a3-winformskit.md) là owner trạng thái tổng thể.
+**Phạm vi:** lần khởi tạo repository theo yêu cầu ngày 24/10/2026. Candidate source hiện tại là [`bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6), tree `3349567b3ed07379d95fb491684400a3ada54880`, gồm bootstrap và correction cho dependency locks trên Windows. Bootstrap gốc là [`ccba9e7245a5af2db8c9dec0c542c5896f5a36e0`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/commit/ccba9e7245a5af2db8c9dec0c542c5896f5a36e0), tree `370cf716672cdc304a05c7358765af88850518cb`. Evidence được thu trực tiếp trên các candidates nêu rõ bên dưới; không lấy PASS lịch sử của repository nguồn. [Plan A3](../plans/20261024-001-a3-winformskit.md) là owner trạng thái tổng thể.
 
 ## Môi trường và baseline
+
+### Local cross-compilation
 
 | Mục | Giá trị |
 |---|---|
@@ -18,6 +20,10 @@
 
 Root SDK floor là `8.0.400` với `latestFeature`; `8.0.419` là SDK thực sự được dùng. `--no-cache` ở một restore command không tự chứng minh global package cache trống; bảng trên phân biệt rõ các lần chạy.
 
+### Windows CI
+
+[Run `40115483052`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/actions/runs/40115483052), job `120935767871`, checkout candidate `bdc5c126d4d3caa74ca8ed4518fc565d3a492ba6` cùng SourceGrid exact pin. Runner là **Windows Server 2022**, image `windows-2022` revision `20261012.333.1`, SDK thực tế **8.0.426**. Workflow chạy `./build.ps1 -Configuration Release`, tương đương locked restore và full solution build cho cả hai targets. Kết quả cuối của run là **success**; log build ghi **0 warnings / 0 errors**, 31,17 giây. Bước kiểm dependency locks và SourceGrid worktree cũng đạt. CI chỉ build, không chạy NUnit hoặc GUI acceptance.
+
 ## Kết quả đã quan sát
 
 | Kiểm tra | Kết quả | Giới hạn |
@@ -27,14 +33,15 @@ Root SDK floor là `8.0.400` với `latestFeature`; `8.0.419` là SDK thực s�
 | SourceGrid gitlink và vendor worktree | **PASS**: exact pin; `git status --short` trong vendor rỗng | Root build targets cố định reference pack như mô tả trong provenance |
 | Solution All và Controls | **PASS**: tương ứng 8 và 4 projects; UI-only graph không kéo adapter/engine | Kiểm graph và compilation |
 | Restore graph mới từ package folder ban đầu trống | **PASS** cho cả tám projects | Thực hiện trên Linux |
-| Locked restore sau khi cố định net48 reference pack | **PASS**, exit 0; bảy owner lockfiles hiện hành | Chưa chứng minh Windows restore cho đến khi Windows job thực sự chạy |
-| Release build All, cả hai targets | **PASS**, exit 0, **0 warnings / 0 errors**, lần sau cùng 17,46 giây | Cross-compilation; không chạy Windows assemblies |
-| Locked restore và Release build Controls riêng | **PASS**, exit 0, **0 warnings / 0 errors**, build 1,92 giây | Warm incremental build, không phải benchmark |
+| Locked restore sau reference-pack/RID corrections | **PASS** trên Linux và Windows; bảy owner lockfiles không đổi sau restore | Windows được kiểm trực tiếp tại run của candidate `bdc5c12` |
+| Release build All, cả hai targets | **PASS**, exit 0, **0 warnings / 0 errors**: Linux 15,90 giây; Windows 31,17 giây | Candidate `bdc5c12`; đây là compilation, không phải execution tests hoặc benchmark |
+| Locked restore và Release build Controls riêng | **PASS**, exit 0, **0 warnings / 0 errors**, build 1,92 giây | Kiểm trên Linux tại bootstrap `ccba9e7`; candidate sau correction đã build lại toàn bộ tám projects |
 | Review độc lập source/build/CI/ownership | **PASS**: không còn finding Critical/Important/Minor trong phần được review | Reviewer không chạy native tests và không chứng nhận consumer cutover |
-| Recursive clone từ GitHub sau commit | **PASS**: candidate/tree khớp; SourceGrid tự checkout đúng pin; cả checkout và vendor sạch | Xác nhận source delivery, không thay native proof |
-| Markdown/project/reference QA | **PASS**: 28 Markdown files, 188 links, bảy owner projects; `git diff --cached --check` không có lỗi | Kiểm local links/anchors/paths, không xác nhận website ngoài repo |
-| Windows CI của bootstrap `ccba9e7` | **FAIL** ở locked restore, `NU1004` do RID của ba executable `net48` | [Run gốc](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/actions/runs/40114978856); correction RID bên dưới đang chờ Windows chạy lại |
-| Hai bộ NUnit trên Windows | **NOT RUN — thiếu Windows runtime/desktop** | Chưa discovery hoặc execute cases; không báo một test PASS hay skip count giả |
+| Recursive clone từ GitHub sau bootstrap | **PASS**: commit/tree `ccba9e7` khớp; SourceGrid tự checkout đúng pin; cả checkout và vendor sạch | Candidate `bdc5c12` còn được checkout đệ quy trực tiếp trong Windows CI; không thay native proof |
+| Markdown/project/reference QA | **PASS**: 28 Markdown files, local links/anchors và bảy owner projects; `git diff --cached --check` không có lỗi | Kiểm local links/anchors/paths, không xác nhận website ngoài repo |
+| Windows CI của bootstrap `ccba9e7` | **FAIL lịch sử**, `NU1004` do RID của ba executable `net48` | [Run gốc](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/actions/runs/40114978856); đã khắc phục trong candidate hiện tại |
+| Windows CI của correction `bdc5c12` | **PASS**: locked restore, full Release build hai targets, locks/vendor không đổi | [Run thành công](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/actions/runs/40115483052); không có test execution |
+| Hai bộ NUnit trên Windows | **NOT RUN**: local là Linux; Windows workflow chỉ build | Chưa discovery hoặc execute cases; không báo một test PASS hay skip count giả |
 | Gallery interaction, caret/focus, DPI, Designer | **NOT RUN** | Cần môi trường Windows phù hợp và quan sát trực tiếp |
 | Native app checks / consumer cutover | **NOT RUN — ngoài đợt bootstrap** | App vẫn dùng graph/pins cũ |
 | Package publication / package-only consumer | **NOT RUN** | Không phát hành; gates trong RELEASING còn áp dụng |
@@ -56,7 +63,17 @@ git submodule status
 git -C vendor/sourcegrid status --short
 ```
 
-Sau khi bổ sung `Directory.Build.targets` để net48 reference pack nhất quán giữa các host, đã restore lại, kiểm locked restore và build lại toàn bộ solution; kết quả cuối trong bảng thuộc graph đó. Các build lần đầu cũng đạt nhưng không được dùng thay cho lần sau cùng.
+Sau các corrections trong `Directory.Build.targets` cho net48 reference pack và executable restore set, đã regenerate locks có chủ đích, kiểm locked restore và build lại toàn bộ solution. Full-build results trong bảng thuộc candidate sau correction.
+
+Windows CI chạy các commands sau từ checkout đệ quy sạch:
+
+```powershell
+./build.ps1 -Configuration Release
+git diff --exit-code -- '**/packages.lock.json'
+git -C vendor/sourcegrid status --porcelain
+```
+
+Build script kiểm exit codes của locked restore và build. Workflow thất bại nếu lockfiles thay đổi hoặc SourceGrid worktree bẩn; run nêu trên đạt cả hai checks.
 
 Source parity được kiểm trực tiếp với các checkout exact revisions theo [PROVENANCE](../PROVENANCE.md). Root scripts/build metadata và bốn project deltas được review riêng. Raw logs/build output ở thư mục `artifacts/` bị Git ignore; record này chứa kết quả đã rà soát, không nhúng đường dẫn máy hoặc dữ liệu runtime của sản phẩm.
 
@@ -67,10 +84,10 @@ Windows CI dùng SDK `8.0.426` và báo `NU1004` ở ControlGallery, GridGallery
 
 Correction khai báo **restore set** `win7-x86;win7-x64` cho executable `net48` trong root targets, giữ nguyên lựa chọn RID/PlatformTarget hiệu lực của SDK. Cả ba lockfiles executable được regenerate; các dependency groups đã tồn tại giữ nguyên resolved package versions. Các owner lockfiles khác chỉ trả về định dạng EOF do NuGet sinh.
 
-Đã quan sát chu kỳ RED → GREEN: locked restore với restore set mới và locks cũ thất bại `NU1004` đúng ba project; regenerate locks có chủ đích; locked restore exit 0; full Release build hai targets exit 0, **0 warnings / 0 errors**, 15,90 giây. SourceGrid worktree sạch. Native tests vẫn chưa chạy. Windows CI phải chạy lại trên correction commit trước khi ghi Windows build PASS.
+Đã quan sát chu kỳ RED → GREEN: locked restore với restore set mới và locks cũ thất bại `NU1004` đúng ba project; regenerate locks có chủ đích; locked restore exit 0; full Release build hai targets exit 0, **0 warnings / 0 errors**, 15,90 giây. SourceGrid worktree sạch. Sau đó [Windows CI của correction commit](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/actions/runs/40115483052) đã **PASS**: locked restore thành công, cả tám projects build cho cả hai targets, **0 warnings / 0 errors**, locks và vendor không đổi. Review hẹp cho correction không còn finding cần xử lý. Native tests vẫn chưa chạy.
 
 ## Phần nghiệm thu tiếp theo
 
-Trên Windows, thực hiện commands của [TESTING](../TESTING.md), ghi actual discovery/pass/fail/skip theo từng owner/framework, mở hai galleries và kiểm native seams bị ảnh hưởng. Nếu CI build chạy, ghi candidate SHA/run URL và kết quả; CI chỉ build, không thay GUI acceptance.
+Build graph mới đã đạt trên Windows. Phần còn lại là thực hiện native-test commands của [TESTING](../TESTING.md), ghi actual discovery/pass/fail/skip theo từng owner/framework, mở hai galleries và kiểm native seams bị ảnh hưởng. CI build không thay GUI acceptance.
 
-Sau đó consumer migration được giao riêng theo [CONSUMER_MIGRATION](../CONSUMER_MIGRATION.md). Một source bootstrap có thể dùng để tiếp tục phát triển toolkit, nhưng **A3 toàn phần chưa hoàn tất** khi Windows/native và consumer acceptance còn mở.
+Sau đó consumer migration được giao riêng theo [CONSUMER_MIGRATION](../CONSUMER_MIGRATION.md). Một source bootstrap có thể dùng để tiếp tục phát triển toolkit, nhưng **A3 toàn phần chưa hoàn tất** khi native và consumer acceptance còn mở.
