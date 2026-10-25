@@ -190,3 +190,22 @@ Trên Windows 11, SDK `8.0.426`, Release, native VSTest x64, chạy tuần tự 
 | Correction `07e418b`, `net8.0-windows` | `dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --blame-hang --blame-hang-timeout 5m` | 2357 | 2357 | 0 | 2 | PASS |
 
 Fixture DateInput riêng trên `net48` đạt 38/38 sau correction. Hai full Controls runs ở correction đạt 0 fail và có cùng hai cases `[Explicit]` không chạy trong full suite; không tính chúng là PASS mới. Adapter owner, explicit native cases, galleries, physical DPI và Designer **NOT RUN** tại `07e418b` vì diff chỉ chạm test helper; evidence của `eeb2513` ở trên vẫn giữ nguyên phạm vi candidate của nó. `git diff --check` và SourceGrid pin `f4e457b` được kiểm lại trước commit.
+
+## Review vòng 2 PR #1 — candidate `9ec91ac` ngày 25/10/2026
+
+Finding R2-F1: click kích hoạt caption trong test host DateInput nay chọn cặp `SendInput` LEFT hoặc RIGHT theo `SystemInformation.MouseButtonsSwapped`, luôn dùng nút chính. Test ghi cấu hình đã đọc và xác nhận click được gửi trong nhánh fallback. Finding R2-F2: bảng V1 trong plan đã sửa attribution: hai explicit native cases chạy ở `0407c47`, còn `eeb2513` chỉ đổi build metadata. Commit code/plan: `9ec91acdade0125464ba2aa718e391e69819b286`. Production, adapter và SourceGrid gitlink không đổi.
+
+Windows 11, SDK `8.0.426`, Release, native VSTest x64. `dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f <target> --no-restore` **PASS**, 0 warnings/errors với `net48` và `net8.0-windows`. Chạy tuần tự cho mỗi target và mỗi cấu hình chuột:
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f <target> --no-build --no-restore --filter 'FullyQualifiedName~BootstrapContextMenuStripInteractionTests|FullyQualifiedName~BootstrapDateInputInteractionTests' --blame-hang --blame-hang-timeout 5m --logger 'console;verbosity=normal'
+```
+
+| Target | Cấu hình nút chuột | Discovered | Executed | Pass | Fail | Dấu vết fallback |
+|---|---|---:|---:|---:|---:|---|
+| `net48` | Thường | 41 | 41 | 41 | 0 | `swapped=False, sent=True` |
+| `net48` | Đảo | 41 | 41 | 41 | 0 | `swapped=True, sent=True` |
+| `net8.0-windows` | Thường | 41 | 41 | 41 | 0 | `swapped=False, sent=True` |
+| `net8.0-windows` | Đảo | 41 | 41 | 41 | 0 | `swapped=True, sent=True` |
+
+Cấu hình đảo được bật tạm bằng `SwapMouseButton(true)` trong wrapper PowerShell với `finally` khôi phục giá trị ban đầu; sau cả hai lượt đảo, `SystemInformation.MouseButtonsSwapped=False` đã được xác nhận. Full owner suites, hai explicit native cases, galleries, physical DPI và Designer **NOT RUN** tại candidate này vì diff chỉ đổi test helper và attribution; kết quả lịch sử phía trên giữ nguyên candidate riêng của chúng.
