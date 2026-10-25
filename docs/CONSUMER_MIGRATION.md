@@ -1,10 +1,10 @@
 # Đưa WinFormsKit vào consumer và rollback
 
-Đây là recipe cho thay đổi consumer riêng sau bootstrap. Các lệnh trong trang này **chưa được thực hiện trên MyDmsVn bởi việc khởi tạo toolkit**. [Plan A3](plans/20261024-001-a3-winformskit.md) ghi trạng thái; [điều kiện A3 trong Docs][a3] yêu cầu graph mới, native app checks phù hợp, provenance và đường quay về exact pins cũ.
+Đây là recipe cho thay đổi consumer riêng sau bootstrap. Cutover từ exact checkout app `6c385d7630b6b21e915e244113c214aa616327f6` đã được thực hiện trên branch `codex/a3-consumer-from-6c385d7` tại `20c6a6ed58363736f6d7542cf2515af3a1bbd686`; [Plan A3](plans/20261024-001-a3-winformskit.md) ghi trạng thái và [verification report](verification/20261024-a3-bootstrap.md) ghi kết quả. [Điều kiện A3 trong Docs][a3] yêu cầu graph mới, native app checks phù hợp, provenance và đường quay về exact pins cũ.
 
 ## Baseline để đối chiếu
 
-Recipe dựa trên [MyDmsVn `v1a-pro-ui-next` tại `6c385d7`][app]. Khi được giao consumer cutover, đọc lại HEAD, `AGENTS.md`, project graph và test policy của app; ghi delta trước khi sửa. Không reset app về baseline lịch sử.
+Cutover này xuất phát trực tiếp từ [MyDmsVn `v1a-pro-ui-next` tại `6c385d7`][app]. Bảng dưới là pins **thực tế** cần dùng khi rollback commit `20c6a6e`.
 
 | Dependency hiện hữu tại baseline | Đường dẫn trong app | Exact pin |
 |---|---|---|
@@ -12,7 +12,7 @@ Recipe dựa trên [MyDmsVn `v1a-pro-ui-next` tại `6c385d7`][app]. Khi đượ
 | Bootstrap5WinFormUI | `vendor/MyDmsVn.BootstrapSourceGrid/vendor/Bootstrap5WinFormUI` | `8ae217ea8aa9a938ebd558f7071dc737f909e6a5` |
 | SourceGrid | `vendor/MyDmsVn.BootstrapSourceGrid/vendor/sourcegrid` | `f4e457b43582bf01892f50bdc74aa480531e5944` |
 
-Sources: [app `.gitmodules`][app-modules], [BSG tree/gitlinks][grid-tree], [source provenance](PROVENANCE.md). Giữ thông tin này trong PR migration để rollback không phụ thuộc upstream HEAD.
+Sources: [app `.gitmodules`][app-modules], [BSG tree/gitlinks][grid-tree] và [source provenance](PROVENANCE.md). Migration khác từ app `8cfa253` tại `0f4e273` có rollback pins `09eab7a`/`aba102e`; chúng không áp dụng cho commit `20c6a6e`. Giữ exact pins trong PR migration để rollback không phụ thuộc upstream HEAD.
 
 ## 1. Chọn candidate đã review
 
@@ -46,7 +46,7 @@ Reference trong `src/MyDmsVn.Desktop.WinForms/MyDmsVn.Desktop.WinForms.csproj` t
 <ProjectReference Include="..\..\vendor\MyDmsVn.WinFormsKit\src\MyDmsVn.BootstrapSourceGrid\MyDmsVn.BootstrapSourceGrid.csproj" />
 ```
 
-Review toàn bộ `.sln`, `.csproj`, `.props`, `.targets`, scripts đóng gói và test helpers đang tìm đường dẫn vendor. `MyDmsVn.UiLab.sln` và production solution phải resolve cùng source graph dù không cùng liệt kê tất cả dependency projects. Không reference cả old/new copy hoặc ProjectReference/PackageReference của cùng assembly.
+Review toàn bộ `.sln`, `.csproj`, `.props`, `.targets`, scripts đóng gói và test helpers đang tìm đường dẫn vendor. App base `6c385d7` có `samples/MyDmsVn.Desktop.UiLab`; production solution chỉ đổi ba dependency project paths. Không reference cả old/new copy hoặc ProjectReference/PackageReference của cùng assembly.
 
 Khi không còn reference thực thi tới graph cũ, kiểm vendor cũ sạch rồi loại gitlink cũ và entry tương ứng trong `.gitmodules` bằng workflow submodule của app. Đừng xóa mọi chuỗi path cũ trong historical evidence: các baseline đó vẫn đúng tại commit được dẫn. Không đưa galleries/test projects của toolkit vào production executable/package.
 

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Keep source-consumed toolkit projects independent of a parent repository's CPM graph. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

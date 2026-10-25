@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
@@ -20,6 +21,34 @@ public sealed class BootstrapDateInputInteractionTests
 {
     [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool PostMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetForegroundWindow(IntPtr handle);
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint inputCount, NativeInput[] inputs, int inputSize);
+    private const uint InputMouse = 0;
+    private const uint MouseEventLeftDown = 0x0002;
+    private const uint MouseEventLeftUp = 0x0004;
+    private const uint MouseEventRightDown = 0x0008;
+    private const uint MouseEventRightUp = 0x0010;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeInput
+    {
+        internal uint Type;
+        internal NativeMouseInput Mouse;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeMouseInput
+    {
+        internal int X;
+        internal int Y;
+        internal uint MouseData;
+        internal uint Flags;
+        internal uint Time;
+        internal UIntPtr ExtraInfo;
+    }
     private const int WmChar = 0x0102;
     private const int WmKeyDown = 0x0100;
     private const int WmLButtonDown = 0x0201;
@@ -716,18 +745,75 @@ public sealed class BootstrapDateInputInteractionTests
     private static Form Host(out BootstrapDateInput input)
     {
         var form = new Form { Width = 420, Height = 150, ShowInTaskbar = false };
-        input = new BootstrapDateInput
+        try
         {
-            Profile = new DateInputProfile(false, new DateTime(1900, 1, 1), new DateTime(2100, 12, 31)),
-            ReferenceDateProvider = () => new DateTime(2026, 10, 23),
-            Dock = DockStyle.Top
-        };
-        form.Controls.Add(input);
-        form.Show();
-        form.Activate();
-        input.BeginEditSession(new DateTime(2026, 10, 23));
-        input.NativeEditor.Focus();
-        Application.DoEvents();
-        return form;
+            input = new BootstrapDateInput
+            {
+                Profile = new DateInputProfile(false, new DateTime(1900, 1, 1), new DateTime(2100, 12, 31)),
+                ReferenceDateProvider = () => new DateTime(2026, 10, 23),
+                Dock = DockStyle.Top
+            };
+            form.Controls.Add(input);
+            form.Show();
+            input.BeginEditSession(new DateTime(2026, 10, 23));
+
+            // Keep activation local to this host. Never attach the STA input queue
+            // to a foreground thread owned by another process.
+            var activation = Stopwatch.StartNew();
+            form.Activate();
+            var foregroundSet = SetForegroundWindow(form.Handle);
+            Application.DoEvents();
+            var clickSent = false;
+            if (GetForegroundWindow() != form.Handle)
+            {
+                // Windows can refuse SetForegroundWindow after another process takes
+                // foreground. Real input to our visible host grants it activation.
+                var cursor = Cursor.Position;
+                form.TopMost = true;
+                try
+                {
+                    var caption = new Point(form.Left + form.Width / 2, form.Top + 10);
+                    Assert.That(SetCursorPos(caption.X, caption.Y), Is.True, "Cannot target the DateInput test host caption.");
+                    var buttonsSwapped = SystemInformation.MouseButtonsSwapped;
+                    var primaryDown = buttonsSwapped ? MouseEventRightDown : MouseEventLeftDown;
+                    var primaryUp = buttonsSwapped ? MouseEventRightUp : MouseEventLeftUp;
+                    var inputs = new[]
+                    {
+                        new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = primaryDown } },
+                        new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = primaryUp } }
+                    };
+                    clickSent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(NativeInput))) == inputs.Length;
+                    TestContext.Progress.WriteLine($"DateInput host activation click: swapped={buttonsSwapped}, sent={clickSent}.");
+                    Assert.That(clickSent, Is.True, "Cannot send the DateInput test host activation click.");
+                    Application.DoEvents();
+                }
+                finally
+                {
+                    form.TopMost = false;
+                    Cursor.Position = cursor;
+                }
+            }
+            do
+            {
+                form.Activate();
+                input.NativeEditor.Focus();
+                Application.DoEvents();
+                if (GetForegroundWindow() == form.Handle && Form.ActiveForm == form && input.NativeEditor.Focused)
+                    break;
+                Thread.Sleep(10);
+            } while (activation.Elapsed < TimeSpan.FromSeconds(2));
+
+            var foreground = GetForegroundWindow();
+            GetWindowThreadProcessId(foreground, out var foregroundProcess);
+            Assert.That(foreground, Is.EqualTo(form.Handle), $"DateInput native test host must be foreground. SetForegroundWindow={foregroundSet}, clickSent={clickSent}, foregroundProcess={foregroundProcess}, testProcess={Process.GetCurrentProcess().Id}, foregroundHandle={foreground}, formHandle={form.Handle}, elapsed={activation.Elapsed}.");
+            Assert.That(Form.ActiveForm, Is.SameAs(form), "DateInput native test host must be active.");
+            Assert.That(input.NativeEditor.Focused, Is.True, "DateInput native editor must have focus before input.");
+            return form;
+        }
+        catch
+        {
+            form.Dispose();
+            throw;
+        }
     }
 }
