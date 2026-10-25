@@ -29,6 +29,8 @@ public sealed class BootstrapDateInputInteractionTests
     private const uint InputMouse = 0;
     private const uint MouseEventLeftDown = 0x0002;
     private const uint MouseEventLeftUp = 0x0004;
+    private const uint MouseEventRightDown = 0x0008;
+    private const uint MouseEventRightUp = 0x0010;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeInput
@@ -772,12 +774,16 @@ public sealed class BootstrapDateInputInteractionTests
                 {
                     var caption = new Point(form.Left + form.Width / 2, form.Top + 10);
                     Assert.That(SetCursorPos(caption.X, caption.Y), Is.True, "Cannot target the DateInput test host caption.");
+                    var buttonsSwapped = SystemInformation.MouseButtonsSwapped;
+                    var primaryDown = buttonsSwapped ? MouseEventRightDown : MouseEventLeftDown;
+                    var primaryUp = buttonsSwapped ? MouseEventRightUp : MouseEventLeftUp;
                     var inputs = new[]
                     {
-                        new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = MouseEventLeftDown } },
-                        new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = MouseEventLeftUp } }
+                        new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = primaryDown } },
+                        new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = primaryUp } }
                     };
                     clickSent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(NativeInput))) == inputs.Length;
+                    TestContext.Progress.WriteLine($"DateInput host activation click: swapped={buttonsSwapped}, sent={clickSent}.");
                     Assert.That(clickSent, Is.True, "Cannot send the DateInput test host activation click.");
                     Application.DoEvents();
                 }
