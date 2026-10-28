@@ -21,6 +21,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
     private static readonly IconDescriptor ClearIcon = IconDescriptor.Framework(FrameworkIconGlyph.Close);
 
     private readonly TextBox _editor = new TextBox();
+    private readonly EditorAccessibilityWindow _editorAccessibilityWindow;
     private readonly Label _placeholder = new Label();
     private readonly Button _clearButton = new Button();
     private Control? _frameworkTrailingAccessory;
@@ -41,12 +42,18 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
     private bool _useThemeFont = true;
     private Font? _themeFont;
     private BootstrapFontToken? _themeFontToken;
+    private bool _synchronizingEditorAccessibility;
+    private string? _forwardedAccessibleName;
+    private string? _previousEditorAccessibleName;
+    private string? _forwardedAccessibleDescription;
+    private string? _previousEditorAccessibleDescription;
 
     /// <summary>
     /// Initializes a designer-safe text box using the current application theme.
     /// </summary>
     public BootstrapTextBox()
     {
+        _editorAccessibilityWindow = new EditorAccessibilityWindow(this);
         SetStyle(
             ControlStyles.UserPaint |
             ControlStyles.AllPaintingInWmPaint |
@@ -64,6 +71,8 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
         _editor.BorderStyle = BorderStyle.None;
         _editor.TabStop = false;
         _editor.Margin = Padding.Empty;
+        _editor.HandleCreated += OnEditorHandleCreated;
+        _editor.HandleDestroyed += OnEditorHandleDestroyed;
         _editor.TextChanged += HandleEditorTextChanged;
         _editor.GotFocus += OnEditorGotFocus;
         _editor.LostFocus += OnEditorLostFocus;
@@ -334,6 +343,72 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
     }
 
     /// <summary>
+    /// Gets or sets whether the native editor displays multiple lines in the caller-sized control.
+    /// </summary>
+    [Category("Behavior")]
+    [Description("Displays multiple native text lines while retaining the caller's control height.")]
+    [DefaultValue(false)]
+    public bool Multiline
+    {
+        get => _editor.Multiline;
+        set
+        {
+            if (_editor.Multiline == value)
+            {
+                return;
+            }
+
+            _editor.Multiline = value;
+            PerformLayout();
+            Invalidate();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether the native multiline editor wraps text to the available width.
+    /// </summary>
+    [Category("Behavior")]
+    [Description("Wraps multiline text. Native horizontal scrollbars are hidden while wrapping is enabled.")]
+    [DefaultValue(true)]
+    public bool WordWrap
+    {
+        get => _editor.WordWrap;
+        set
+        {
+            if (_editor.WordWrap == value)
+            {
+                return;
+            }
+
+            _editor.WordWrap = value;
+            PerformLayout();
+            Invalidate();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the native scrollbars used when <see cref="Multiline"/> is enabled.
+    /// </summary>
+    [Category("Behavior")]
+    [Description("Selects native multiline scrollbars; horizontal scrolling also requires WordWrap = false.")]
+    [DefaultValue(ScrollBars.None)]
+    public ScrollBars ScrollBars
+    {
+        get => _editor.ScrollBars;
+        set
+        {
+            if (_editor.ScrollBars == value)
+            {
+                return;
+            }
+
+            _editor.ScrollBars = value;
+            PerformLayout();
+            Invalidate();
+        }
+    }
+
+    /// <summary>
     /// Gets or sets whether the native editor uses the system password character.
     /// </summary>
     [Category("Behavior")]
@@ -530,6 +605,9 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
                 _themeSubscribed = false;
             }
 
+            _editor.HandleCreated -= OnEditorHandleCreated;
+            _editor.HandleDestroyed -= OnEditorHandleDestroyed;
+            _editorAccessibilityWindow.ReleaseHandle();
             DisposeThemeFont();
         }
 
@@ -564,6 +642,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
 
     private void OnEditorGotFocus(object? sender, EventArgs e)
     {
+        SynchronizeEditorAccessibility();
         _editorHasFocus = true;
         UpdatePlaceholderVisibility();
         Invalidate();
@@ -629,6 +708,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
 
     private void ApplyTheme()
     {
+        SynchronizeEditorAccessibility();
         var colors = BootstrapThemeManager.CurrentTheme.Colors;
         var surface = Enabled && !ReadOnly ? colors.Surface : colors.SurfaceSecondary;
         var foreground = Enabled ? colors.Text : colors.MutedText;
@@ -700,6 +780,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
 
     private void FocusEditor()
     {
+        SynchronizeEditorAccessibility();
         if (Enabled && !_editor.Focused)
         {
             _editor.Focus();
@@ -727,6 +808,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
 
     private void LayoutChildren()
     {
+        SynchronizeEditorAccessibility();
         if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
         {
             return;
@@ -769,10 +851,18 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
 
         var editorHeight = Math.Min(_editor.PreferredHeight, Math.Max(1, ClientSize.Height - 2));
         var editorTop = Math.Max(0, (ClientSize.Height - editorHeight) / 2);
+        if (_editor.Multiline)
+        {
+            var verticalPadding = Math.Max(1, DpiScaler.Scale(theme.Metrics.SpacingXS, dpi));
+            editorTop = Math.Min(verticalPadding, Math.Max(0, (ClientSize.Height - 1) / 2));
+            editorHeight = Math.Max(1, ClientSize.Height - (editorTop * 2));
+        }
+
         var editorWidth = Math.Max(1, right - left);
         var editorBounds = new Rectangle(left, editorTop, editorWidth, editorHeight);
         _editor.Bounds = editorBounds;
         _placeholder.Bounds = editorBounds;
+        _placeholder.TextAlign = _editor.Multiline ? ContentAlignment.TopLeft : ContentAlignment.MiddleLeft;
 
         if (_placeholder.Visible)
         {
@@ -855,5 +945,90 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
             DpiScaler.Scale(radius.TopRight, dpi),
             DpiScaler.Scale(radius.BottomRight, dpi),
             DpiScaler.Scale(radius.BottomLeft, dpi));
+    }
+
+    private void OnEditorHandleCreated(object? sender, EventArgs e)
+    {
+        SynchronizeEditorAccessibility();
+        _editorAccessibilityWindow.AssignHandle(_editor.Handle);
+    }
+
+    private void OnEditorHandleDestroyed(object? sender, EventArgs e)
+    {
+        _editorAccessibilityWindow.ReleaseHandle();
+    }
+
+    private void SynchronizeEditorAccessibility()
+    {
+        if (_synchronizingEditorAccessibility)
+        {
+            return;
+        }
+
+        _synchronizingEditorAccessibility = true;
+        try
+        {
+            _editor.AccessibleName = ResolveEditorAccessibilityValue(
+                AccessibleName, _editor.AccessibleName,
+                ref _forwardedAccessibleName, ref _previousEditorAccessibleName);
+            _editor.AccessibleDescription = ResolveEditorAccessibilityValue(
+                AccessibleDescription, _editor.AccessibleDescription,
+                ref _forwardedAccessibleDescription, ref _previousEditorAccessibleDescription);
+        }
+        finally
+        {
+            _synchronizingEditorAccessibility = false;
+        }
+    }
+
+    private static string? ResolveEditorAccessibilityValue(
+        string? ownerValue, string? editorValue, ref string? forwardedValue, ref string? previousEditorValue)
+    {
+        if (ownerValue is not null)
+        {
+            if (forwardedValue is null || !string.Equals(editorValue, forwardedValue, StringComparison.Ordinal))
+            {
+                previousEditorValue = editorValue;
+            }
+
+            forwardedValue = ownerValue;
+            return ownerValue;
+        }
+
+        // A derived control may name its native editor independently, as Select's search editor does.
+        if (forwardedValue is null)
+        {
+            return editorValue;
+        }
+
+        var restoredValue = string.Equals(editorValue, forwardedValue, StringComparison.Ordinal)
+            ? previousEditorValue
+            : editorValue;
+        forwardedValue = null;
+        previousEditorValue = null;
+        return restoredValue;
+    }
+
+    private sealed class EditorAccessibilityWindow : NativeWindow
+    {
+        private const int WmSetFocus = 0x0007;
+        private const int WmGetObject = 0x003D;
+        private readonly BootstrapTextBox _owner;
+
+        internal EditorAccessibilityWindow(BootstrapTextBox owner)
+        {
+            _owner = owner;
+        }
+
+        protected override void WndProc(ref Message message)
+        {
+            if (message.Msg == WmSetFocus || message.Msg == WmGetObject)
+            {
+                // Synchronize metadata before the native provider handles the request; never replace it.
+                _owner.SynchronizeEditorAccessibility();
+            }
+
+            base.WndProc(ref message);
+        }
     }
 }

@@ -119,6 +119,7 @@ Behavior:
 - `BootstrapButton` derives from the native WinForms `Button`, preserving normal command, focus, Enter/Space, and `PerformClick()` semantics when not loading.
 - The entire normal-state client area is clickable; hover, pressed, focus, disabled, and selected states are custom-painted from theme tokens.
 - Filled and outline presentations support all semantic `BootstrapVariant` values. Semantic color resolution is shared with Spinner instead of duplicated in each control.
+- Trạng thái disabled dùng nền trung tính `SurfaceSecondary`, chữ/icon `Text` và viền `Disabled` để nhãn còn đọc rõ và không chỉ khác Secondary outline ở đường viền. Palette disabled ưu tiên trên Variant, Selected, hover/pressed; hành vi bất hoạt và giá trị `Enabled` do consumer sở hữu vẫn giữ nguyên.
 - Small/default/large heights and padding/radius choices reuse `BootstrapThemeMetrics` and scale through `DpiScaler`.
 - `Icon` is a source-neutral `IconDescriptor`. `IconRenderer` defaults to the built-in Segoe MDL2/framework-vector renderer and can be replaced with a renderer that includes SVG or application-defined providers. The Button never branches on icon source kind.
 - `BorderRadius = -1` uses the current theme radius for `ButtonSize`; non-negative values specify an explicit uniform logical radius.
@@ -193,7 +194,7 @@ Manual verification: in **Groups / Toolbar**, compare the fixed-width `SpaceBetw
 
 Responsibility: modern themed text input while preserving native WinForms editing semantics.
 
-Phase 8 finalizes the public concepts as:
+Hợp đồng hiện hành giữ các API Phase 8 và bổ sung multiline theo EXC-T03:
 
 ```text
 BootstrapValidationState: None | Valid | Invalid
@@ -205,6 +206,9 @@ BootstrapTextBox.TrailingIcon
 BootstrapTextBox.IconRenderer
 BootstrapTextBox.ShowClearButton
 BootstrapTextBox.ReadOnly
+BootstrapTextBox.Multiline
+BootstrapTextBox.WordWrap
+BootstrapTextBox.ScrollBars
 BootstrapTextBox.UseSystemPasswordChar
 BootstrapTextBox.BorderRadius
 BootstrapTextBox.Clear()
@@ -223,6 +227,21 @@ Behavior:
 - `BorderRadius = -1` uses the current theme radius; non-negative values specify an explicit uniform logical radius.
 - Runtime theme changes update typography, surface, text, placeholder, border, icon, and validation colors. DPI changes recompute border, icon, padding, and layout geometry.
 - Designer construction requires no application bootstrap. Theme subscriptions and theme-owned font resources are released during disposal.
+
+### Multiline — bổ sung EXC-T03
+
+`Multiline` mặc định `false`, `WordWrap` mặc định `true`, `ScrollBars` mặc định `ScrollBars.None`. Ba thuộc tính chuyển trực tiếp đến native `TextBox`, có metadata mặc định để Designer chỉ serialize cấu hình khác mặc định. Giá trị `ScrollBars` không hợp lệ giữ exception của WinForms.
+
+- Single-line tiếp tục dùng `PreferredHeight` và căn giữa theo chiều dọc; constructor, adapter, formatted/decimal/lookup inputs không tự bật multiline.
+- Khi `Multiline = true`, editor dùng phần chiều cao bên trong control với inset lấy từ theme/DPI. Consumer tiếp tục sở hữu `Height`, `Size` và `Dock`; bật chế độ không tự đặt lại chiều cao bên ngoài.
+- Placeholder căn trên-trái trong multiline và giữ quy tắc ẩn khi có nội dung hoặc native editor nhận focus. Các icon, clear button và framework accessory vẫn dành vùng ngang riêng, không che editor hoặc scrollbar.
+- `ReadOnly = true` vẫn cho focus, chọn và sao chép văn bản; chặn sửa của người dùng và ẩn clear button. Scrollbar, caret, selection, clipboard và accessible read-only state tiếp tục do native editor sở hữu. Bản thân scrollbar vẫn dùng giao diện hệ điều hành.
+- `WordWrap = true` giữ quy tắc native: không hiện horizontal scrollbar, kể cả khi chọn `ScrollBars.Both`. Văn bản mô tả nhiều dòng thường dùng `WordWrap = true` cùng `ScrollBars.Vertical`.
+- Không thêm `AcceptsTab`/`AcceptsReturn`; giá trị native mặc định vẫn là `false`, và Tab tiếp tục chuyển focus. Các control định dạng/lookup và password giữ chế độ single-line mặc định; phần bổ sung không tạo hợp đồng định dạng multiline mới cho chúng.
+
+Wrapper chuyển `AccessibleName`/`AccessibleDescription` được gán sang editor khi tạo handle, nhận focus, layout/theme và trước yêu cầu native `WM_GETOBJECT`. Native accessibility provider không bị thay; helper theo vòng đời handle và được tháo khi dispose. Metadata native riêng của derived control được giữ nếu wrapper không có giá trị; khi bỏ wrapper override, giá trị native trước đó được khôi phục nếu vẫn do wrapper sở hữu. Vì setters kế thừa của `Control` không phát sự kiện thay đổi, một accessibility client đã cache provider có thể còn thấy metadata cũ sau thay đổi chỉ riêng metadata cho đến lần đồng bộ kế tiếp. Gán tên/mô tả khi khởi tạo trước khi hiển thị là cách dùng được hỗ trợ cho các bề mặt mô tả chỉ đọc.
+
+Kiểm chứng bổ sung: resize/font/DPI, theme Light/Dark khi đang focus và có selection, chọn/sao chép nhiều dòng, cuộn tới nội dung cuối, Tab/Shift+Tab, accessible name/read-only state và Designer trên cả hai targets. Source/tests mới không tự xác nhận Windows/native PASS; ghi kết quả candidate theo [TESTING](../../TESTING.md).
 
 Manual verification: launch the demo and choose **TextBox / Card**. Exercise placeholder, leading/trailing icons, clear, valid/invalid, read-only, password, and disabled examples. Tab into inputs, type/select/copy text, verify focus/validation border priority, switch Light/Dark, and repeat at each supported Windows DPI setting.
 
@@ -1392,6 +1411,7 @@ BootstrapModal.FooterPanel
 - Small/Default/Large/ExtraLarge own DPI-scaled preferred widths of 300/500/800/1140 logical pixels. `Custom` keeps the caller's inherited `Size`/`ClientSize` request. Minimum/maximum constraints apply when physically possible, while final working-area clamping keeps header/footer reachable and constrains the scrollable body.
 - Initial focus prefers a valid `InitialFocusControl`, then a valid inherited `ActiveControl`, then native select-next navigation. Native Tab/Shift+Tab and Enter behavior is unchanged. A native `CancelButton` owns Escape before the framework fallback.
 - Runtime Light/Dark changes repaint the shell and backdrop. Framework metrics and radius use `DpiScaler`; RTL mirrors the title/close/action flow. Accessible name falls back to inherited `Text`, and the backdrop is a non-command tool window.
+- Typography của header tái sử dụng Font do modal sở hữu khi Font mới có giá trị tương đương, kể cả khi tên family khác nhau cùng resolve về một fallback. Đổi palette không dispose Font mà title đang dùng; thay typography và dispose modal chỉ giải phóng Font do header tạo, không giải phóng Font của caller.
 - Opening uses the shared finite animation and resolves immediately under reduced motion. Framework dismissal is intentionally immediate in V1 because delaying it would complicate native cancellable close/result semantics; caller/native close paths are never intercepted for animation.
 - Modeless `Show()` receives only the visual Form shell and creates no backdrop; modeless behavior is not a V1 contract. Nested Bootstrap modals, fullscreen variants, draggable/resizable custom chrome, DWM effects, MDI-special behavior, custom message loops, global input hooks, and async result wrappers are excluded.
 

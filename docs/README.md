@@ -12,7 +12,9 @@ Tài liệu tại đây đi cùng source toolkit. MyDmsVn.Docs sở hữu ý đ�
 | Notices/license theo component | [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
 | Consumer migration và rollback | [CONSUMER_MIGRATION](CONSUMER_MIGRATION.md) |
 | Điều kiện package/distribution | [RELEASING](RELEASING.md) |
-| Công việc và phần nghiệm thu còn lại | [ROADMAP](ROADMAP.md) → [plan A3](plans/20261024-001-a3-winformskit.md) |
+| Công việc được chọn | [ROADMAP](ROADMAP.md) → [plan ba ngoại lệ Business Compact](plans/20261028-001-business-compact-exceptions.md) |
+| Kết quả source/build và native còn chờ của scope mới | [Candidate evidence](verification/20261028-business-compact-exceptions.md) |
+| Trạng thái bootstrap và điều kiện A3 còn lại | [Plan A3](plans/20261024-001-a3-winformskit.md) |
 | Kết quả thực tế của bootstrap | [Verification](verification/20261024-a3-bootstrap.md) |
 
 ## Component references

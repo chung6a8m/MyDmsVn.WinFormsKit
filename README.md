@@ -2,7 +2,9 @@
 
 Toolkit Windows Forms tập hợp **Bootstrap5WinFormUI** và **BootstrapSourceGrid** trong một repository, giữ hai assembly/public identities và pin engine SourceGrid riêng. Source được nhập từ dependency revisions mà MyDmsVn sử dụng; mapping nằm trong [PROVENANCE](docs/PROVENANCE.md).
 
-Phạm vi A3 được giao, trạng thái bootstrap và phần kiểm chứng/consumer migration còn lại chỉ ghi tại [kế hoạch hiện hành](docs/plans/20261024-001-a3-winformskit.md). [Verification report](docs/verification/20261024-a3-bootstrap.md) ghi kết quả thật theo candidate.
+Scope hiện hành là [khắc phục ba ngoại lệ Business Compact](docs/plans/20261028-001-business-compact-exceptions.md): disabled action, modal Font và multiline read-only. [Candidate evidence](docs/verification/20261028-business-compact-exceptions.md) ghi riêng source/cross-build và Windows/native/Owner approval còn chờ; source mới chưa đóng các ngoại lệ.
+
+Phạm vi, trạng thái bootstrap và phần kiểm chứng/consumer migration của A3 vẫn thuộc [plan A3](docs/plans/20261024-001-a3-winformskit.md), với [evidence A3](docs/verification/20261024-a3-bootstrap.md) giữ nguyên theo candidate.
 
 ## Bắt đầu trên Windows
 

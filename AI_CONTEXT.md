@@ -1,6 +1,8 @@
 # Bối cảnh làm việc
 
-Đọc [README](README.md), rồi [plan A3 hiện hành](docs/plans/20261024-001-a3-winformskit.md) nếu làm bootstrap hoặc đánh giá điều kiện đóng. Plan sở hữu baseline và trạng thái; [verification report](docs/verification/20261024-a3-bootstrap.md) sở hữu kết quả thực tế. Không lấy trạng thái từ roadmap/evidence cũ của các repositories nguồn.
+Đọc [README](README.md), [ROADMAP](docs/ROADMAP.md), rồi [plan khắc phục ba ngoại lệ Business Compact](docs/plans/20261028-001-business-compact-exceptions.md) cho scope được chọn ngày 2026-10-28. [Candidate evidence mới](docs/verification/20261028-business-compact-exceptions.md) ghi source/cross-build riêng với Windows/native và Owner approval còn PENDING.
+
+Khi làm bootstrap hoặc đánh giá điều kiện A3, [plan A3](docs/plans/20261024-001-a3-winformskit.md) vẫn sở hữu baseline/trạng thái và [evidence A3](docs/verification/20261024-a3-bootstrap.md) sở hữu kết quả thực tế đã ghi. Không lấy trạng thái từ roadmap/evidence cũ của các repositories nguồn hoặc chuyển historical PASS sang candidate mới.
 
 ## Chọn đúng owner
 

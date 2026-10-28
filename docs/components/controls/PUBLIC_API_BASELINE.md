@@ -12,10 +12,10 @@ Phase 16 froze the Phase 15-reviewed exported API as the proposed v1 compatibili
 
 The baseline covers every exported type plus each declared public, protected, and protected-internal constructor, field, property, event, and method in the core assembly. Including protected surface is intentional because subclasses can depend on it.
 
-Approved SHA-256 API fingerprint:
+Approved SHA-256 API fingerprint (EXC-T03 compiled review, 2026-10-28):
 
 ```text
-702dbc491fa2022903e6fca0c6722375e34a6c154046967fc676d21251c6c779
+e6735faae42a8eb41c06cdd5d4fd27a87e56dccaee73f579cd4460ef0693db6e
 ```
 
 The reviewed Pagination addition exports only `MyDmsVn.Bootstrap5WinFormUI.Controls.BootstrapPagination`. Its declared surface is the parameterless constructor, `TotalItems`, `PageSize`, `CurrentPage`, `TotalPages`, `MaxVisiblePages`, `ShowFirstLast`, `ShowPreviousNext`, `ButtonSize`, `Variant`, `BorderRadius`, `PageChanged`, and the `GetPreferredSize(Size)` override inherited as part of the control contract. Pagination layout helper types remain internal.
@@ -117,6 +117,12 @@ The BootstrapModal fingerprint was approved only after the compatibility gate de
 The BootstrapListGroup fingerprint was approved only after the compatibility gate deliberately failed against the BootstrapModal baseline and printed `331dff43abbcc6a7875527f18b49c023c5f33447e4ca312dd3609cc46aebeaa3`. Review confirmed that the additive surface is limited to `BootstrapListGroup : Panel`, `BootstrapListGroupItem : Panel`, and sealed `BootstrapListGroupItemEventArgs`. The group declares only `Orientation`, `Flush`, `BorderRadius`, read-only `Items`, `ItemClick`, `AddItem` overloads, `RemoveItem`, `ClearItems`, and `GetPreferredSize`; the item declares only `Active`, `Actionable`, nullable `Variant`, `UseThemeFont`, and `GetPreferredSize`. Protected overrides are limited to the required ownership, layout, DPI, painting, focus, keyboard, mouse, and disposal hooks. Render/state/geometry helpers and child-forwarding bookkeeping remain internal/private; no selection/data-binding/virtualization API, item radius override, existing signature change, or assembly-version change was introduced.
 
 The BootstrapBreadcrumb fingerprint was approved only after the compatibility gate deliberately failed against the BootstrapListGroup baseline and printed `c6d2468d00dbacb879a4d3f6c31fd67dec681bd7db41007d6b282bfaa43c0884`. Line-by-line review confirmed that the additive surface contains exactly `BootstrapBreadcrumb : Panel`, `BootstrapBreadcrumbItem`, sealed `BootstrapBreadcrumbItemCollection`, and sealed `BootstrapBreadcrumbItemClickedEventArgs`. The control declares only `Divider`, read-only `Items`, `RightToLeftDivider`, `WrapContents`, `ItemClicked`, and `GetPreferredSize`, plus the required disposal, DPI, enabled, font, layout, and RTL protected overrides. The item exposes only `Text` and `Tag`; event args expose only `Item` and `Index`; the collection's visible subclass surface is exactly `ClearItems`, `InsertItem`, `RemoveItem`, and `SetItem`. Current-generation maps, item owner notifications/callbacks, segment structs, and layout logic remain internal/private; no routing/history/page-hosting API or existing signature changed, and `AssemblyVersion` remains `1.0.0.0`.
+
+## EXC-T03 — BootstrapTextBox multiline (2026-10-28)
+
+Source candidate bổ sung đúng ba property public có get/set trên `BootstrapTextBox`: `System.Boolean Multiline`, `System.Boolean WordWrap`, `System.Windows.Forms.ScrollBars ScrollBars`. Giá trị mặc định lần lượt là `false`, `true`, `None`. Không thêm public type, method, event, protected lifecycle override, keyboard-policy property hoặc native editor accessor; `Editor` giữ protected seam đã có. Native accessibility synchronization và handle monitor là private implementation. Existing signatures cùng `AssemblyVersion=1.0.0.0` giữ nguyên.
+
+Compiled export/fingerprint review **PASS** trên `net48` và `net8.0-windows`: build exact baseline `c232a4c09dc0386a5bd8bb484a5c991acae827d5` tái hiện đúng fingerprint `5016acec10c7efdafe03387de2c8f182a2e96c49f473f1bcb8bc6e5932dfa6cb` (182 exported types, 1.745 surface lines); candidate cho fingerprint `e6735faae42a8eb41c06cdd5d4fd27a87e56dccaee73f579cd4460ef0693db6e` (182 exported types, 1.748 surface lines). Hai target có API text giống nhau từng byte. Đối chiếu metadata bằng đúng thuật toán `BuildApiSurface`/`ComputeSha256` của gate xác nhận chỉ ba property trên được thêm, không có removals hoặc signature changes khác. Current header và `ApprovedV1Fingerprint` được cập nhật sau review delta này. Đây là compiled metadata evidence trên Linux; NUnit fingerprint test và Windows/native behavior tests vẫn **NOT RUN**, không có claim native gate PASS.
 
 ## Version compatibility policy
 

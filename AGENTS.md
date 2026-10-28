@@ -1,6 +1,6 @@
 # Làm việc trong MyDmsVn.WinFormsKit
 
-- Bắt đầu bằng `README.md`, `AI_CONTEXT.md` và files liên quan; `docs/ROADMAP.md` dẫn tới một plan hiện hành. Không chọn việc từ lịch sử upstream.
+- Bắt đầu bằng `README.md`, `AI_CONTEXT.md` và files liên quan; `docs/ROADMAP.md` dẫn tới plan được chọn cho công việc hiện hành. Không chọn việc từ lịch sử upstream.
 - Viết tài liệu hướng người dùng bằng tiếng Việt; giữ identifiers, diacritics và exact source citations. Markdown UTF-8 không BOM; theo `.editorconfig`/`.gitattributes`.
 - UI core và grid adapter cùng repo nhưng giữ assembly/package/public identities và targets `net48;net8.0-windows`; xem `docs/ARCHITECTURE.md`.
 - BSG → UI core + SourceGrid; UI core không phụ thuộc adapter/engine. Không đổi namespace BSG chỉ vì tên folder.
@@ -12,7 +12,8 @@
 - Chọn tests theo diff trong `docs/TESTING.md`; giữ hai test owners và helper host. Không xóa regression chỉ vì source đã di chuyển.
 - Native tests chạy STA, tuần tự, message pumping hữu hạn, không modal waits; giữ hang diagnostics 5 phút. Không thêm fail-fast vào production chỉ để dễ test.
 - Ghi candidate, commands, discovered/executed/pass/fail/skip và limitations; thiếu Windows/desktop ghi NOT RUN/BLOCKED. Historical PASS không chứng minh candidate mới.
-- `docs/plans/20261024-001-a3-winformskit.md` là owner trạng thái A3; entry pages chỉ link. Evidence thực tế nằm trong `docs/verification/`.
+- `docs/plans/20261028-001-business-compact-exceptions.md` sở hữu scope mới về disabled action, modal Font và multiline read-only; source/cross-build không thay Windows/native hoặc Owner approval.
+- `docs/plans/20261024-001-a3-winformskit.md` tiếp tục là owner trạng thái A3; entry pages chỉ link. Evidence theo từng candidate nằm trong `docs/verification/`; giữ nguyên lịch sử A3.
 - Public API hoặc behavior đổi phải cập nhật component contract và consumer compatibility theo scope; source reorganization không tự cho phép breaking changes.
 - Source consumption dùng ProjectReference. Package publication theo `docs/RELEASING.md`; không gán license chung, publish hay archive repo nguồn trong bootstrap.
 - Không commit binaries, `bin/`, `obj/`, caches, dumps, raw test results, credentials hoặc local IDE state. Không thêm approval manifests, runner frameworks hay skills ngoài task.

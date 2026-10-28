@@ -28,6 +28,9 @@ public sealed class BootstrapTextBoxTests
             Assert.That(input.TrailingIcon, Is.Null);
             Assert.That(input.ShowClearButton, Is.False);
             Assert.That(input.ReadOnly, Is.False);
+            Assert.That(input.Multiline, Is.False);
+            Assert.That(input.WordWrap, Is.True);
+            Assert.That(input.ScrollBars, Is.EqualTo(ScrollBars.None));
             Assert.That(input.UseSystemPasswordChar, Is.False);
             Assert.That(input.BorderRadius, Is.EqualTo(-1));
             Assert.That(input.TabStop, Is.True);

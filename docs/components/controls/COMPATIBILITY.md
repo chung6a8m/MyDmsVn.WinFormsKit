@@ -130,3 +130,11 @@ Release verification also includes the UI/manual matrix defined in `TESTING.md`.
 ## 11. Package compatibility rule
 
 Before adding a runtime dependency, verify that its supported target frameworks are compatible with both project targets or isolate it into an optional adapter package. Core functionality must not become unavailable on `net48` because of a convenience dependency chosen for `net8.0-windows`.
+
+## 12. BootstrapTextBox multiline — EXC-T03
+
+Phần bổ sung ngày 2026-10-28 dùng cùng source và public API trên `net48`/`net8.0-windows`: `Multiline`, `WordWrap`, `ScrollBars`. Mặc định giữ single-line, native keyboard policy và hình học editor hiện có; chỉ nhánh multiline dùng chiều cao caller cung cấp. Không đổi namespace, assembly identity/version, dependencies hoặc public native-child accessor. Adapter, formatted, decimal, lookup và input-group consumers giữ mặc định cũ.
+
+Mode/wrap/scrollbar setters giữ native handle-recreation behavior; cùng đối tượng `TextBox` tiếp tục sở hữu nội dung, caret, selection, clipboard và accessibility provider. Private `NativeWindow` chỉ đồng bộ accessible name/description trước focus/accessibility requests và tháo/gắn theo handle; không thay provider, hook toàn cục, timer hay message loop. Các tên native riêng của derived control không bị xóa khi wrapper metadata không được đặt.
+
+Metadata được cập nhật ở handle/focus/layout/theme/request boundaries; đây không phải cam kết thông báo tức thời tới client đã cache provider khi chỉ sửa `AccessibleName`/`AccessibleDescription`. Thiết lập metadata trước khi hiển thị đáp ứng consumer chỉ đọc được chọn. Mở rộng property phải đi qua reviewed compiled API delta; native tests, Designer và physical DPI cần Windows trên đúng candidate, không suy từ cross-build.
