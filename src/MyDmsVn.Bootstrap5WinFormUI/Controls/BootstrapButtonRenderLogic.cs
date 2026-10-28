@@ -149,7 +149,8 @@ internal static class BootstrapButtonRenderLogic
 
         if (!enabled)
         {
-            return new BootstrapButtonPalette(colors.Surface, colors.Disabled, colors.MutedText);
+            // Neutral chrome distinguishes disabled actions without dimming their label or icon.
+            return new BootstrapButtonPalette(colors.SurfaceSecondary, colors.Disabled, colors.Text);
         }
 
         var semantic = BootstrapVariantColorResolver.Resolve(colors, variant);

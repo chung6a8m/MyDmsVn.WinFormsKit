@@ -60,8 +60,15 @@ internal sealed class BootstrapModalHeader : Panel
         var token = typography.HeadingSmall;
         var next = new Font(token.FontFamilyName, token.SizeInPoints, token.Style);
         var previous = _themeFont;
-        _themeFont = next;
+        // WinForms can retain the existing Font when the assigned value is equal.
+        // Keep that owned instance alive, including equal resolved fallback families.
+        if (previous is not null && previous.Equals(next))
+        {
+            next.Dispose();
+            return;
+        }
         _titleLabel.Font = next;
+        _themeFont = next;
         previous?.Dispose();
     }
 
