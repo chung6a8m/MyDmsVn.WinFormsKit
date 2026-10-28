@@ -126,10 +126,12 @@ public sealed class BootstrapModalThemeDpiAccessibilityTests
                 modal.BodyPanel.Controls.Add(editor);
                 modal.InitialFocusControl = editor;
                 var title = (Label)modal.Controls.Find("BootstrapModalTitle", true)[0];
-                var nextFamily = useFallbackFamily ? title.Font.Name : requestedFamily;
-                using var equivalentFont = new Font(nextFamily, 11f, FontStyle.Bold);
+                // Font.Equals includes OriginalFontName on Windows. Recreate the same
+                // unavailable request so both instances resolve to the same fallback
+                // while still being equal for the WinForms Font assignment path.
+                using var equivalentFont = new Font(requestedFamily, 11f, FontStyle.Bold);
                 Assert.That(equivalentFont.Equals(title.Font), Is.True, "The fixture must resolve equal Font values.");
-                if (useFallbackFamily) Assert.That(nextFamily, Is.Not.EqualTo(requestedFamily));
+                if (useFallbackFamily) Assert.That(title.Font.Name, Is.Not.EqualTo(requestedFamily));
                 owner.Show();
 
                 var result = ModalTestHost.ShowAndDrive(modal, owner, dialog =>
@@ -139,7 +141,7 @@ public sealed class BootstrapModalThemeDpiAccessibilityTests
                         BootstrapThemeMode.Dark, BootstrapThemeMode.Light })
                     {
                         BootstrapThemeManager.CurrentTheme = ThemeWithHeading(mode,
-                            new BootstrapFontToken(nextFamily, 11f, FontStyle.Bold));
+                            new BootstrapFontToken(requestedFamily, 11f, FontStyle.Bold));
                         AssertHeaderCanMeasureAndPaint(title);
                         Assert.Multiple((Action)(() =>
                         {
