@@ -16,12 +16,13 @@ Checkpoint này thay trạng thái `NOT RUN` cũ cho focused tests, nhưng khôn
 
 Discovery được chạy trên đúng project/TFM/filter trước execution. Controls selection gồm `BootstrapButtonTests`, `BootstrapModalThemeDpiAccessibilityTests`, `BootstrapTextBoxMultilineTests`, `BootstrapTextBoxTests`, `Phase16PublicApiBaselineTests`, accessory/validation/Select accessibility và formatted-input consumer liên quan. Adapter selection dùng project riêng `MyDmsVn.BootstrapSourceGrid.Tests` và gồm `BootstrapTextBoxEditorTests` cùng adapter bị ảnh hưởng; không dùng filter controls để tạo selection rỗng.
 
-Các lệnh Windows thực tế dưới đây được chạy từ root toolkit bằng PowerShell. Không có `PlatformTarget` hoặc `RunConfiguration.TargetPlatform` override; VSTest `17.11.1` báo process x64. `--blame-hang-timeout 5m` là timeout chẩn đoán của từng test host; bốn TRX được giữ dưới `$resultsRoot` ngoài Git.
+Các lệnh Windows thực tế dưới đây được chạy từ root toolkit bằng PowerShell. Trong lượt chạy gốc, result directories là absolute paths dưới root app; block này thay riêng machine-specific prefix bằng `Resolve-Path ../..` tương đương, còn project, TFM, filters và test arguments giữ nguyên. Không có `PlatformTarget` hoặc `RunConfiguration.TargetPlatform` override; VSTest `17.11.1` báo process x64. `--blame-hang-timeout 5m` là timeout chẩn đoán của từng test host; bốn TRX được giữ dưới `$resultsRoot` ngoài Git.
 
 ```powershell
 $controlsFilter = 'FullyQualifiedName~BootstrapButtonTests|FullyQualifiedName~BootstrapModalThemeDpiAccessibilityTests|FullyQualifiedName~BootstrapTextBoxMultilineTests|FullyQualifiedName~BootstrapTextBoxTests|FullyQualifiedName~BootstrapTextBoxAccessoryTests|FullyQualifiedName~BootstrapTextBoxValidationLayerTests|FullyQualifiedName~BootstrapSelectAccessibilityTests|FullyQualifiedName~Phase16PublicApiBaselineTests'
 $adapterFilter = 'FullyQualifiedName~BootstrapTextBoxEditorTests|FullyQualifiedName~BootstrapFormattedTextBoxEditorTests'
-$resultsRoot = Join-Path (Get-Location) '.superpowers\sdd\20261028-001-business-compact-exceptions\results'
+$appRoot = (Resolve-Path '..\..').Path
+$resultsRoot = Join-Path $appRoot '.superpowers\sdd\20261028-001-business-compact-exceptions\results'
 
 dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net48 --no-restore --no-build --list-tests --filter $controlsFilter --blame-hang --blame-hang-timeout 5m
 dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net8.0-windows --no-restore --no-build --list-tests --filter $controlsFilter --blame-hang --blame-hang-timeout 5m
