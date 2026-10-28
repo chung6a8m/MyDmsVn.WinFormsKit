@@ -1,6 +1,6 @@
 # Kiểm chứng candidate ba ngoại lệ Business Compact — 2026-10-28
 
-**Scope:** [plan được Owner chọn](../plans/20261028-001-business-compact-exceptions.md) chỉ gồm disabled action, vòng đời Font của modal và multiline read-only. Source candidate đã được triển khai. **Windows focused native tests: PASS trên cả hai TFM. Consumer visual review: PASS ở physical 100% và physical 125%. Owner native approval: PENDING. Các ngoại lệ vẫn OPEN.**
+**Scope:** [plan được Owner chọn](../plans/20261028-001-business-compact-exceptions.md) chỉ gồm disabled action, vòng đời Font của modal và multiline read-only. Source candidate đã được triển khai. **Windows focused native tests: PASS trên cả hai TFM. Consumer visual review: PASS ở physical 100% và physical 125%. Owner APPROVED ngày 2026-10-28. Ba ngoại lệ CLOSED trong phạm vi này.**
 
 ## Checkpoint Windows/native EXC-T05
 
@@ -25,7 +25,11 @@ Discovery được chạy trên đúng project/TFM/filter trước execution. Co
 
 Lượt controls `net48` đầu tiên đạt 74/75. Regression fallback-font tạo `Font` từ tên family đã resolve; trên Windows `Font.Equals` còn so `OriginalFontName`, nên fixture không thể đạt nhánh equal-value mà production cần bảo vệ. Commit `a71d64b` tái tạo cùng tên family không tồn tại cho cả hai Font, xác nhận fallback thực tế nhưng giữ equality đúng; focused 2/2 và full selection cuối 75/75 PASS. Đây là sửa test fixture, không đổi production behavior hoặc public API.
 
-Review trực quan dùng consumer Security UI Lab tại physical 100% và 125% đã xác nhận disabled palette Light/Dark, modal title/theme/lifetime và multiline read-only trong composition thực tế ở normal/minimum. Lượt 125% được xác nhận độc lập bằng thread `PER_MONITOR_AWARE_V2` với effective DPI 120×120; Lab net48 vẫn báo `DeviceDpi: 96`, đúng giới hạn đã dự kiến và không được dùng làm physical-scale proof. Không dùng registry hack hay DPI giả lập. Chi tiết/screenshot thuộc report tích hợp MyDmsVn. Owner approval vẫn PENDING.
+Review trực quan dùng consumer Security UI Lab tại physical 100% và 125% đã xác nhận disabled palette Light/Dark, modal title/theme/lifetime và multiline read-only trong composition thực tế ở normal/minimum. Lượt 125% được xác nhận độc lập bằng thread `PER_MONITOR_AWARE_V2` với effective DPI 120×120; Lab net48 vẫn báo `DeviceDpi: 96`, đúng giới hạn đã dự kiến và không được dùng làm physical-scale proof. Không dùng registry hack hay DPI giả lập. Chi tiết/screenshot thuộc report tích hợp MyDmsVn. Owner đã APPROVED candidate trình ngày 2026-10-28.
+
+## Quyết định Owner
+
+Ngày 2026-10-28, sau khi nhận bộ kết quả cho exact app candidate `8efe9bff806aefa49e6ab6ee90efeb34d06fafc0` và toolkit evidence candidate `e06ba1e31f63e60d4a88fd65122f044e27dc7e56`, Owner trả lời rõ **“APPROVED”** cho ba ngoại lệ EXC-T01–T03. Quyết định đóng disabled action, modal Font/lifetime và multiline read-only trong đúng phạm vi candidate đã trình; không cấp Designer, package hoặc release acceptance. Các commit tài liệu sau quyết định không đổi immutable source/test trees của execution revision `a71d64bd82eb40123eafef4c5a6832e53d7ef9ca`.
 
 ## Candidate và phạm vi bằng chứng
 
@@ -48,9 +52,9 @@ Report này không thay [evidence A3](20261024-a3-bootstrap.md), không đóng �
 
 | Thay đổi | Source và regression | Giới hạn hiện tại |
 |---|---|---|
-| Disabled action | [BootstrapButtonRenderLogic](../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapButtonRenderLogic.cs) dùng secondary surface/normal text cho disabled state; [BootstrapButtonTests](../../tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapButtonTests.cs) bảo vệ readability và phân biệt enabled Secondary outline | Focused tests hai TFM và appearance/inertness Light/Dark consumer physical 100%/125% PASS; Owner còn chờ |
-| Modal Font lifetime | [BootstrapModalHeader](../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapModalHeader.cs) tái sử dụng Font do toolkit sở hữu khi typography không đổi; [BootstrapModalThemeDpiAccessibilityTests](../../tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapModalThemeDpiAccessibilityTests.cs) có regression vòng đời/theme | Native measurement/painting/theme/disposal tests hai TFM và consumer physical 100%/125% PASS; Owner còn chờ |
-| Multiline read-only | [BootstrapTextBox](../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapTextBox.cs) thêm `Multiline`, `WordWrap`, `ScrollBars`, multiline-only layout và native accessibility metadata; [BootstrapTextBoxMultilineTests](../../tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapTextBoxMultilineTests.cs) cùng defaults regression | Controls/adapter tests hai TFM và native selection/copy/scroll/focus/accessibility consumer physical 100%/125% PASS; Owner còn chờ |
+| Disabled action | [BootstrapButtonRenderLogic](../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapButtonRenderLogic.cs) dùng secondary surface/normal text cho disabled state; [BootstrapButtonTests](../../tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapButtonTests.cs) bảo vệ readability và phân biệt enabled Secondary outline | **CLOSED** — focused tests hai TFM và appearance/inertness Light/Dark consumer physical 100%/125% PASS; Owner APPROVED 2026-10-28 |
+| Modal Font lifetime | [BootstrapModalHeader](../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapModalHeader.cs) tái sử dụng Font do toolkit sở hữu khi typography không đổi; [BootstrapModalThemeDpiAccessibilityTests](../../tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapModalThemeDpiAccessibilityTests.cs) có regression vòng đời/theme | **CLOSED** — native measurement/painting/theme/disposal tests hai TFM và consumer physical 100%/125% PASS; Owner APPROVED 2026-10-28 |
+| Multiline read-only | [BootstrapTextBox](../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapTextBox.cs) thêm `Multiline`, `WordWrap`, `ScrollBars`, multiline-only layout và native accessibility metadata; [BootstrapTextBoxMultilineTests](../../tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapTextBoxMultilineTests.cs) cùng defaults regression | **CLOSED** — controls/adapter tests hai TFM và native selection/copy/scroll/focus/accessibility consumer physical 100%/125% PASS; Owner APPROVED 2026-10-28 |
 
 Contracts được cập nhật tại [COMPONENTS](../components/controls/COMPONENTS.md), [COMPATIBILITY](../components/controls/COMPATIBILITY.md) và [PUBLIC_API_BASELINE](../components/controls/PUBLIC_API_BASELINE.md). Việc test có trong source hoặc compile thành công không chứng minh test đã RED/GREEN trên native runtime.
 
@@ -70,7 +74,7 @@ Các lệnh thành công sau được execution owner chạy từ repository too
 | Thử gọi SDK/build trong sandbox ban đầu | **BLOCKED — tooling environment** | `/proc` process-information access gây `System.ComponentModel.Win32Exception`; không phải compiler/source failure. Execution owner chạy lại ngoài sandbox thành công |
 | Windows test discovery | **PASS** | Controls 75/TFM; adapter 40/TFM; selection không rỗng |
 | Windows test execution | **PASS** | 230 executions tổng cộng: 230 passed, 0 failed, 0 skipped; TRX local giữ ngoài Git |
-| Gallery/Designer/physical DPI/native Owner review | **PARTIAL / PENDING** | Consumer physical 100%/125% PASS; Owner PENDING; không có claim Designer/package/release mới |
+| Gallery/Designer/physical DPI/native Owner review | **PARTIAL / OWNER APPROVED** | Consumer physical 100%/125% PASS và Owner APPROVED đúng candidate ngày 2026-10-28; không có claim Designer/package/release mới |
 
 Lượt kiểm tài liệu còn tái hiện hạn chế sandbox khi chạy `/tmp/mydmsvn-dotnet/dotnet --version` (exit 134, lỗi process information); không dùng lần thất bại đó làm bằng chứng SDK thiếu hoặc source không build. Báo cáo cross-build thành công ở trên dựa trên lượt chạy ngoài sandbox đã ghi.
 
@@ -80,11 +84,11 @@ Execution owner đã tái tạo baseline `c232a4c` với fingerprint `5016acec10
 
 Workflow toolkit `.github/workflows/build.yml` cấu hình `windows-2022` để build, không chạy native tests. MyDmsVn chưa có `.github/workflows`; không có current-candidate CI job/result được ghi trong report này. Cấu hình workflow hoặc Linux cross-build không thay Windows/native execution.
 
-## Windows/native còn cần thực hiện
+## Hoàn tất Windows/native
 
 Focused discovery/execution theo [TESTING](../TESTING.md) đã hoàn tất trên cả `net48` và `net8.0-windows`, serialized STA và cleanup thành công như bảng checkpoint. Không còn test-gate toolkit PENDING trong scope này.
 
-Native review consumer physical 100%/125% Light/Dark × normal/minimum đã hoàn tất; screenshot, UIA/clipboard, per-monitor-aware DPI probe và giới hạn `DeviceDpi` của host net48 được ghi trong report app. Phần còn lại trong scope là quyết định Owner có ngày trên đúng candidate. Chưa có Owner decision mới.
+Native review consumer physical 100%/125% Light/Dark × normal/minimum đã hoàn tất; screenshot, UIA/clipboard, per-monitor-aware DPI probe và giới hạn `DeviceDpi` của host net48 được ghi trong report app. Owner APPROVED đúng candidate ngày 2026-10-28. Không còn test-gate hoặc Owner gate PENDING trong scope ba ngoại lệ này.
 
 ## Các field phải hoàn tất khi tích hợp
 
@@ -92,6 +96,6 @@ Native review consumer physical 100%/125% Light/Dark × normal/minimum đã hoà
 - **RECORDED:** Windows execution của API test gate PASS trong controls selection trên cả hai TFM; compiled delta/fingerprint không đổi.
 - **CONSUMER OWNER:** report `docs/evidence/ui-labs/20261028-business-compact-exceptions.md` trong MyDmsVn ghi exact gitlink/source/test candidate và final consumer build.
 - **RECORDED:** actual Windows discovery/execution totals và physical-100/125 observations.
-- **PENDING:** dated Owner decision.
+- **RECORDED:** dated Owner decision APPROVED on 2026-10-28.
 
-Cho đến khi các bằng chứng tương ứng tồn tại, ba ngoại lệ vẫn **OPEN** và Owner native approval vẫn **PENDING**. Source implementation/cross-build không cấp product, package hoặc release acceptance.
+Ba ngoại lệ đã **CLOSED** theo quyết định Owner ngày 2026-10-28 trên exact candidate đã trình. Source implementation/cross-build và quyết định này không cấp Designer, package hoặc release acceptance.
