@@ -16,6 +16,25 @@ Checkpoint này thay trạng thái `NOT RUN` cũ cho focused tests, nhưng khôn
 
 Discovery được chạy trên đúng project/TFM/filter trước execution. Controls selection gồm `BootstrapButtonTests`, `BootstrapModalThemeDpiAccessibilityTests`, `BootstrapTextBoxMultilineTests`, `BootstrapTextBoxTests`, `Phase16PublicApiBaselineTests`, accessory/validation/Select accessibility và formatted-input consumer liên quan. Adapter selection dùng project riêng `MyDmsVn.BootstrapSourceGrid.Tests` và gồm `BootstrapTextBoxEditorTests` cùng adapter bị ảnh hưởng; không dùng filter controls để tạo selection rỗng.
 
+Các lệnh Windows thực tế dưới đây được chạy từ root toolkit bằng PowerShell. Không có `PlatformTarget` hoặc `RunConfiguration.TargetPlatform` override; VSTest `17.11.1` báo process x64. `--blame-hang-timeout 5m` là timeout chẩn đoán của từng test host; bốn TRX được giữ dưới `$resultsRoot` ngoài Git.
+
+```powershell
+$controlsFilter = 'FullyQualifiedName~BootstrapButtonTests|FullyQualifiedName~BootstrapModalThemeDpiAccessibilityTests|FullyQualifiedName~BootstrapTextBoxMultilineTests|FullyQualifiedName~BootstrapTextBoxTests|FullyQualifiedName~BootstrapTextBoxAccessoryTests|FullyQualifiedName~BootstrapTextBoxValidationLayerTests|FullyQualifiedName~BootstrapSelectAccessibilityTests|FullyQualifiedName~Phase16PublicApiBaselineTests'
+$adapterFilter = 'FullyQualifiedName~BootstrapTextBoxEditorTests|FullyQualifiedName~BootstrapFormattedTextBoxEditorTests'
+$resultsRoot = Join-Path (Get-Location) '.superpowers\sdd\20261028-001-business-compact-exceptions\results'
+
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net48 --no-restore --no-build --list-tests --filter $controlsFilter --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net8.0-windows --no-restore --no-build --list-tests --filter $controlsFilter --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Debug -f net48 --no-restore --no-build --list-tests --filter $adapterFilter --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Debug -f net8.0-windows --no-restore --no-build --list-tests --filter $adapterFilter --blame-hang --blame-hang-timeout 5m
+
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net48 --no-restore --no-build --filter $controlsFilter --blame-hang --blame-hang-timeout 5m --logger 'trx;LogFileName=toolkit-controls-net48.trx' --results-directory $resultsRoot\toolkit-controls-net48-rerun
+dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net8.0-windows --no-restore
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Debug -f net8.0-windows --no-restore --no-build --filter $controlsFilter --blame-hang --blame-hang-timeout 5m --logger 'trx;LogFileName=toolkit-controls-net8.trx' --results-directory $resultsRoot\toolkit-controls-net8
+dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Debug -f net48 --no-restore --no-build --filter $adapterFilter --blame-hang --blame-hang-timeout 5m --logger 'trx;LogFileName=toolkit-adapter-net48.trx' --results-directory $resultsRoot\toolkit-adapter-net48
+dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Debug -f net8.0-windows --no-restore --no-build --filter $adapterFilter --blame-hang --blame-hang-timeout 5m --logger 'trx;LogFileName=toolkit-adapter-net8.trx' --results-directory $resultsRoot\toolkit-adapter-net8
+```
+
 | Project / TFM | Discovered | Executed | Pass / fail / skip | TRX local đã giữ ngoài Git |
 |---|---:|---:|---:|---|
 | `MyDmsVn.Bootstrap5WinFormUI.Tests` / `net48` | 75 | 75 | **75 / 0 / 0** | `toolkit-controls-net48-rerun/toolkit-controls-net48.trx` |
