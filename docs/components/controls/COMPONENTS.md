@@ -890,6 +890,14 @@ Behavior:
 
 Manual verification: choose **Navigation / Tabs** in the integrated demo. Exercise Tabs/Pills/Underline with mouse, Tab/arrow/Ctrl+Tab keyboard paths, Fill on/off, all eight variants, native ImageList/ImageKey/ImageIndex, tooltip text, disabled pages, long labels, and live `SelectedIndexChanged` status. Switch Light/Dark, resize repeatedly, and repeat at 100/125/150/175/200% real Windows scaling. Confirm headers stay aligned/unclipped, focus remains visible, selection/page identity remains native, and native overflow controls remain usable when headers exceed available width.
 
+## BootstrapTabs
+
+`BootstrapTabs` trực tiếp kế thừa `TabControl` và dùng cùng `BootstrapTabStyle`, `BootstrapVariant`, cơ chế hover và close request của `BootstrapTabControl`. Control mới có default `TabStyle=Underline`, `Variant=Primary`, `Fill=false`, `BorderRadius=0`, inherited `HotTrack=false`, `DrawMode=OwnerDrawFixed`, `SizeMode=Fixed`. Constructor không tạo HWND; `TabPages`, selection, keyboard, accessibility, ảnh, tooltip và overflow tiếp tục do WinForms quản lý. Public close API gồm `SetTabClosable`, `IsTabClosable`, `RequestTabClose`, `TabCloseRequested`; owner xử lý việc xóa/dispose page.
+
+Ở Top/Normal/single-line/LTR/OwnerDrawFixed, header và chrome gọn được hoàn thiện trong cùng native paint pass qua HDC do WinForms cung cấp; vùng page, item đã vẽ và native child như overflow được loại khỏi chrome fill. Print nhận HDC/clip của caller. Bottom/Left/Right, multiline, RTL, Buttons/FlatButtons và `DrawMode.Normal` đi theo native chrome fallback, giữ các property do caller đặt và native owner-draw events khi còn `OwnerDrawFixed`. Theme font do toolkit tạo được dispose; font, ImageList và menu của consumer giữ ownership của consumer.
+
+Gallery **Navigation / BootstrapTabs** so sánh control cũ/mới, có HotTrack toggle, style/variant/Fill, thêm/xóa/close, caption dài, icon, tooltip, empty state và native overflow. Physical DPI, flicker và Owner visual acceptance xem [evidence theo candidate](../../verification/20261029-tabs-hottrack.md); việc thêm control không tự đóng các gate này.
+
 ## BootstrapDropdown and BootstrapSplitButton
 
 Responsibility: provide native WinForms command menus with recursive submenus and snapshot-hosted controls, plus a connected two-region split command that reuses the same Dropdown infrastructure.

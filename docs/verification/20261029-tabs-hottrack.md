@@ -128,3 +128,23 @@ dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.
 ```
 
 Discovery/execution: net48 **57/57 PASS**, net8 **57/57 PASS**, fail 0, skip 0 trên từng TFM. Bounded VisualStyleHost `--scenario tabs-hover` chạy tuần tự từ Release EXE bằng `Start-Process -WindowStyle Hidden`, `WaitForExit(30000)`: exit 0/0, metadata candidate đúng `765949ac758172a89fe486ed6f5b5b576c65462b`, elapsed 704/700ms, `PROBE PASS`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`. Raw output ở ignored `artifacts/verification/tabs/pr4-review-*`, không commit. API baseline không chạy lại trong scope hai findings vì exported surface không đổi; mismatch TAB-06 đã ghi ở lượt trước còn mở. Full compositor/print, physical DPI/Owner visual và artifact URL vẫn **PENDING**.
+
+## TAB-04/05 — BootstrapTabs native composition và comparison gallery
+
+Ngày chạy 29/10/2026. Candidate code và gallery đã commit tại `d67abbd7b1f2b3081e26e8b0a22bbb03761bbaf0` (TAB-04 `a61446d`, TAB-05 `d67abbd`); diff tài liệu này chưa nằm trong candidate lúc chạy. SourceGrid gitlink `f4e457b43582bf01892f50bdc74aa480531e5944` được khởi tạo đúng pin qua `git submodule update --init --recursive`, không dùng `--remote`. Windows NT 10.0.26300.0, SDK `8.0.427`, x64, helper `DeviceDpi=nativeDpi=96`; runtime net48 `4.0.30319.42000`, net8 `8.0.33`. Restore warm. Mọi native/GUI process chạy tuần tự trong một GUI lane.
+
+Test-first `BootstrapTabs_HasDirectNativeBaseTypeAndExactDefaults` ban đầu RED vì type chưa tồn tại. Sau triển khai, `BootstrapTabs : TabControl` trực tiếp, defaults mới, reuse hover/painter/close, native supplied-HDC screen buffer/print dispatch, compact chrome snapshot và fallback. `Navigation / BootstrapTabs` có so sánh cùng kích thước, HotTrack toggles, selectors, page actions, icon/tooltip/input và overflow. Review độc lập phát hiện buffer chưa prefill dirty pixels, RTL image/close overlap và `SetTabClosable` thiếu hover resync; cả ba đã sửa trước candidate này. Image sizing của control mới chuyển ra trước paint dispatch; tests kiểm `ItemSize` không đổi trong `DrawItem`. Screen regression dùng native HDC của selected `TabPage` sau full dirty `InvalidateRect/UpdateWindow`; screen-copy RGB tuyệt đối từng bị nhiễu desktop nên không dùng làm acceptance oracle.
+
+Các lệnh đã chạy trên candidate code (filter được discovery riêng trên từng TFM):
+
+```powershell
+.\build.ps1 -Configuration Release -Scope Controls
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemoApplicationTests" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemoApplicationTests" --blame-hang --blame-hang-timeout 5m
+.\build.ps1 -Configuration Release -Scope All
+# VisualStyleHost Release EXE --scenario tabs-hover; net48 rồi net8.0-windows, Start-Process -WindowStyle Hidden -Wait.
+```
+
+Controls build và All graph build PASS hai TFM, 0 warning/error. Filter discovery/execution **93/93 PASS, fail 0, skip 0** mỗi TFM; riêng `BootstrapTabs*` **17/17 PASS** mỗi TFM sau sửa review. Helper trên candidate commit chạy exit 0/0, `PROBE PASS` hai TFM, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; elapsed 1080/1088 ms. Production proof trên net48/net8 lần lượt có `screenPaint=4/4`, `screenDraw=14/14`, `hoverTargetHits=3/3`, `printClient=2/2`, `printDraw=10/10`, `printPixels=32560/32416`, `printOutside=0/0`, `drawToBitmapPixels=140250/140250`, `outsideDraw=0/0`; native overflow child hiện diện và vẫn click/scroll được. Prototype supplied-HDC dirty composition thay đổi 1876/1836 header pixels, còn selected/page/child/outside đều 0. `WM_PRINT` flags 0 không vẽ; flags 4/28 lồng đúng một `WM_PRINTCLIENT` và không recursion. Raw traces/PNG chỉ ở ignored `artifacts/verification/tabs/tab04-commit-net48` và `tab04-commit-net8`, không commit, chưa có artifact URL bền vững.
+
+Giới hạn: Light/Dark visual review trên gallery, physical 125%/150%/200%, mixed-DPI, focus clearance bằng capture màn hình thật, artifact URL và Owner decision **NOT RUN/PENDING**; không lấy synthetic metrics hay bitmap làm bằng chứng thay thế. Full no-flicker acceptance và TAB-01 native gate tiếp tục **OPEN** dù proof của candidate tại DPI96 PASS. API fingerprint và consumer migration thuộc TAB-06 chưa chốt; baseline mismatch đã ghi ở lượt trước vẫn mở. Không publish/merge.
