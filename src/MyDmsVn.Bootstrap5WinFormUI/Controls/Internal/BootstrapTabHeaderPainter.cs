@@ -51,8 +51,16 @@ internal static class BootstrapTabHeaderPainter
                         Rectangle.FromLTRB(bounds.Left, bounds.Top, Math.Max(bounds.Left, close.Left - 3), bounds.Bottom));
                 if (!imageBounds.IsEmpty)
                 {
-                    if (enabled) graphics.DrawImage(image, imageBounds);
-                    else ControlPaint.DrawImageDisabled(graphics, image, imageBounds.X, imageBounds.Y, palette.Background);
+                    var imageState = graphics.Save();
+                    try
+                    {
+                        if (!vertical && !rightToLeft && !close.IsEmpty)
+                            graphics.SetClip(Rectangle.FromLTRB(bounds.Left, bounds.Top,
+                                Math.Max(bounds.Left, close.Left - 3), bounds.Bottom), CombineMode.Intersect);
+                        if (enabled) graphics.DrawImage(image, imageBounds);
+                        else ControlPaint.DrawImageDisabled(graphics, image, imageBounds.X, imageBounds.Y, palette.Background);
+                    }
+                    finally { graphics.Restore(imageState); }
                 }
             }
 
@@ -60,14 +68,20 @@ internal static class BootstrapTabHeaderPainter
             {
                 if (vertical)
                 {
-                    var start = imageBounds.IsEmpty ? 3 : imageBounds.Bottom - bounds.Top + 3;
-                    var end = close.IsEmpty ? bounds.Height - 3 : close.Top - bounds.Top - 3;
+                    var contentTop = imageBounds.IsEmpty ? bounds.Top + 3 : imageBounds.Bottom + 3;
+                    var contentBottom = close.IsEmpty ? bounds.Bottom - 3 : Math.Min(bounds.Bottom - 3, close.Top - 3);
+                    var start = alignment == TabAlignment.Left
+                        ? bounds.Bottom - contentBottom : contentTop - bounds.Top;
+                    var end = alignment == TabAlignment.Left
+                        ? bounds.Bottom - contentTop : contentBottom - bounds.Top;
                     var length = Math.Max(0, end - start);
                     if (length > 0)
                     {
                         var textState = graphics.Save();
                         try
                         {
+                            graphics.SetClip(Rectangle.FromLTRB(bounds.Left, contentTop,
+                                bounds.Right, contentBottom), CombineMode.Intersect);
                             if (alignment == TabAlignment.Left)
                             {
                                 graphics.TranslateTransform(bounds.Left, bounds.Bottom);

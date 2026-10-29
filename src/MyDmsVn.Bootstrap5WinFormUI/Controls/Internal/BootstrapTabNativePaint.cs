@@ -13,6 +13,7 @@ internal sealed class BootstrapTabNativePaint : IDisposable
     private const int WmPaint = 0x000f;
     private const int WmPrint = 0x0317;
     private const int WmPrintClient = 0x0318;
+    private const int PrfCheckVisible = 0x0001;
     private const int PrfClient = 0x0004;
     private const int Srccopy = 0x00cc0020;
     private readonly TabControl _owner;
@@ -34,6 +35,16 @@ internal sealed class BootstrapTabNativePaint : IDisposable
 
         if (message.Msg == WmPaint && message.WParam == IntPtr.Zero)
             return PaintScreen(ref message, dispatch, completeChrome);
+
+        // WM_PRINT's PRF_CHECKVISIBLE applies to the entire supplied-HDC pass,
+        // including our chrome completion. IsWindowVisible includes hidden ancestors.
+        if (message.Msg == WmPrint &&
+            (message.LParam.ToInt64() & PrfCheckVisible) != 0 &&
+            !IsWindowVisible(_owner.Handle))
+        {
+            message.Result = IntPtr.Zero;
+            return true;
+        }
 
         _compositionDepth++;
         try
@@ -158,6 +169,10 @@ internal sealed class BootstrapTabNativePaint : IDisposable
 
     [DllImport("user32.dll", ExactSpelling = true)]
     private static extern IntPtr BeginPaint(IntPtr hWnd, ref NativePaintStruct paint);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
 
     [DllImport("user32.dll", ExactSpelling = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

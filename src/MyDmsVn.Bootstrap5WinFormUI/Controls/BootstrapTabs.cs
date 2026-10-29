@@ -357,7 +357,7 @@ public class BootstrapTabs : TabControl
         {
             DetachTabPage(page);
             _close.PageRemoved(page);
-            ApplyHeaderItemSize();
+            ApplyHeaderItemSize(page);
             _interaction.Reset();
             _interaction.RefreshFromPointer();
             Invalidate();
@@ -466,7 +466,7 @@ public class BootstrapTabs : TabControl
         _interaction.RefreshFromPointer();
     }
 
-    private void ApplyHeaderItemSize()
+    private void ApplyHeaderItemSize(TabPage? pageBeingRemoved = null)
     {
         if (_updatingItemSize || IsDisposed)
         {
@@ -475,20 +475,27 @@ public class BootstrapTabs : TabControl
 
         var theme = BootstrapThemeManager.CurrentTheme;
         var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(theme.Metrics, GetCurrentDpi(), _borderRadius);
-        var preferredWidths = new int[TabPages.Count];
+        // ControlRemoved can fire before TabControl removes its page from TabPages.
+        // Size against the collection that will exist when this removal returns.
+        var excludePage = pageBeingRemoved is not null && TabPages.Contains(pageBeingRemoved);
+        var tabCount = TabPages.Count - (excludePage ? 1 : 0);
+        var preferredWidths = new int[tabCount];
+        var nextIndex = 0;
         for (var index = 0; index < TabPages.Count; index++)
         {
-            preferredWidths[index] = MeasurePreferredContentWidth(TabPages[index], metrics);
+            var page = TabPages[index];
+            if (excludePage && ReferenceEquals(page, pageBeingRemoved)) continue;
+            preferredWidths[nextIndex++] = MeasurePreferredContentWidth(page, metrics);
         }
 
         var width = BootstrapTabControlRenderLogic.CalculateUniformItemWidth(
-            TabPages.Count,
+            tabCount,
             ClientSize.Width,
             preferredWidths,
             metrics,
             _fill);
         var next = new Size(Math.Max(1, width), Math.Max(1, metrics.Height));
-        CaptureNativeImageSizing();
+        CaptureNativeImageSizing(excludePage ? pageBeingRemoved : null);
         if (ItemSize == next)
         {
             return;
@@ -569,12 +576,15 @@ public class BootstrapTabs : TabControl
         return false;
     }
 
-    private void CaptureNativeImageSizing()
+    private void CaptureNativeImageSizing(TabPage? pageBeingRemoved = null)
     {
-        var sizes = new Size[TabPages.Count];
+        var sizes = new Size[TabPages.Count - (pageBeingRemoved is null ? 0 : 1)];
+        var nextIndex = 0;
         for (var index = 0; index < TabPages.Count; index++)
         {
-            sizes[index] = ResolveTabImage(TabPages[index])?.Size ?? Size.Empty;
+            var page = TabPages[index];
+            if (ReferenceEquals(page, pageBeingRemoved)) continue;
+            sizes[nextIndex++] = ResolveTabImage(page)?.Size ?? Size.Empty;
         }
 
         _sizedTabImageSizes = sizes;

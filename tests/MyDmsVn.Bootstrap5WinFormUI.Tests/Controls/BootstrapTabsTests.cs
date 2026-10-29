@@ -191,6 +191,25 @@ public sealed class BootstrapTabsTests
         Assert.That(interaction.HoveredIndex, Is.Zero);
     }
 
+    [Test]
+    public void FillRecalculatesItemWidthAfterRemovingUnselectedLastPage()
+    {
+        using var tabs = new BootstrapTabs { Width = 600, Height = 180, Fill = true };
+        tabs.TabPages.Add(new TabPage("Một"));
+        tabs.TabPages.Add(new TabPage("Hai"));
+        var last = new TabPage("Ba");
+        tabs.TabPages.Add(last);
+        tabs.SelectedIndex = 0;
+        var before = tabs.ItemSize.Width;
+
+        tabs.TabPages.Remove(last);
+
+        Assert.That(tabs.TabCount, Is.EqualTo(2));
+        Assert.That(tabs.ItemSize.Width, Is.EqualTo(Math.Max(54, tabs.ClientSize.Width / 2)));
+        Assert.That(tabs.ItemSize.Width, Is.GreaterThan(before));
+        last.Dispose();
+    }
+
     private sealed class ItemSizeProbeTabs : BootstrapTabs
     {
         internal int DrawCount { get; private set; }

@@ -212,6 +212,84 @@ public sealed class BootstrapTabsNativeTests
         }));
     }
 
+    [Test]
+    public void LeftFallback_LongCaptionDoesNotOverwriteIcon()
+    {
+        var theme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light);
+        var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(theme.Metrics, 96, 0);
+        var palette = BootstrapTabControlRenderLogic.ResolvePalette(theme.Colors,
+            BootstrapVariant.Primary, BootstrapTabStyle.Underline, false, true, false);
+        var bounds = new Rectangle(4, 4, 32, 100);
+        var iconBounds = new Rectangle(12, 7, 16, 16);
+        using var icon = new Bitmap(16, 16);
+        using (var brush = Graphics.FromImage(icon)) brush.Clear(Color.Blue);
+        using var font = new Font("Segoe UI", 12f, FontStyle.Bold);
+        using var caption = new Bitmap(40, 110);
+        using var blank = new Bitmap(40, 110);
+        using (var graphics = Graphics.FromImage(caption))
+            BootstrapTabHeaderPainter.DrawHeaderFallback(
+                new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None),
+                TabAlignment.Left, false, metrics, palette,
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", icon,
+                Rectangle.Empty, true, false, false);
+        using (var graphics = Graphics.FromImage(blank))
+            BootstrapTabHeaderPainter.DrawHeaderFallback(
+                new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None),
+                TabAlignment.Left, false, metrics, palette, string.Empty, icon,
+                Rectangle.Empty, true, false, false);
+
+        var changedIconPixels = 0;
+        var captionPixels = 0;
+        for (var y = bounds.Top; y < bounds.Bottom; y++)
+        for (var x = bounds.Left; x < bounds.Right; x++)
+        {
+            if (caption.GetPixel(x, y).ToArgb() == blank.GetPixel(x, y).ToArgb()) continue;
+            if (iconBounds.Contains(x, y)) changedIconPixels++;
+            else captionPixels++;
+        }
+        Assert.That(captionPixels, Is.GreaterThan(0), "The long caption must actually be rendered.");
+        Assert.That(changedIconPixels, Is.Zero, "Rotated Left text must not enter the icon rectangle.");
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void LtrFallback_NarrowHeaderClipsLargeIconBeforeClose(bool enabled)
+    {
+        var theme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light);
+        var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(theme.Metrics, 96, 0);
+        var palette = BootstrapTabControlRenderLogic.ResolvePalette(theme.Colors,
+            BootstrapVariant.Primary, BootstrapTabStyle.Underline, false, enabled, false);
+        var bounds = new Rectangle(0, 0, 60, 32);
+        var close = new Rectangle(40, 6, 16, 20);
+        using var icon = new Bitmap(48, 24);
+        using (var graphics = Graphics.FromImage(icon)) graphics.Clear(Color.Blue);
+        using var font = new Font("Segoe UI", 9f);
+        using var withIcon = new Bitmap(60, 32);
+        using var withoutIcon = new Bitmap(60, 32);
+        using (var graphics = Graphics.FromImage(withIcon))
+            BootstrapTabHeaderPainter.DrawHeaderFallback(
+                new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None),
+                TabAlignment.Bottom, false, metrics, palette, string.Empty, icon,
+                close, enabled, false, false);
+        using (var graphics = Graphics.FromImage(withoutIcon))
+            BootstrapTabHeaderPainter.DrawHeaderFallback(
+                new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None),
+                TabAlignment.Bottom, false, metrics, palette, string.Empty, null,
+                close, enabled, false, false);
+
+        var iconPixels = 0;
+        var closeDifferences = 0;
+        for (var y = 0; y < bounds.Height; y++)
+        for (var x = 0; x < bounds.Width; x++)
+        {
+            if (withIcon.GetPixel(x, y).ToArgb() == withoutIcon.GetPixel(x, y).ToArgb()) continue;
+            if (close.Contains(x, y)) closeDifferences++;
+            else iconPixels++;
+        }
+        Assert.That(iconPixels, Is.GreaterThan(0), "Image must remain visible in available header content.");
+        Assert.That(closeDifferences, Is.Zero, "Image must not alter any close target pixel.");
+    }
+
     private sealed class ProbeTabs : BootstrapTabs
     {
         internal System.Collections.Generic.List<string> Order { get; } = new System.Collections.Generic.List<string>();
