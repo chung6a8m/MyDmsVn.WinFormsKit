@@ -14,6 +14,45 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 [NonParallelizable]
 public sealed class InputPopupRoundThreeRegressionTests
 {
+    [Test]
+    public void CallerHeightDuringReturnToDropDownIsKeptForNextSimpleStyle()
+    {
+        using var form = new Form { AutoScaleMode = AutoScaleMode.None, ShowInTaskbar = false };
+        using var native = new ComboBox { IntegralHeight = false, Size = new Size(220, 120), DropDownStyle = ComboBoxStyle.Simple };
+        using var combo = new BootstrapComboBox { IntegralHeight = false, Size = new Size(220, 120), DropDownStyle = ComboBoxStyle.Simple, Left = 240 };
+        form.Controls.Add(native);
+        form.Controls.Add(combo);
+        form.Show();
+        Application.DoEvents();
+        var nativeCallbacks = 0;
+        var toolkitCallbacks = 0;
+        native.HandleCreated += (_, _) => { if (native.DropDownStyle == ComboBoxStyle.DropDown) { nativeCallbacks++; native.Height = 200; } };
+        combo.HandleCreated += (_, _) => { if (combo.DropDownStyle == ComboBoxStyle.DropDown) { toolkitCallbacks++; combo.Height = 200; } };
+        native.DropDownStyle = combo.DropDownStyle = ComboBoxStyle.DropDown;
+        native.DropDownStyle = combo.DropDownStyle = ComboBoxStyle.Simple;
+        Application.DoEvents();
+        Assert.That(nativeCallbacks, Is.EqualTo(1));
+        Assert.That(toolkitCallbacks, Is.EqualTo(1));
+        Assert.That(native.Height, Is.EqualTo(200));
+        Assert.That(combo.Height, Is.EqualTo(native.Height));
+    }
+
+    [Test]
+    public void SimpleStyleKeepsCallerHeightAssignedByOverrideBeforeBaseHandleCreated()
+    {
+        using var form = new Form { AutoScaleMode = AutoScaleMode.None, ShowInTaskbar = false };
+        using var native = new NativeHeightOverride { IntegralHeight = false, Size = new Size(220, 120) };
+        using var combo = new ToolkitHeightOverride { IntegralHeight = false, Size = new Size(220, 120), Left = 240 };
+        form.Controls.Add(native);
+        form.Controls.Add(combo);
+        form.Show();
+        Application.DoEvents();
+        native.DropDownStyle = combo.DropDownStyle = ComboBoxStyle.Simple;
+        Application.DoEvents();
+        Assert.That(native.Height, Is.EqualTo(200));
+        Assert.That(combo.Height, Is.EqualTo(native.Height), "A derived control's pre-base request must also win.");
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public void SimpleStyleKeepsCallerHeightAssignedDuringHandleCreated(bool assignSize)
@@ -99,6 +138,24 @@ public sealed class InputPopupRoundThreeRegressionTests
             graphics.SetClip(control.ClientRectangle);
             using var args = new PaintEventArgs(graphics, control.ClientRectangle);
             InvokePaint(control, args);
+        }
+    }
+
+    private sealed class NativeHeightOverride : ComboBox
+    {
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            if (DropDownStyle == ComboBoxStyle.Simple) Height = 200;
+            base.OnHandleCreated(e);
+        }
+    }
+
+    private sealed class ToolkitHeightOverride : BootstrapComboBox
+    {
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            if (DropDownStyle == ComboBoxStyle.Simple) Height = 200;
+            base.OnHandleCreated(e);
         }
     }
 }
