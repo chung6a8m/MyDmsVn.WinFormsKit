@@ -1,5 +1,7 @@
 # Công việc hiện hành
 
+Scope được Owner chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](design/20261029-input-popup-rendering.md) giữ căn cứ source, lịch sử sửa và quyết định geometry/backing/layout. Plan sở hữu T01–T07, ở trạng thái READY FOR IMPLEMENTATION; chưa triển khai source và chưa có native acceptance của candidate mới.
+
 Scope được Owner chọn ngày 2026-10-28 — [khắc phục ba ngoại lệ Business Compact](plans/20261028-001-business-compact-exceptions.md) — đã hoàn tất trong phạm vi hẹp về disabled action, modal Font và multiline read-only. [Candidate evidence](verification/20261028-business-compact-exceptions.md) phân biệt source/cross-build với Windows/native và ghi quyết định Owner APPROVED ngày 2026-10-28; ba ngoại lệ đã CLOSED.
 
 [A3 — Khởi tạo MyDmsVn.WinFormsKit](plans/20261024-001-a3-winformskit.md) tiếp tục sở hữu phạm vi, baseline, trạng thái bootstrap và các điều kiện còn lại của A3; [evidence A3](verification/20261024-a3-bootstrap.md) giữ nguyên kết quả theo candidate. Scope mới không mở lại hoặc thay thế kết quả đó. Trang này chỉ điều hướng; không duy trì bảng tiến độ thứ hai.

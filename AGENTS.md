@@ -12,7 +12,8 @@
 - Chọn tests theo diff trong `docs/TESTING.md`; giữ hai test owners và helper host. Không xóa regression chỉ vì source đã di chuyển.
 - Native tests chạy STA, tuần tự, message pumping hữu hạn, không modal waits; giữ hang diagnostics 5 phút. Không thêm fail-fast vào production chỉ để dễ test.
 - Ghi candidate, commands, discovered/executed/pass/fail/skip và limitations; thiếu Windows/desktop ghi NOT RUN/BLOCKED. Historical PASS không chứng minh candidate mới.
-- `docs/plans/20261028-001-business-compact-exceptions.md` sở hữu scope mới về disabled action, modal Font và multiline read-only; source/cross-build không thay Windows/native hoặc Owner approval.
+- `docs/plans/20261029-001-input-popup-rendering.md` sở hữu công việc hiện hành về chiều cao input và góc bo popup; đọc cùng `docs/design/20261029-input-popup-rendering.md` trước khi sửa. Giữ native ComboBox, owned inner host/AA coverage và constructor handle-free; radius-only refresh không được reset navigation.
+- `docs/plans/20261028-001-business-compact-exceptions.md` tiếp tục sở hữu scope đã hoàn tất về disabled action, modal Font và multiline read-only; không mở lại lịch sử đó. Source/cross-build không thay Windows/native hoặc Owner approval của candidate mới.
 - `docs/plans/20261024-001-a3-winformskit.md` tiếp tục là owner trạng thái A3; entry pages chỉ link. Evidence theo từng candidate nằm trong `docs/verification/`; giữ nguyên lịch sử A3.
 - Public API hoặc behavior đổi phải cập nhật component contract và consumer compatibility theo scope; source reorganization không tự cho phép breaking changes.
 - Source consumption dùng ProjectReference. Package publication theo `docs/RELEASING.md`; không gán license chung, publish hay archive repo nguồn trong bootstrap.
