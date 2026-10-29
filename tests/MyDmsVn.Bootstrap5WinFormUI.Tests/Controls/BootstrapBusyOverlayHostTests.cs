@@ -204,6 +204,32 @@ public sealed class BootstrapBusyOverlayHostTests
         delay.Fire();
         Assert.That(content.Focused, Is.True);
     }
+    [Test]
+    public void Dispose_preserves_consumer_exception_but_disposes_owned_controls_and_delay_once()
+    {
+        using var form = new Form();
+        var delay = new ManualDelay();
+        var content = new TextBox();
+        var host = new BootstrapBusyOverlayHost(content, delay) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show();
+        using var token = host.Begin(new BusyPresentation("busy"));
+        delay.Fire();
+        var owned = All(host).ToArray();
+        var expected = new InvalidOperationException("consumer event");
+        host.RenderModeChanged += (_, _) => { if (host.RenderMode == BootstrapBusyOverlayRenderMode.None) throw expected; };
+
+        var actual = Assert.Throws<InvalidOperationException>((Action)(() => host.Dispose()));
+
+        Assert.That(actual, Is.SameAs(expected));
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(owned.All(c => c.IsDisposed), Is.True);
+            Assert.That(content.IsDisposed, Is.True);
+            Assert.That(delay.Disposals, Is.EqualTo(1));
+        }));
+        host.Dispose();
+        Assert.That(delay.Disposals, Is.EqualTo(1));
+    }
     private static IEnumerable<Control> All(Control root) => new[] { root }.Concat(root.Controls.Cast<Control>().SelectMany(All));
     private sealed class ManualDelay : IBootstrapBusyDelay
     {

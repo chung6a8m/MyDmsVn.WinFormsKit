@@ -110,7 +110,15 @@ public sealed class BootstrapBusyOverlayHost : Panel
             _disposing = true;
             BootstrapThemeManager.ThemeChanged -= OnThemeChanged;
             _cancel.Click -= OnCancel;
-            _controller.Dispose();
+            try
+            {
+                _controller.Dispose();
+            }
+            finally
+            {
+                base.Dispose(disposing);
+            }
+            return;
         }
         base.Dispose(disposing);
     }

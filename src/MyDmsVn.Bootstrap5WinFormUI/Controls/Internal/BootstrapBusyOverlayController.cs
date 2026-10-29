@@ -68,8 +68,14 @@ internal sealed class BootstrapBusyOverlayController : IDisposable
         AssertThread();
         _disposed = true;
         _tokens.Clear();
-        Hide();
-        _delay.Dispose();
+        try
+        {
+            Hide();
+        }
+        finally
+        {
+            _delay.Dispose();
+        }
     }
 
     private void Show(long generation)
