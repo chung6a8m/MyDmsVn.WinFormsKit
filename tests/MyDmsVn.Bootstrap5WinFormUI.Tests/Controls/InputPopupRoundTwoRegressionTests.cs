@@ -107,6 +107,42 @@ public sealed class InputPopupRoundTwoRegressionTests
         finally { BootstrapThemeManager.CurrentTheme = previousTheme; }
     }
 
+    [TestCase(255)]
+    [TestCase(128)]
+    public void FractionalCollapsedBorderHasNoInnerCoverageSeam(int alpha)
+    {
+        using var bitmap = new Bitmap(140, 80, PixelFormat.Format32bppArgb);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.Clear(Color.White);
+        var color = Color.FromArgb(alpha, 255, 0, 0);
+        BootstrapRoundedSurfacePainter.Paint(graphics,
+            BootstrapRoundedSurfaceGeometry.Resolve(new RectangleF(0, 0, 140, 80), new CornerRadius(1.25f), 2.5f),
+            color, color);
+        var center = bitmap.GetPixel(70, 40);
+        for (var x = 1; x <= 4; x++)
+            Assert.That(bitmap.GetPixel(x, 40).ToArgb(), Is.EqualTo(center.ToArgb()), "No backdrop seam at inner edge.");
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void DifferentTranslucentColorsShareFractionalInnerCoverage(bool whiteBackdrop)
+    {
+        using var bitmap = new Bitmap(140, 80, PixelFormat.Format32bppArgb);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.Clear(whiteBackdrop ? Color.White : Color.Transparent);
+        BootstrapRoundedSurfacePainter.Paint(graphics,
+            BootstrapRoundedSurfaceGeometry.Resolve(new RectangleF(0, 0, 140, 80), new CornerRadius(1.25f), 2.5f),
+            Color.FromArgb(128, 255, 0, 0), Color.FromArgb(128, 0, 0, 255));
+        var edge = bitmap.GetPixel(2, 40);
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(edge.A, Is.EqualTo(whiteBackdrop ? 255 : 128).Within(1));
+            Assert.That(edge.G, Is.EqualTo(whiteBackdrop ? 127 : 0).Within(1));
+            Assert.That(edge.R, Is.EqualTo(whiteBackdrop ? 191 : 128).Within(2));
+            Assert.That(edge.B, Is.EqualTo(whiteBackdrop ? 191 : 128).Within(2));
+        }));
+    }
+
     private static BootstrapTheme CreateTheme(int controlHeight, int borderWidth, Color? primary = null)
     {
         var d = BootstrapThemeMetrics.Default;
