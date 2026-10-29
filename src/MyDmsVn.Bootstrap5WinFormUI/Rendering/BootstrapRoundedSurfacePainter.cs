@@ -43,10 +43,13 @@ internal static class BootstrapRoundedSurfacePainter
                 CollapsesRoundedCorner(radius.BottomRight, halfBorder))
             {
                 // A rectangular centerline with a miter join would square a rounded outer corner.
-                // Paint the border from the actual outer contour, then its inset interior.
+                // Keep the border out of the interior: themes may use translucent semantic colors.
                 using var borderBrush = new SolidBrush(border);
-                graphics.FillPath(borderBrush, outerPath);
                 using var innerPath = geometry.CreateInnerPath();
+                using var borderBand = new GraphicsPath(FillMode.Alternate);
+                borderBand.AddPath(outerPath, false);
+                borderBand.AddPath(innerPath, false);
+                graphics.FillPath(borderBrush, borderBand);
                 using var innerBrush = new SolidBrush(surface);
                 graphics.FillPath(innerBrush, innerPath);
                 return;
