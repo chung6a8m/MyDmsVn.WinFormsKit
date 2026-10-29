@@ -11,4 +11,4 @@ VisualStyleHost Release `tabs-temporal` di chuyển pointer desktop thật qua h
 | net8 Light | [Xem clip](https://github.com/user-attachments/assets/42a31c79-40f1-4eb9-951b-ec82276c48ac) | 238 | 43.4 | `2925359C02AFC1F62408C7C404F4256301BA31CE2133A1167ACB23B2FEEB1D87` |
 | net8 Dark | [Xem clip](https://github.com/user-attachments/assets/cea1b9d6-2870-4164-93db-70b0232dbc55) | 254 | 46.2 | `2666F031C335F8DD3790793DDF6E722CB43E3A54D7EF9930C8CB2AF46F0B307D` |
 
-**Owner temporal no-flicker decision: PENDING.** Ảnh tĩnh đã APPROVED riêng. Clip này mới bao phủ physical 125%; không thay mixed-DPI, 150%/200% hoặc physical 100% temporal. `fullGate=OPEN`.
+**Owner temporal no-flicker decision: APPROVED temporal 125%** ngày 29/10/2026 cho đúng bốn clip/candidate nêu trên, qua câu trả lời trong task sau khi nhận [comment review](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/pull/4#issuecomment-6500854046). Ảnh tĩnh đã APPROVED riêng. Quyết định này không thay mixed-DPI, 150%/200% hoặc physical 100% temporal; `fullGate=OPEN`.
