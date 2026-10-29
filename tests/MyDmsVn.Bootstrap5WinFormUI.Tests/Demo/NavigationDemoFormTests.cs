@@ -42,6 +42,20 @@ public sealed class NavigationDemoFormTests
     }
 
     [Test]
+    public void LegacyHotTrackToggleControlsAllExistingTabScenarios()
+    {
+        using var form = new NavigationDemoForm();
+        var tabs = Descendants(form).OfType<BootstrapTabControl>().ToArray();
+        var toggle = Descendants(form).OfType<CheckBox>().Single(c => c.AccessibleName == "Legacy tabs HotTrack");
+
+        Assert.That(tabs.All(tab => tab.HotTrack), Is.True);
+        toggle.Checked = false;
+        Assert.That(tabs.All(tab => !tab.HotTrack), Is.True);
+        toggle.Checked = true;
+        Assert.That(tabs.All(tab => tab.HotTrack), Is.True);
+    }
+
+    [Test]
     public void DemoCoversBasicIconStateLongAndStressDropdownScenarios()
     {
         using var form = new NavigationDemoForm();
@@ -147,7 +161,7 @@ public sealed class NavigationDemoFormTests
 
         Assert.Multiple((Action)(() =>
         {
-            Assert.That(rootItems.Count(item => item.Text.StartsWith("Navigation", StringComparison.Ordinal)), Is.EqualTo(1));
+            Assert.That(rootItems.Count(item => item.Text.StartsWith("Navigation", StringComparison.Ordinal)), Is.EqualTo(2));
             Assert.That(rootItems.Any(item => item.Text.IndexOf("Dropdown", StringComparison.Ordinal) >= 0), Is.False);
         }));
     }

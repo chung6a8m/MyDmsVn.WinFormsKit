@@ -14,7 +14,7 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Release;
 [TestFixture]
 public sealed class Phase16PublicApiBaselineTests
 {
-    private const string ApprovedV1Fingerprint = "1de84ca1b9a297e0caff576b4b18c0296ca17d0ebabf088be2f48213cad27755";
+    private const string ApprovedV1Fingerprint = "1d1172af4dc1a247b330ca3df84d00bf0903ab22470fa9c59581b1543002f3c1";
 
     [Test]
     public void ExportedApiMatchesApprovedV1Baseline()
@@ -34,6 +34,41 @@ public sealed class Phase16PublicApiBaselineTests
     public void V1CompatibilityAssemblyVersionIsStable()
     {
         Assert.That(typeof(BootstrapButton).Assembly.GetName().Version, Is.EqualTo(new Version(1, 0, 0, 0)));
+    }
+
+    [Test]
+    public void BootstrapTabsFamilyExportsOnlyTheReviewedNativeTabContract()
+    {
+        var assembly = typeof(BootstrapTabs).Assembly;
+        var expectedProperties = new[] { "BorderRadius", "Fill", "TabStyle", "Variant" };
+        var expectedMethods = new[] { "IsTabClosable", "RequestTabClose", "SetTabClosable" };
+        var expectedProtectedMethods = new[] { "Dispose", "GetTabCloseButtonBounds", "ProcessCmdKey", "WndProc" };
+        var internalTypes = new[]
+        {
+            "BootstrapTabInteractionController", "BootstrapTabCloseController", "BootstrapTabNativePaint",
+            "BootstrapTabControlRenderLogic", "BootstrapTabHeaderPainter"
+        };
+
+        Assert.Multiple((Action)(() =>
+        {
+            foreach (var type in new[] { typeof(BootstrapTabControl), typeof(BootstrapTabs) })
+            {
+                Assert.That(type.BaseType, Is.EqualTo(typeof(TabControl)), type.Name);
+                Assert.That(type.GetConstructor(Type.EmptyTypes), Is.Not.Null, type.Name);
+                Assert.That(GetDeclaredPublicPropertyNames(type), Is.EqualTo(expectedProperties), type.Name);
+                Assert.That(GetDeclaredPublicMethodNames(type), Is.EqualTo(expectedMethods), type.Name);
+                Assert.That(GetDeclaredPublicEventNames(type), Is.EqualTo(new[] { "TabCloseRequested" }), type.Name);
+                Assert.That(GetDeclaredProtectedMethodNames(type), Is.EqualTo(expectedProtectedMethods), type.Name);
+                Assert.That(type.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                    .Where(property => property.GetMethod?.IsFamily == true || property.GetMethod?.IsFamilyOrAssembly == true)
+                    .Select(property => property.Name), Is.EqualTo(new[] { "CreateParams" }), type.Name);
+            }
+
+            foreach (var name in internalTypes)
+            {
+                Assert.That(assembly.GetExportedTypes().Select(type => type.Name), Does.Not.Contain(name), name);
+            }
+        }));
     }
 
     [Test]

@@ -14,6 +14,7 @@ public sealed class NavigationDemoForm : DemoFormBase
     private readonly Label _selectionStatus = new Label();
     private readonly ImageList _images = new ImageList();
     private readonly List<BootstrapDropdown> _dropdowns = new List<BootstrapDropdown>();
+    private readonly List<BootstrapTabControl> _tabs = new List<BootstrapTabControl>();
     private readonly List<Font> _ownedFonts = new List<Font>();
     private readonly List<Label> _sectionTitleLabels = new List<Label>();
     private Font? _sectionTitleFont;
@@ -41,6 +42,20 @@ public sealed class NavigationDemoForm : DemoFormBase
         _selectionStatus.Text = "Select a tab or activate a dropdown command to observe native lifecycle events.";
         _selectionStatus.Margin = new Padding(0, 0, 0, 12);
         _content.Controls.Add(_selectionStatus);
+
+        var hotTrackToggle = new CheckBox
+        {
+            AutoSize = true,
+            Checked = true,
+            Text = "Bật HotTrack cho các tab cũ",
+            AccessibleName = "Legacy tabs HotTrack",
+            Margin = new Padding(0, 0, 0, 12)
+        };
+        hotTrackToggle.CheckedChanged += (_, _) =>
+        {
+            foreach (var tab in _tabs) tab.HotTrack = hotTrackToggle.Checked;
+        };
+        _content.Controls.Add(hotTrackToggle);
 
         AddStyleScenario("Tabs", BootstrapTabStyle.Tabs, BootstrapVariant.Primary, fill: false);
         AddStyleScenario("Pills", BootstrapTabStyle.Pills, BootstrapVariant.Success, fill: false);
@@ -458,8 +473,10 @@ public sealed class NavigationDemoForm : DemoFormBase
             TabStyle = style,
             Variant = variant,
             Fill = fill,
+            HotTrack = true,
             Margin = new Padding(0, 4, 0, 4)
         };
+        _tabs.Add(tabs);
         tabs.SelectedIndexChanged += (_, _) =>
         {
             var selected = tabs.SelectedTab?.Text ?? "(none)";

@@ -57,13 +57,19 @@ internal static class Program
 
     private static int RunScenario(string[] args)
     {
+        if (args.Length == 4 && args[0] == "--scenario" && args[1] == "tabs-temporal")
+            return TabsTemporalScenario.Run(args[2], args[3]);
+        if (args.Length == 3 && args[0] == "--scenario" && args[1] == "tabs-hover")
+            return TabsHoverScenario.Run(args[2]);
+        if (args.Length == 3 && args[0] == "--scenario" && args[1] == "tabs-matrix")
+            return TabsMatrixScenario.Run(args[2]);
         if (args.Length == 3 && args[0] == "--scenario" &&
             (args[1] == "combo-accessibility" || args[1] == "combo-accessibility-primed"))
             return ComboBoxAccessibilityScenario.Run(args[2], primeProvider: args[1] == "combo-accessibility-primed");
         if (args.Length != 3 || !string.Equals(args[0], "--scenario", StringComparison.Ordinal) ||
             (args[1] != "rounded-popup" && args[1] != "rounded-popup-theme" && args[1] != "input-row"))
         {
-            throw new ArgumentException("Expected --scenario rounded-popup|rounded-popup-theme|input-row|combo-accessibility|combo-accessibility-primed <output-directory>.");
+            throw new ArgumentException("Expected --scenario tabs-hover|tabs-matrix|tabs-temporal|rounded-popup|rounded-popup-theme|input-row|combo-accessibility|combo-accessibility-primed <output-directory> [Light|Dark].");
         }
 
         return RoundedPopupScenario.Run(args[2], inputRowsOnly: args[1] == "input-row", themePalette: args[1] == "rounded-popup-theme");

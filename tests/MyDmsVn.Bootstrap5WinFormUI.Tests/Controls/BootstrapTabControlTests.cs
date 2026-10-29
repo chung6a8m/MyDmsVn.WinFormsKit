@@ -318,18 +318,21 @@ public sealed class BootstrapTabControlTests
     [Test]
     public void HotTrackControlsWhetherInactiveHeadersUseCustomHoverPalette()
     {
+        using var host = new Form { ClientSize = new Size(400, 200) };
         using var tabs = new BootstrapTabControl { TabStyle = BootstrapTabStyle.Pills };
         tabs.TabPages.Add(new TabPage("Selected"));
         tabs.TabPages.Add(new TabPage(string.Empty));
         tabs.SelectedIndex = 0;
-
-        SetPrivateField(tabs, "_hoveredIndex", 1);
+        host.Controls.Add(tabs);
+        host.Show();
         var colors = BootstrapThemeManager.CurrentTheme.Colors;
 
         tabs.HotTrack = false;
+        MovePointerOverHeader(tabs, 1);
         var withoutHotTrack = DrawInactiveHeaderCenterPixel(tabs, 1);
 
         tabs.HotTrack = true;
+        MovePointerOverHeader(tabs, 1);
         var withHotTrack = DrawInactiveHeaderCenterPixel(tabs, 1);
 
         Assert.Multiple((Action)(() =>
@@ -568,11 +571,11 @@ public sealed class BootstrapTabControlTests
         return handler?.GetInvocationList().Length ?? 0;
     }
 
-    private static void SetPrivateField(BootstrapTabControl tabs, string name, object value)
+    private static void MovePointerOverHeader(BootstrapTabControl tabs, int index)
     {
-        var field = typeof(BootstrapTabControl).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.That(field, Is.Not.Null);
-        field!.SetValue(tabs, value);
+        var header = tabs.GetTabRect(index);
+        var point = new Point(header.Left + header.Width / 2, header.Top + header.Height / 2);
+        SendMessage(tabs.Handle, 0x0200, IntPtr.Zero, (IntPtr)((point.Y << 16) | (point.X & 0xffff)));
     }
 
     private static Color DrawInactiveHeaderCenterPixel(BootstrapTabControl tabs, int index)

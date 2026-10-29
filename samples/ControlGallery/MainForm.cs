@@ -327,6 +327,11 @@ public sealed class MainForm : DemoFormBase
             "Navigation / Tabs",
             "Native-backed tab pages with Tabs/Pills/Underline headers, fill sizing, images, tooltips, disabled pages, variants, and selection events.",
             () => new NavigationDemoForm());
+
+        AddPage(
+            "Navigation / BootstrapTabs",
+            "So sánh tab cũ và BootstrapTabs với HotTrack, kiểu hiển thị, trang đóng được và native overflow.",
+            () => new BootstrapTabsDemoForm());
     }
 
     private BootstrapSidebarItem AddPage(string title, string description, Func<Form> createForm)
