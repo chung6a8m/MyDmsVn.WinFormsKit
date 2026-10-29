@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
+using MyDmsVn.Bootstrap5WinFormUI.Rendering;
 using MyDmsVn.Bootstrap5WinFormUI.Theme;
 using NUnit.Framework;
 
@@ -129,6 +130,137 @@ public sealed class BootstrapComboBoxSizingTests
         }));
     }
 
+    [Test]
+    public void FontAndThemeChangesDoNotAccumulateHeightOrSelectionEvents()
+    {
+        using var smallFont = new Font("Segoe UI", 10f, FontStyle.Regular, GraphicsUnit.Point);
+        using var largeFont = new Font("Segoe UI", 16f, FontStyle.Regular, GraphicsUnit.Point);
+        using var form = new Form { ShowInTaskbar = false };
+        using var comboBox = new BootstrapComboBox
+        {
+            Font = smallFont,
+            Width = 220,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        comboBox.Items.AddRange(new object[] { "Alpha", "Beta" });
+        comboBox.SelectedIndex = 1;
+        form.Controls.Add(comboBox);
+        form.Show();
+        PumpMessages();
+        var defaultHeight = comboBox.Height;
+        var selectionEvents = 0;
+        comboBox.SelectedIndexChanged += (_, _) => selectionEvents++;
+
+        comboBox.Font = largeFont;
+        PumpMessages();
+        var largeHeight = comboBox.Height;
+        comboBox.Font = smallFont;
+        BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Dark);
+        PumpMessages();
+        var restoredHeight = comboBox.Height;
+        BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light);
+        PumpMessages();
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(largeHeight, Is.GreaterThan(defaultHeight));
+            Assert.That(restoredHeight, Is.EqualTo(defaultHeight));
+            Assert.That(comboBox.Height, Is.EqualTo(defaultHeight));
+            Assert.That(comboBox.SelectedIndex, Is.EqualTo(1));
+            Assert.That(selectionEvents, Is.Zero);
+        }));
+    }
+
+    [Test]
+    public void HandleRecreationRestoresDefaultOuterHeight()
+    {
+        using var form = new Form { ShowInTaskbar = false };
+        using var comboBox = new RecreatingBootstrapComboBox
+        {
+            Width = 220,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        form.Controls.Add(comboBox);
+        form.Show();
+        PumpMessages();
+        var expected = comboBox.Height;
+
+        comboBox.ForceHandleRecreation();
+        PumpMessages();
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(comboBox.IsHandleCreated, Is.True);
+            Assert.That(comboBox.Height, Is.EqualTo(expected));
+            Assert.That(comboBox.Height, Is.EqualTo(DpiScaler.Scale(
+                BootstrapThemeManager.CurrentTheme.Metrics.ControlHeight,
+                comboBox.DeviceDpi)));
+        }));
+    }
+
+    [Test]
+    public void CallerRegionAndExplicitFontRemainOwnedByCaller()
+    {
+        using var callerFont = new Font("Segoe UI", 11f, FontStyle.Bold, GraphicsUnit.Point);
+        using var callerRegion = new Region(new Rectangle(0, 0, 120, 24));
+        using var form = new Form { ShowInTaskbar = false };
+        using var comboBox = new RecreatingBootstrapComboBox
+        {
+            Font = callerFont,
+            Region = callerRegion,
+            Width = 220
+        };
+        form.Controls.Add(comboBox);
+        form.Show();
+        PumpMessages();
+        BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Dark);
+        comboBox.ForceHandleRecreation();
+        PumpMessages();
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(comboBox.Font, Is.SameAs(callerFont));
+            Assert.That(comboBox.Region, Is.SameAs(callerRegion));
+            Assert.That(callerRegion.IsVisible(10, 10), Is.True);
+        }));
+    }
+
+    [Test]
+    public void LargeFontUsesSafeMinimumWithoutClipping()
+    {
+        using var largeFont = new Font("Segoe UI", 16f, FontStyle.Regular, GraphicsUnit.Point);
+        using var form = new Form { ShowInTaskbar = false };
+        using var comboBox = new BootstrapComboBox { Font = largeFont, Width = 240 };
+        form.Controls.Add(comboBox);
+        form.Show();
+        PumpMessages();
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(comboBox.Height, Is.GreaterThan(DpiScaler.Scale(
+                BootstrapThemeManager.CurrentTheme.Metrics.ControlHeight,
+                comboBox.DeviceDpi)));
+            Assert.That(comboBox.ItemHeight, Is.GreaterThanOrEqualTo(largeFont.Height));
+        }));
+    }
+
+    [Test]
+    public void SimpleModeKeepsNativeMultiLineHeightPolicy()
+    {
+        using var form = new Form { ShowInTaskbar = false };
+        using var comboBox = new BootstrapComboBox
+        {
+            DropDownStyle = ComboBoxStyle.Simple,
+            Size = new Size(220, 120)
+        };
+        form.Controls.Add(comboBox);
+        form.Show();
+        PumpMessages();
+
+        Assert.That(comboBox.Height, Is.GreaterThan(80),
+            "Simple mode is a native multi-line list and must not be forced to the closed-input height.");
+    }
+
     private static void LogMetrics(string scenario, BootstrapTextBox textBox, BootstrapComboBox comboBox)
     {
         TestContext.Progress.WriteLine(
@@ -142,5 +274,10 @@ public sealed class BootstrapComboBoxSizingTests
         {
             Application.DoEvents();
         }
+    }
+
+    private sealed class RecreatingBootstrapComboBox : BootstrapComboBox
+    {
+        internal void ForceHandleRecreation() => RecreateHandle();
     }
 }

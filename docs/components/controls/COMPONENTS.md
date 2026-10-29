@@ -333,6 +333,7 @@ BootstrapComboBox.ValidationState
 BootstrapComboBox.BorderRadius
 BootstrapComboBox.LeadingIcon
 BootstrapComboBox.IconRenderer
+BootstrapComboBox.GetPreferredSize(Size)
 ```
 
 Behavior:
@@ -342,11 +343,11 @@ Behavior:
 - `IconRenderer` uses the existing source-neutral `IIconRenderer` infrastructure and rejects `null`. It is runtime-only/non-serialized; no FontAwesome-specific dependency is introduced.
 - Validation/focus border priority reuses the established TextBox input model: disabled presentation wins first; otherwise Valid uses success, Invalid uses danger, neutral focus uses the focus token, and unfocused neutral uses the border token.
 - `BorderRadius = -1` uses the current theme radius; non-negative values are explicit logical radii and values below `-1` are rejected before mutation. Radius is best-effort for framework-controlled shell presentation only and does **not** promise rounded native arrow/edit/popup chrome.
-- The framework owns theme/DPI palette, fixed item-height metrics, owner-drawn text/icon presentation, validation/focus shell border, and theme-created font lifecycle. Runtime Light/Dark switches update presentation in place without replacing or clearing native items, data source, selection, or autocomplete state.
+- The framework owns theme/DPI palette, the closed outer-height target, fixed selection/list-item metrics, owner-drawn text/icon presentation, validation/focus shell border, and theme-created font lifecycle. `GetPreferredSize(Size)` exposes the same closed outer height used by `SetBoundsCore`; the native selection-field overhead is calibrated only after handle creation, with one bounded correction. `Simple` mode and unsupported draw modes retain native sizing. Runtime Light/Dark switches update presentation in place without replacing or clearing native items, data source, selection, or autocomplete state.
 - The native editable child, native arrow button, popup window/list chrome, hit-testing, dropdown placement, IME/text editing, Up/Down/Enter/Escape behavior, Tab traversal, and `DropDown`/`DropDownClosed`/selection event paths remain WinForms/OS-owned.
 - `BootstrapDropdown` is not used internally. Stage 6 creates no custom `Form`, `ToolStripDropDown`, `ListBox`, popup host, child-window replacement, global hook, or private WinForms reflection path.
 - The control subscribes once to the existing theme manager and owns only framework-created theme fonts. Handle recreation restores framework presentation settings without mirroring native data/selection state. Disposal removes the static theme subscription and never disposes caller-assigned fonts/renderers/descriptors.
-- Designer construction is parameterless and requires no application bootstrap. `DropDown` and `DropDownList` remain normal native modes; `Simple` is best-effort/native and is not given a separate framework implementation.
+- Designer construction is parameterless, handle-free, and requires no application bootstrap. Pre-handle layout uses only managed theme/font/system metrics; `DropDown` and `DropDownList` remain normal native modes, while `Simple` is best-effort/native and is not given a separate framework implementation.
 
 Manual verification: choose **Advanced Inputs**. Compare unbound and bound (`DisplayMember`/`ValueMember`) lists, editable `DropDown`, selection-only `DropDownList`, native `SuggestAppend`/`ListItems` autocomplete, long values, leading-icon/no-icon examples, valid/invalid/disabled states, and explicit radius. Exercise mouse plus Up/Down/Enter/Escape/Tab/Shift+Tab, switch Light/Dark, resize repeatedly, and repeat at 100/125/150/175/200% real Windows scaling. Confirm selected value/binding remain stable and accept that native edit/arrow/popup chrome may remain square/OS-themed.
 

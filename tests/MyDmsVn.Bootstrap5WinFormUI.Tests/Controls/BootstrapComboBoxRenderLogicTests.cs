@@ -40,7 +40,8 @@ public sealed class BootstrapComboBoxRenderLogicTests
             Assert.That(metrics.VerticalPadding, Is.EqualTo(verticalPadding));
             Assert.That(metrics.IconSize, Is.EqualTo(iconSize));
             Assert.That(metrics.IconGap, Is.EqualTo(iconGap));
-            Assert.That(metrics.ItemHeight, Is.EqualTo(Math.Max(controlHeight, fontHeight + (verticalPadding * 2))));
+            Assert.That(metrics.OuterHeight, Is.EqualTo(controlHeight));
+            Assert.That(metrics.MinimumFieldHeight, Is.EqualTo(fontHeight + (verticalPadding * 2)));
             Assert.That(metrics.BorderWidth, Is.EqualTo(borderWidth).Within(0.001f));
             Assert.That(metrics.FocusBorderWidth, Is.EqualTo(focusBorderWidth).Within(0.001f));
             Assert.That(metrics.Radius, Is.EqualTo(radius).Within(0.001f));
