@@ -10,6 +10,8 @@ Phạm vi, trạng thái bootstrap và phần kiểm chứng/consumer migration 
 
 Candidate sau bốn findings PR #3 có [evidence sửa review](docs/verification/20261029-input-popup-rendering-review-fixes.md) riêng. Physical DPI, Owner visual decision và consumer acceptance tiếp tục để mở.
 
+[Evidence review vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md) ghi candidate mới nhất cho pre-handle FlowLayout và alpha compositing; các mục nghiệm thu bên trên vẫn chưa hoàn tất.
+
 ## Bắt đầu trên Windows
 
 Cần .NET SDK tương thích `global.json` (`8.0.400`, `latestFeature`), Windows với runtimes .NET Framework 4.8/.NET 8 Desktop và desktop tương tác để chạy native tests/galleries. Reference assemblies để build `net48` được restore qua NuGet. Dùng VS2022 với workload .NET desktop hoặc CLI phù hợp; xem [TESTING](docs/TESTING.md) để chọn đúng scope.
