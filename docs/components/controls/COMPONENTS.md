@@ -892,9 +892,28 @@ Manual verification: choose **Navigation / Tabs** in the integrated demo. Exerci
 
 ## BootstrapTabs
 
-`BootstrapTabs` trực tiếp kế thừa `TabControl` và dùng cùng `BootstrapTabStyle`, `BootstrapVariant`, cơ chế hover và close request của `BootstrapTabControl`. Control mới có default `TabStyle=Underline`, `Variant=Primary`, `Fill=false`, `BorderRadius=0`, inherited `HotTrack=false`, `DrawMode=OwnerDrawFixed`, `SizeMode=Fixed`. Constructor không tạo HWND; `TabPages`, selection, keyboard, accessibility, ảnh, tooltip và overflow tiếp tục do WinForms quản lý. Public close API gồm `SetTabClosable`, `IsTabClosable`, `RequestTabClose`, `TabCloseRequested`; owner xử lý việc xóa/dispose page.
+`BootstrapTabs` trực tiếp kế thừa `System.Windows.Forms.TabControl`; không có page model hoặc base class mới. Control dùng chung `BootstrapTabStyle`, `BootstrapVariant`, hover và close request với `BootstrapTabControl`. Contract public được khai báo trong [source `BootstrapTabs.cs`](../../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapTabs.cs) và [close event args](../../../src/MyDmsVn.Bootstrap5WinFormUI/Controls/TabCloseRequestedEventArgs.cs):
 
-Ở Top/Normal/single-line/LTR/OwnerDrawFixed, header và chrome gọn được hoàn thiện trong cùng native paint pass qua HDC do WinForms cung cấp; vùng page, item đã vẽ và native child như overflow được loại khỏi chrome fill. Print nhận HDC/clip của caller. Bottom/Left/Right, multiline, RTL, Buttons/FlatButtons và `DrawMode.Normal` đi theo native chrome fallback, giữ các property do caller đặt và native owner-draw events khi còn `OwnerDrawFixed`. Theme font do toolkit tạo được dispose; font, ImageList và menu của consumer giữ ownership của consumer.
+```csharp
+public BootstrapTabs();
+public BootstrapTabStyle TabStyle { get; set; }
+public BootstrapVariant Variant { get; set; }
+public bool Fill { get; set; }
+public int BorderRadius { get; set; }
+public event EventHandler<TabCloseRequestedEventArgs>? TabCloseRequested;
+public void SetTabClosable(TabPage page, bool closable);
+public bool IsTabClosable(TabPage page);
+public bool RequestTabClose(TabPage page, TabCloseReason reason = TabCloseReason.Programmatic);
+protected Rectangle GetTabCloseButtonBounds(int index);
+```
+
+Default của control mới: `TabStyle=Underline`, `Variant=Primary`, `Fill=false`, `BorderRadius=0`, inherited `HotTrack=false`, `DrawMode=OwnerDrawFixed`, `SizeMode=Fixed`. `BorderRadius=-1` dùng radius của theme; giá trị nhỏ hơn `-1` bị từ chối. `TabStyle`/`Variant` không hợp lệ cũng bị từ chối trước khi đổi state. Constructor không tạo HWND và không cần app startup, nên dùng được trong Designer. `TabPages`, selection, keyboard, native focus/accessibility, `ImageList`/`ImageKey`/`ImageIndex`, tooltip và overflow tiếp tục do WinForms quản lý. `BootstrapTabControl` giữ defaults riêng của nó.
+
+`SetTabClosable` áp dụng cho `TabPage` hiện thuộc control. `RequestTabClose` trả `true` khi phát request cho page hợp lệ, enabled và closable; lý do gồm `Pointer`, `Keyboard`, `Accessibility`, `Programmatic`. Click close được xử lý trước native mouse-down selection/focus; Ctrl+W và menu accessibility gọi cùng request. Event giữ `TabPage` gốc, không tự xóa, chọn lại hoặc dispose page. Consumer quyết định có đóng hay không, cập nhật `TabPages` và quản lý vòng đời page. Toolkit chỉ dispose font, menu, subscriptions và GDI do chính mình tạo; không dispose `Font`, `ImageList` hoặc `ContextMenuStrip` được consumer gán.
+
+Compact chrome chỉ hỗ trợ `Alignment=Top`, `Appearance=Normal`, `Multiline=false`, LTR (`RightToLeft!=Yes`, `RightToLeftLayout=false`) và `DrawMode=OwnerDrawFixed`. Trong cấu hình đó, native paint, header `DrawItem` và chrome gọn đi qua cùng supplied HDC/buffer; chrome fill loại trừ page, item đã vẽ và native child như overflow. `WM_PRINT` nhận HDC, clip và flags của caller. Với Bottom/Left/Right, multiline, RTL, Buttons/FlatButtons hoặc `DrawMode=Normal`, control giữ property của caller và dùng native chrome fallback; `OwnerDrawFixed` vẫn phát `DrawItem`, còn `DrawMode.Normal` đi theo native painting. Fallback không hứa hẹn cùng diện mạo compact.
+
+Painter mặc định vẫn là handler `DrawItem` gắn trong constructor. Handler của consumer gắn sau khi tạo control và subclass vẽ sau `base.OnDrawItem(e)` tiếp tục nhận `Graphics`/`Bounds` của WinForms theo thứ tự cũ; trong compact pass, phần vẽ trên `e.Graphics` được đưa vào cùng buffer. Consumer vẽ trực tiếp lên screen DC sau `base.WndProc` nằm ngoài buffer của toolkit và cần migration riêng. Inherited `HotTrack=true` dùng hover chung của toolkit trong `OwnerDrawFixed`, tránh native `TCS_HOTTRACK` tô chồng; `DrawMode.Normal` giữ native HotTrack.
 
 Khi xóa page, `Fill` tính lại width theo tập trang còn lại ngay cả khi WinForms phát `ControlRemoved` trước khi cập nhật `TabPages`. `WM_PRINT` với `PRF_CHECKVISIBLE` không vẽ vào HDC caller nếu HWND đang ẩn. Fallback căn caption Left theo trục sau xoay và giữ icon tách khỏi close target trong header hẹp.
 

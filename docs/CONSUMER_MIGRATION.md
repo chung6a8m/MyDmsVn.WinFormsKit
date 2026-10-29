@@ -86,6 +86,18 @@ Ba outputs phải khớp bảng old pins, hoặc baseline được ghi riêng n�
 
 Migration này không thay schema hay dữ liệu nên rollback không cần khôi phục database. Nếu PR thực tế thêm thay đổi database ngoài recipe này, phải tách phạm vi và thiết kế recovery theo owner app; không tuyên bố revert source đã rollback dữ liệu.
 
+## Migration riêng cho workspace tabs — TAB-06
+
+Phần này áp dụng cho [lớp app `BusinessCompactWorkspaceTabs` tại exact source pin `16c24738a4758ccdceb1f3509f4e37adb0d03464`][app-workspace-tabs]. Đây là một PR consumer **riêng** với migration graph A3 ở trên. Source pin xác định code cần đối chiếu, không khẳng định app HEAD hiện tại vẫn giống pin đó. Candidate toolkit TAB-04/05 đang được review ở `5b012e276ac5e7b12e150751f2c2fc95e9bdc563`; PR consumer phải pin **exact 40-character toolkit commit cuối cùng được nghiệm thu sau TAB-06**, ghi cả old/new gitlink và không dùng branch HEAD. Pin đang review không tự là pin để release.
+
+1. Trên branch/worktree app sạch, lấy exact toolkit commit đã nghiệm thu và cập nhật gitlink `vendor/MyDmsVn.WinFormsKit`; xác nhận `git -C vendor/MyDmsVn.WinFormsKit rev-parse HEAD` khớp SHA ghi trong PR. Không dùng `submodule update --remote`.
+2. Đối chiếu toàn bộ call sites và Designer với [source app đã pin][app-workspace-tabs]. Thay construction/reference của `BusinessCompactWorkspaceTabs : BootstrapTabControl` bằng `BootstrapTabs : TabControl` từ namespace `MyDmsVn.Bootstrap5WinFormUI.Controls`; giữ native `TabPage`, `TabPages`, selection, keyboard, tooltip, overflow, accessibility, `Font` và `ImageList` của app. Control mới mặc định `Underline/Primary/Fill=false/BorderRadius=0/HotTrack=false/OwnerDrawFixed/Fixed`; chỉ đặt property khác khi app thực sự cần.
+3. Chuyển app close policy sang `TabCloseRequested` hoặc tiếp tục dùng `SetTabClosable`/`RequestTabClose`; event chỉ là request. App quyết định quyền đóng, xóa page khỏi collection, dispose tài nguyên nó sở hữu và chọn page tiếp theo. Giữ context menu app nếu có, không trộn với menu toolkit.
+4. Bỏ `WndProc` của lớp app đang lấy `Graphics.FromHwnd(Handle)` sau `base.WndProc` để tô native frame/gap. Đường vẽ screen DC này nằm **ngoài** native buffer của `BootstrapTabs`, nên giữ nó sẽ làm mất bảo đảm composite trong compact pass. Phần caption đặc thù của app trong `OnDrawItem` cũng cần so sánh trực quan với renderer mới; nếu còn cần, chuyển vào handler `DrawItem` hoặc override `OnDrawItem` vẽ trên `e.Graphics` sau `base.OnDrawItem(e)`, không vẽ lên screen DC. Không copy `BusinessCompactAppearance` vào toolkit.
+5. Build app `net48` từ exact gitlinks; kiểm giao diện workspace trên Windows bằng native input với Light/Dark, physical 100/125 và window DPI ghi riêng, representative 150/200, mixed-DPI, hover, long captions, overflow, close, focus, selection, print và fallback nếu app dùng. Ghi candidate SHA, test discovery/execution và ảnh/trace có thể mở lại. Owner quyết định visual/flicker; toolkit candidate evidence không tự thay app acceptance.
+
+Rollback PR tabs bằng revert commit(s) của **PR consumer tabs** để khôi phục type/construction và old toolkit gitlink đã ghi, rồi `git submodule sync --recursive` và `git submodule update --init --recursive` trên checkout sạch. Build và native smoke lại app tại pin đã phục hồi; không revert A3 graph nếu PR tabs không thay graph đó.
+
 [app]: https://github.com/chung6a8m/MyDmsVn/tree/6c385d7630b6b21e915e244113c214aa616327f6
 [app-modules]: https://github.com/chung6a8m/MyDmsVn/blob/6c385d7630b6b21e915e244113c214aa616327f6/.gitmodules
 [app-project]: https://github.com/chung6a8m/MyDmsVn/blob/6c385d7630b6b21e915e244113c214aa616327f6/src/MyDmsVn.Desktop.WinForms/MyDmsVn.Desktop.WinForms.csproj
@@ -93,3 +105,4 @@ Migration này không thay schema hay dữ liệu nên rollback không cần kh�
 [grid-tree]: https://github.com/chung6a8m/MyDmsVn.BootstrapSourceGrid/tree/e311144c27cd79a6c34aa0308ad029651c9e03c9/vendor
 [a3]: https://github.com/chung6a8m/MyDmsVn.Docs/blob/57cf5e0f506ac0c313e9d659939d863325250b53/proposals/2026-10-24-adoption.md#2-thứ-tự-đề-xuất-và-kết-quả-có-thể-xem-được
 [distribution]: https://github.com/chung6a8m/MyDmsVn.Docs/blob/57cf5e0f506ac0c313e9d659939d863325250b53/proposals/2026-10-24-organization.md#chuyển-source-và-chuyển-distribution-là-hai-việc-riêng
+[app-workspace-tabs]: https://github.com/chung6a8m/MyDmsVn/blob/16c24738a4758ccdceb1f3509f4e37adb0d03464/src/MyDmsVn.Desktop.WinForms/BusinessCompactWorkspaceTabs.cs

@@ -59,13 +59,15 @@ internal static class Program
     {
         if (args.Length == 3 && args[0] == "--scenario" && args[1] == "tabs-hover")
             return TabsHoverScenario.Run(args[2]);
+        if (args.Length == 3 && args[0] == "--scenario" && args[1] == "tabs-matrix")
+            return TabsMatrixScenario.Run(args[2]);
         if (args.Length == 3 && args[0] == "--scenario" &&
             (args[1] == "combo-accessibility" || args[1] == "combo-accessibility-primed"))
             return ComboBoxAccessibilityScenario.Run(args[2], primeProvider: args[1] == "combo-accessibility-primed");
         if (args.Length != 3 || !string.Equals(args[0], "--scenario", StringComparison.Ordinal) ||
             (args[1] != "rounded-popup" && args[1] != "rounded-popup-theme" && args[1] != "input-row"))
         {
-            throw new ArgumentException("Expected --scenario tabs-hover|rounded-popup|rounded-popup-theme|input-row|combo-accessibility|combo-accessibility-primed <output-directory>.");
+            throw new ArgumentException("Expected --scenario tabs-hover|tabs-matrix|rounded-popup|rounded-popup-theme|input-row|combo-accessibility|combo-accessibility-primed <output-directory>.");
         }
 
         return RoundedPopupScenario.Run(args[2], inputRowsOnly: args[1] == "input-row", themePalette: args[1] == "rounded-popup-theme");

@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–3 và 5](../design/20261029-tabs-hottrack-live-busy-overlay.md). Đọc cả design và plan trước khi code. [Luồng BUS](20261029-003-live-busy-overlay.md) độc lập; không đợi BUS để sửa HotTrack.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`; reference app `16c24738a4758ccdceb1f3509f4e37adb0d03464`. **Trạng thái candidate TAB-01–05:** TAB-04/05 implementation và focused/native proof có ở `d67abbd7b1f2b3081e26e8b0a22bbb03761bbaf0`; [evidence](../verification/20261029-tabs-hottrack.md) giữ số liệu theo từng commit. Native paint gate TAB-01 và physical/Owner acceptance còn OPEN; TAB-06 chưa triển khai. Không lấy test PASS ở DPI96 để đóng nghiệm thu physical.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`; reference app `16c24738a4758ccdceb1f3509f4e37adb0d03464`. **Trạng thái candidate TAB-01–06:** TAB-04/05 implementation và focused/native proof có ở `d67abbd7b1f2b3081e26e8b0a22bbb03761bbaf0`; TAB-06 contract/API/focused proof tiếp tục trên candidate code `5b012e276ac5e7b12e150751f2c2fc95e9bdc563`. [Evidence](../verification/20261029-tabs-hottrack.md) giữ số liệu theo từng commit. Native paint gate TAB-01 và physical/Owner acceptance còn OPEN. Không lấy test PASS ở DPI96 để đóng nghiệm thu physical.
 
 ## Global Constraints
 
@@ -97,7 +97,7 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 | TAB-03 — painter/close extraction | TAB-02 | IN PROGRESS — painter/close và focused tests hai TFM; physical 125%/orientation còn mở |
 | TAB-04 — BootstrapTabs và composition | TAB-01 proof, TAB-03 | IN PROGRESS — code, tests và native DPI96 proof hai TFM đã có; physical/Owner gate OPEN |
 | TAB-05 — demo | TAB-04 | IN PROGRESS — route/actions/tests đã có; Light/Dark và physical review PENDING |
-| TAB-06 — contracts, API, native acceptance | TAB-02–05 | PENDING |
+| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API và focused proof hai TFM đã có; physical/Owner/artifact gate OPEN |
 
 ### TAB-01 — Reproducer và proof cho native paint
 
@@ -173,10 +173,10 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 
 **Files:** sửa `docs/components/controls/COMPONENTS.md`, `PUBLIC_API_BASELINE.md`, `COMPATIBILITY.md`, `docs/CONSUMER_MIGRATION.md`, `docs/TESTING.md`, `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Release/Phase16PublicApiBaselineTests.cs`; cập nhật report `docs/verification/20261029-tabs-hottrack.md` và checklist plan này.
 
-- [ ] Ghi API/defaults, supported compact mode/native chrome fallback, inherited HotTrack, close/ownership và DrawItem compatibility. Consumer recipe thay app subclass bằng BootstrapTabs theo exact pin ở PR riêng; giải thích lớp app vẽ screen DC sau base nằm ngoài toolkit buffer.
-- [ ] Review exported public/protected diff thực tế; thêm exact contract tests, rồi mới cập nhật fingerprint bằng assembly đã build trên hai TFM. Giữ assembly version; không hard-code một hash đoán trước hoặc nới gate để bỏ qua overrides mới.
+- [x] Ghi API/defaults, supported compact mode/native chrome fallback, inherited HotTrack, close/ownership và DrawItem compatibility. Consumer recipe thay app subclass bằng BootstrapTabs theo exact pin ở PR riêng; giải thích lớp app vẽ screen DC sau base nằm ngoài toolkit buffer.
+- [x] Review exported public/protected diff thực tế; thêm exact contract tests, rồi mới cập nhật fingerprint bằng assembly đã build trên hai TFM. Giữ assembly version; không hard-code một hash đoán trước hoặc nới gate để bỏ qua overrides mới.
 - [ ] Chạy Commands và native matrix: hai TFM × Light/Dark × physical 100/125; representative 150/200 và mixed-DPI; hover/overflow/print/fallback/close. Ghi actual window DPI. Thiếu môi trường ghi NOT RUN, giữ gate mở.
-- [ ] Build graph All để phát hiện consumer compile issues; tests chọn Controls fixtures liên quan, không tự kéo SQL hoặc full suites ngoài boundary. Nếu manifest/DPI gallery đổi đồng thời bởi BUS, chạy thêm integrated typography/layout regressions trên candidate hợp nhất.
+- [x] Build graph All để phát hiện consumer compile issues; tests chọn Controls fixtures liên quan, không tự kéo SQL hoặc full suites ngoài boundary. Nếu manifest/DPI gallery đổi đồng thời bởi BUS, chạy thêm integrated typography/layout regressions trên candidate hợp nhất.
 - [ ] Lưu evidence có thể mở lại bằng artifact URL + candidate/scenario/hash metadata; không chỉ đường dẫn local đã mất. Owner review chuỗi hover và hình Light/Dark trên candidate đó; chưa có quyết định thì ghi PENDING, không tự APPROVED.
 - [ ] Commit `docs: record tabs contracts and candidate verification`; chỉ đánh DONE từng task đã đạt cả deliverable và evidence của chính nó.
 
