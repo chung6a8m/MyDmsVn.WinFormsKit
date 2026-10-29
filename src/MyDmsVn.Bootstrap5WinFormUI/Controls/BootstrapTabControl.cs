@@ -38,6 +38,7 @@ public class BootstrapTabControl : TabControl
         _close.SetClosable(page, closable);
         ApplyHeaderItemSize();
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     /// <summary>Gets whether an owned page can request a close.</summary>
