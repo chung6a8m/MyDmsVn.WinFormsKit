@@ -27,3 +27,20 @@ Build: 2/2 TFM thành công, 0 warning, 0 error. Helper bounded run: net48 exit 
 ## Gate
 
 **TAB-01 chưa DONE; native paint gate OPEN.** Supplied-HDC dispatch, dirty header clip và overflow click của baseline probe hoạt động trên hai runtime ở physical 100%, đủ trace đầu vào cho TAB-02. Trước TAB-04 cần proof final compositor với child exclusion, print flags/nested print và không có đường native drawing ngoài buffer khi control mới hoàn thiện. Physical 125% và artifact URL/Owner visual decision chưa có; không suy ra no-flicker từ exit 0 hoặc một bitmap.
+
+## TAB-02 — candidate HotTrack dùng chung
+
+Ngày chạy: 29/10/2026. Candidate `0bbd82e03430f0e901ab1c1f287061259f81e7d3`; SourceGrid gitlink giữ `f4e457b43582bf01892f50bdc74aa480531e5944`. Windows NT 10.0.26300.0, process 64 bit, SDK `8.0.427`, desktop DPI 96 theo helper. Restore dùng cache hiện có; không ghi nhận clean restore. TAB-02 thay hover state bằng `BootstrapTabInteractionController`, lọc `TCS_HOTTRACK` cho custom owner-draw headers, và dùng `InvalidateRect` với `bErase=false` chỉ trên header cần đổi visual. `DrawMode.Normal` giữ native HotTrack.
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --filter "FullyQualifiedName~BootstrapTabControlTests|FullyQualifiedName~BootstrapTabInteractionTests" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter "FullyQualifiedName~BootstrapTabControlTests|FullyQualifiedName~BootstrapTabInteractionTests" --blame-hang --blame-hang-timeout 5m
+# Mỗi helper EXE chạy tuần tự qua Start-Process -WindowStyle Hidden,
+# WaitForExit(30000), Stop-Process nếu hết thời gian.
+<VisualStyleHost-net48.exe> --scenario tabs-hover artifacts/verification/tabs/tab02-0bbd82e-net48
+<VisualStyleHost-net8.0-windows.exe> --scenario tabs-hover artifacts/verification/tabs/tab02-0bbd82e-net8
+```
+
+Trước sửa, hai regressions xác định RED trên net8: custom headers với inherited `HotTrack=true` còn native style bit `TCS_HOTTRACK=64`; `HotTrack=false` vẫn để MouseMove xếp repaint vùng header. Sau sửa, focused NUnit discovery/execution **29/29 PASS, fail 0, skip 0** trên mỗi TFM. Existing BootstrapTabControl tests giữ 21/21 PASS; reflection setup `_hoveredIndex` đã đổi thành WM_MOUSEMOVE thật. Bộ mới kiểm same-header không xếp repaint lần nữa, dirty union đúng hai header khi đổi hover, bất biến `Font`/`ItemSize`/`GetTabRect`/selection/HWND, và con trỏ đứng yên qua caption/layout mutation, resize, add/remove page, handle recreation. A/B `GetUpdateRect(..., erase=true)` ghi `WM_ERASEBKGND=1` với invalidation có erase và `0` với header invalidation mới trên cả net48/net8. Đây là so sánh erase message trong fixture, chưa phải Owner visual no-flicker decision.
+
+Helper `tabs-hover` trên candidate này: net48 exit 0 trong 264 ms; net8 exit 0 trong 311 ms. Metadata mỗi TFM ghi `PROBE PASS`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; raw capture/trace/JSON chỉ ở local ignored artifacts, chưa có URL bền vững. Native tooltip/focus/overflow sau TAB-02 chưa được một oracle riêng kết luận; gate TAB-01 cho final compositor, physical 125% và Owner review vẫn mở. Protected `CreateParams` override là delta cần đưa vào API fingerprint/compatibility ở TAB-06.
