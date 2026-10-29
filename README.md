@@ -10,7 +10,7 @@ Phạm vi, trạng thái bootstrap và phần kiểm chứng/consumer migration 
 
 Candidate sau bốn findings PR #3 có [evidence sửa review](docs/verification/20261029-input-popup-rendering-review-fixes.md) riêng. Physical DPI, Owner visual decision và consumer acceptance tiếp tục để mở.
 
-[Evidence review vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md) ghi candidate mới nhất cho pre-handle FlowLayout và alpha compositing; các mục nghiệm thu bên trên vẫn chưa hoàn tất.
+[Evidence review vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md) giữ kết quả pre-handle FlowLayout và alpha compositing. [Evidence vòng ba](docs/verification/20261029-input-popup-rendering-round-three.md) ghi candidate mới nhất cho caller Height trong handle recreation và bitmap export khác DPI; các mục nghiệm thu bên trên vẫn chưa hoàn tất.
 
 ## Bắt đầu trên Windows
 
