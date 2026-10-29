@@ -12,10 +12,10 @@ Phase 16 froze the Phase 15-reviewed exported API as the proposed v1 compatibili
 
 The baseline covers every exported type plus each declared public, protected, and protected-internal constructor, field, property, event, and method in the core assembly. Including protected surface is intentional because subclasses can depend on it.
 
-Approved SHA-256 API fingerprint (EXC-T03 compiled review, 2026-10-28):
+Approved SHA-256 API fingerprint (input/popup rendering compiled review, 2026-10-29):
 
 ```text
-e6735faae42a8eb41c06cdd5d4fd27a87e56dccaee73f579cd4460ef0693db6e
+1de84ca1b9a297e0caff576b4b18c0296ca17d0ebabf088be2f48213cad27755
 ```
 
 The reviewed Pagination addition exports only `MyDmsVn.Bootstrap5WinFormUI.Controls.BootstrapPagination`. Its declared surface is the parameterless constructor, `TotalItems`, `PageSize`, `CurrentPage`, `TotalPages`, `MaxVisiblePages`, `ShowFirstLast`, `ShowPreviousNext`, `ButtonSize`, `Variant`, `BorderRadius`, `PageChanged`, and the `GetPreferredSize(Size)` override inherited as part of the control contract. Pagination layout helper types remain internal.

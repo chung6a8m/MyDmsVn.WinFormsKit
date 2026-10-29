@@ -2,7 +2,7 @@
 
 Toolkit Windows Forms tập hợp **Bootstrap5WinFormUI** và **BootstrapSourceGrid** trong một repository, giữ hai assembly/public identities và pin engine SourceGrid riêng. Source được nhập từ dependency revisions mà MyDmsVn sử dụng; mapping nằm trong [PROVENANCE](docs/PROVENANCE.md).
 
-Công việc được chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](docs/plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](docs/design/20261029-input-popup-rendering.md) ghi phân tích source, lịch sử các lần sửa và giải pháp đề xuất; plan đã sẵn sàng giao triển khai, chưa có source fix hoặc native acceptance cho candidate mới.
+Công việc được chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](docs/plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](docs/design/20261029-input-popup-rendering.md) ghi phân tích source, lịch sử các lần sửa và giải pháp. T01–T07 đã có implementation cùng [candidate evidence](docs/verification/20261029-input-popup-rendering.md): toolkit gates PASS trên `net48`/`net8.0-windows` và native desktop 100%; physical 125%+, Owner visual decision và consumer MyDmsVn acceptance vẫn được giữ riêng là chưa chạy/chưa duyệt.
 
 Scope [khắc phục ba ngoại lệ Business Compact](docs/plans/20261028-001-business-compact-exceptions.md) — disabled action, modal Font và multiline read-only — đã hoàn tất trong phạm vi được chọn. [Candidate evidence](docs/verification/20261028-business-compact-exceptions.md) ghi focused Windows/native tests, consumer physical-100/125 review và quyết định Owner APPROVED ngày 2026-10-28 cho code/test execution revision `a71d64bd82eb40123eafef4c5a6832e53d7ef9ca`; ba ngoại lệ đã CLOSED. Consumer phải pin đúng commit chứa report hiện tại.
 

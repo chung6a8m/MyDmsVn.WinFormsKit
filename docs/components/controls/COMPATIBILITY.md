@@ -138,3 +138,11 @@ Phần bổ sung ngày 2026-10-28 dùng cùng source và public API trên `net48
 Mode/wrap/scrollbar setters giữ native handle-recreation behavior; cùng đối tượng `TextBox` tiếp tục sở hữu nội dung, caret, selection, clipboard và accessibility provider. Private `NativeWindow` chỉ đồng bộ accessible name/description trước focus/accessibility requests và tháo/gắn theo handle; không thay provider, hook toàn cục, timer hay message loop. Các tên native riêng của derived control không bị xóa khi wrapper metadata không được đặt.
 
 Metadata được cập nhật ở handle/focus/layout/theme/request boundaries; đây không phải cam kết thông báo tức thời tới client đã cache provider khi chỉ sửa `AccessibleName`/`AccessibleDescription`. Thiết lập metadata trước khi hiển thị đáp ứng consumer chỉ đọc được chọn. Mở rộng property phải đi qua reviewed compiled API delta; native tests, Designer và physical DPI cần Windows trên đúng candidate, không suy từ cross-build.
+
+## 13. Input/popup rendering — 2026-10-29
+
+Core và SourceGrid adapter tiếp tục dùng cùng source trên `net48`/`net8.0-windows`; assembly/package/namespace identities, SourceGrid gitlink và native selection/editing contracts không đổi. Shared rounded geometry/painter, overlay measurement/backing/Regions và embedded-grid border policy đều là internal. Constructor `BootstrapComboBox` vẫn handle-free và chỉ đọc native height/window metrics sau `OnHandleCreated`.
+
+Compiled API delta có chủ đích chỉ re-declare inherited layout seams trên `BootstrapComboBox`: public `GetPreferredSize(Size)` và protected `SetBoundsCore(...)`. Chúng giữ width/x/y và native modes, đồng thời cho layout engine cùng đọc outer-height contract; fingerprint reviewed là `1de84ca1b9a297e0caff576b4b18c0296ca17d0ebabf088be2f48213cad27755`. Không có public popup/geometry/borderless-grid API mới và `AssemblyVersion` vẫn `1.0.0.0`.
+
+Radius-only refresh của Select/Lookup là internal geometry path, không phải selection/presentation refresh: không reconcile selection và không tự cuộn về highlighted row. Geometry/bitmap DPI matrix không chứng minh HWND composition hoặc physical monitor scale; trạng thái native, Owner và consumer phải đọc từ [candidate evidence](../../verification/20261029-input-popup-rendering.md).

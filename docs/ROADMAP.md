@@ -1,6 +1,6 @@
 # Công việc hiện hành
 
-Scope được Owner chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](design/20261029-input-popup-rendering.md) giữ căn cứ source, lịch sử sửa và quyết định geometry/backing/layout. Plan sở hữu T01–T07, ở trạng thái READY FOR IMPLEMENTATION; chưa triển khai source và chưa có native acceptance của candidate mới.
+Scope được Owner chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](design/20261029-input-popup-rendering.md) giữ căn cứ source, lịch sử sửa và quyết định geometry/backing/layout. T01–T07 đã có implementation và [candidate evidence](verification/20261029-input-popup-rendering.md): toolkit build/full/focused/native-100% gates PASS trên hai TFM; physical 125%+, Owner visual decision và consumer MyDmsVn acceptance còn mở, không ghi APPROVED/CLOSED.
 
 Scope được Owner chọn ngày 2026-10-28 — [khắc phục ba ngoại lệ Business Compact](plans/20261028-001-business-compact-exceptions.md) — đã hoàn tất trong phạm vi hẹp về disabled action, modal Font và multiline read-only. [Candidate evidence](verification/20261028-business-compact-exceptions.md) phân biệt source/cross-build với Windows/native và ghi quyết định Owner APPROVED ngày 2026-10-28; ba ngoại lệ đã CLOSED.
 

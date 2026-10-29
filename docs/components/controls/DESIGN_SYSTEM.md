@@ -214,6 +214,10 @@ graphics.FillPath(brush, path);
 
 The foundation deliberately does not expose a reflection-based double-buffer toggle or create a base-control hierarchy in Phase 2. Concrete custom-painted controls should use normal protected WinForms buffering styles (`DoubleBuffered` / `SetStyle`) in their own construction path. A shared control base or lifecycle helper should be introduced only when later controls demonstrate real repeated behavior that cannot be cleanly expressed with standard WinForms APIs.
 
+Các input shell và overlay do framework sở hữu dùng một helper nội bộ chung để suy outer/stroke/inner geometry từ outer bounds, per-corner radius và border width. Radius được normalize một lần; stroke nằm trong bounds, content inset được suy từ cùng geometry và painter dùng `PixelOffsetMode.Half` trong một graphics state được save/restore đầy đủ. Helper này không phải public API và không thay `RoundedPath`/`CornerRadius` mà consumer đang dùng.
+
+Popup native vẫn có rectangular opaque backing do `ToolStripDropDown` sở hữu. Rounded fill/stroke, outer Region bảo thủ và inner content Region cùng xuất phát từ geometry chung; caller padding/Region không bị lấy ownership. Tests synthetic DPI/bitmap chỉ chứng minh phép tính và raster; displayed-popup capture phải mở HWND thật và chụp cả exterior band trên Windows desktop.
+
 The demo application's **Rendering / DPI** window renders the same foundation geometry at virtual 96/120/144/168/192 DPI (100/125/150/175/200%) and responds to runtime theme changes. This gives a repeatable visual verification path, but it does not replace testing the application under actual Windows display-scaling settings.
 
 ## 17. Phase 3 icon API

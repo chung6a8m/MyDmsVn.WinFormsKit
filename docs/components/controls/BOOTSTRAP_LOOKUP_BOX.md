@@ -37,6 +37,14 @@ An exact display match commits only when all matching rows have one distinct log
 
 Keyboard focus stays in the editor: Up/Down/Home/End/PageUp/PageDown move only highlight; Enter commits/resolves; Tab resolves before native traversal; Escape and `CancelPendingEdit()` discard pending text; F4, Down, and Alt+Down open. Application deactivation closes presentation only and preserves committed and pending state.
 
+## Popup geometry và navigation state
+
+Popup dùng shared rounded overlay với opaque native backing và decoration-safe content rectangle. Grid do popup sở hữu dùng internal borderless embedding policy qua theme/reopen; `BootstrapDataGridView` standalone tiếp tục giữ public `FixedSingle` behavior. Header, selected row, footer và scrollbar nằm trong content rectangle đã dành góc/viền, còn footer/layout metrics dùng cùng effective DPI từ controller.
+
+Đổi `BorderRadius` khi popup đang mở chỉ refresh geometry/layout/owned Regions và placement trên cùng HWND. Đường này không gọi result synchronization, không đổi committed value/query/native caret/highlight/current row và không đặt lại `FirstDisplayedScrollingRowIndex` về highlighted row. Theme hoặc DPI refresh đầy đủ vẫn giữ native editor, selection và activation contracts hiện có.
+
+Synthetic geometry/bitmap tests không thay native shown-popup verification. Scale vật lý và phần consumer còn lại được ghi theo candidate trong [evidence ngày 2026-10-29](../../verification/20261029-input-popup-rendering.md).
+
 ## DataGridView lookup column
 
 ```csharp

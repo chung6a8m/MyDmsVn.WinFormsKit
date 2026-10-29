@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế, căn cứ source và lịch sử sửa](../design/20261029-input-popup-rendering.md). Đọc cả hai tài liệu trước khi code.
 
-**Trạng thái:** READY FOR IMPLEMENTATION; mọi task bên dưới chưa thực thi. Phân tích ngày 29/10/2026 dùng toolkit `fd317f0aa4242cc9a44b7554c54f96bb883b6357`. Không có Windows/native PASS hoặc Owner approval cho bản sửa mới.
+**Trạng thái candidate 2026-10-29:** T01–T06 đã triển khai theo commit riêng; T07 đã build/test/capture trên Windows desktop 96 DPI và có [candidate evidence](../verification/20261029-input-popup-rendering.md). Toolkit gates trên `net48`/`net8.0-windows` đã PASS. Physical 125% trở lên `NOT RUN`; Owner visual decision `PENDING`; consumer MyDmsVn acceptance `NOT RUN`, vì vậy plan không ghi APPROVED/CLOSED.
 
 ## Global Constraints
 
