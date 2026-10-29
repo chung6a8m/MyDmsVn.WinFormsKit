@@ -1,6 +1,6 @@
 # BUS-03 — Production live child-layer backdrop
 
-Candidate hiện hành sau review minimum Cancel width được ghi tại mục **Sửa Important sau review BUS-03** bên dưới. Các bảng baseline52/52/22 và native8 runs ở phần đầu thuộc commit `ed9da03ae6da9c4757beacc5b590fd42edde189c`, không tự chuyển thành PASS của candidate sửa layout.
+Candidate hiện hành sau review zero-sized client được ghi tại mục **Sửa Important về zero-sized client** bên dưới; mục minimum Cancel width giữ candidate trước đó. Các bảng baseline52/52/22 và native8 runs ở phần đầu thuộc commit `ed9da03ae6da9c4757beacc5b590fd42edde189c`, không tự chuyển thành PASS của candidate sửa layout.
 
 Ngày thực thi baseline: **30/10/2026**. Candidate native baseline: `ed9da03ae6da9c4757beacc5b590fd42edde189c`, dựa trên `14ed7cced62270c8bba879d94919933efcc053ae`; runtime marker `14ed7cc+BUS03-final-v4`. [BUS-01](20261029-live-busy-overlay.md) giữ lịch sử probe riêng. Evidence này chạy production `BootstrapBusyOverlayHost`, không dùng backdrop/filter probe.
 
@@ -167,3 +167,53 @@ Môi trường/giới hạn giữ như baseline: Windows10.0.26300.0, SDK8.0.427
 | negative-net8 | AC42472A3AEA63E2940EE5400378CC0CE0544E532CE5ED7B0FE2FDAF70A702A2 | E62889D328699E379FC54C8A00739757FF0D518475F0A8AEB6BE1905A8FDDC0A |
 
 Managed helper DLL net8: positive F594D22F21A25C5137E5C803984F68A921A4D3D20E55B16840C829213A855353, negative 52D5D801FB821AF650553CEA7D13BF2ED0981212AB5AC7CA90208AE28E765466.
+
+## Sửa Important về zero-sized client
+
+Ngày30/10/2026. Candidate sửa: base `93e90b2e2c5e1ffd0ae59a7b06204f5836b99dc8` cộng commit chứa mục này; runtime marker `93e90b2+BUS03-zero-client-fix`. Host SHA-256 `C5BAF3CB900FB5DC843B01C5F8D08F15FC20CB448AA6ACB7184947636E19A99C`; HostTests SHA-256 `6F63217639950CF444C6C396CA6FB6BE7BC54109CBB41BD8B7109959FF0E7CF7` (UTF-8 BOM/CRLF). Controller, BootstrapBusyHost cũ và native renderer/capability/filter/helper source không đổi so với93e90b2, được kiểm bằng git diff. Không nhận65-case/native proof từ candidate cũ.
+
+Sửa eligibility chỉ ở transition ClientSize zero↔positive qua OnClientSizeChanged, commit cache trước controller callbacks. OnLayout vẫn chỉ tính geometry, không refresh controller. Zero hủy pending generation, ẩn presentation, gỡ filter, dừng spinner và giữ token; positive trở lại schedule150ms. Positive→positive không reset delay. Present kiểm hide-generation/eligibility sau layout/native setup/show để resize lồng nhau không làm generation cũ hiện lại. Constructor vẫn handle-free. Thêm protected override OnClientSizeChanged cần audit/fingerprint ở BUS-06; không sửa baseline API trong scope này.
+
+RED trước source fix, net8 filter FullyQualifiedName~Zero_size: discovered8/executed8/pass0/fail8/skip0, exit1. Cả3 Begin-at-zero cases không schedule khi grow (actual0 expected1); pending không bị hủy; visible giữ mode cũ khi zero; layout zero/regrow làm generation cũ hiện; mode callback không được gọi khi shrink. Test dùng object-cast cho Action Pending để NUnit kiểm value, không vô tình chọn delegate overload.
+
+Bản thử OnSizeChanged đạt7/8 rồi regression được mở rộng thành9 cases:8 PASS/1 FAIL. Reentrant ClientSize setter của WinForms có thể ghi lại zero của outer SetClientSizeCore sau callback resize/Begin, làm cache/pending cũ tồn tại. Test kiểm cả Size và ClientSize setter, bám theo actual ClientSize cuối cùng thay vì giả định resize trong callback thắng. Chuyển sang OnClientSizeChanged reconciles transition cuối; focused GREEN discovered9/executed9/pass9/fail0/skip0, exit0,1.2041giây.
+
+Final Busy suites: net48 x64 discovered65/executed65/pass65/fail0/skip0, exit0 (4.5553giây); net8 x64 discovered65/executed65/pass65/fail0/skip0, exit0. Gồm9 regression zero-size mới và7 tests host cũ trên mỗi target. Các cases mới kiểm width0/height0/both0 có HWND/visible, pending→zero→positive, visible→zero→positive, stale callback trước/sau reschedule,150ms, positive→positive, mode callback resize/Begin newest token, Layout zero có/không regrow. Assert mode/filter/spinner cùng schedules; không thêm modal waits hoặc production fail-fast.
+
+Commands đã chạy tuần tự trên desktop exclusive, giữ diagnostics5m:
+
+```powershell
+# RED trước fix; GREEN sau fix cùng filter (GREEN logger normal):
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter FullyQualifiedName~Zero_size --blame-hang --blame-hang-timeout 5m --logger "console;verbosity=minimal"
+# Final: lặp net48 và net8.0-windows:
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f <tfm> --filter "FullyQualifiedName~BootstrapBusy" --blame-hang --blame-hang-timeout 5m --logger "console;verbosity=normal"
+.\build.ps1 -Configuration Release -Scope Controls
+```
+
+Năm native builds dùng recipe positive/net48 x86/absolute negative manifest ở baseline, với outputs mới `artifacts/bus03/zero-client-bin/<kind>`. EXE chạy busy-overlay-live hoặc busy-overlay-fallback tới absolute output `artifacts/bus03/zero-client-<kind>`, ProcessStartInfo UseShellExecute=false, outer45000ms/helper30000ms, assert exit và markers. Cả5 builds và final Controls build exit0/0 warnings/errors; wrapper exit0. Không chạy GUI song song; zero remaining helper processes sau matrix.
+
+| Output result.txt dưới artifacts/bus03 | Runtime/bitness | Actual mode | Exit | Cleanup ms |
+|---|---|---|---:|---:|
+| zero-client-positive-net48 | net48 x64 | NativeLayered | 0 | 15947 |
+| zero-client-positive-net8 | net8 x64 | NativeLayered | 0 | 18099 |
+| zero-client-positive-net48-x86 | net48 x86 | NativeLayered | 0 | 16214 |
+| zero-client-negative-net48 | net48 x64 | OpaqueFallback | 0 | 7846 |
+| zero-client-negative-net8 | net8 x64 | OpaqueFallback | 0 | 7702 |
+
+Final native enumeration5 selected/discovered/5 executed/5 PASS/0 FAIL/0 skip, actual96 DPI. Real SendInput alpha0/89/255 ContentClicks0/Cancel1-2-3/Outside1-2-3, cùng live backdrop HWND qua native content updates, opaque card, clipping/modal và cleanup PASS. WM_PRINT live13/fallback6 incidental, alpha-only delta0. Helper giữ host650px và kích thước dương: đây là exact-candidate native regression proof, không thay9 host tests zero-size/manual delay dùng injected opaque capability. X86 focused NUnit, timeout injection, resource soak và whole-feature native matrix NOT RUN lại trên patch này; evidence cũ vẫn giữ riêng.
+
+Integrator báo trên candidate93e90b2 trước patch này: full Controls suite mỗi TFM total2561, executed2561, pass2558/fail3/skip0; discovery riêng chưa được cung cấp. Ba failure gồm API fingerprint (owner BUS-06) và hai TAB paint tests (TAB-owned, ngoài BUS diff); **chưa kiểm chứng chúng fail trên base hoặc nguyên nhân liên quan BUS**. Không sửa các vùng đó. Integrator cũng báo Build All PASS sau exact submodule init trên candidate trước patch. Đây là kết quả do integrator cung cấp, không phải execution mới của implementer; full Controls suite và Build All chưa chạy lại trên candidate zero-client, không nhận full-suite PASS cho candidate mới.
+
+Plan owner đã đồng bộ header/table BUS-01–03 theo evidence triển khai/review96 DPI, tick checklist BUS-01/02 đã proven. Checkbox BUS-01 combined mixed-DPI vẫn mở vì phần đó NOT RUN; BUS-04/05/06, physical125/150/200/mixed-DPI, durable artifacts và Owner approval vẫn mở. Source/targets/dependency graph không đổi; raw zero-client artifacts local/ignored với retention theo worktree, chưa durable URL. Hai Minor helper/capture/print-heuristic vẫn giữ disposition review trước, không mở scope ở patch này.
+
+### Binary manifest của candidate zero-client
+
+| Output dưới artifacts/bus03/zero-client-bin | EXE SHA-256 | Core DLL SHA-256 |
+|---|---|---|
+| positive-net48 | 9C6EB38A8B6E2E445210CBDB9A93EF8E14543AE21E1519A48A45645891DFE6E3 | E739C6AB2A959D2F7A4BF2C5CDA2818AF650A7001BD328BB9B5F4DBF14355931 |
+| positive-net8 | F199D07B053F9052B30D56B98865134FEA83D5A95C085A45DCB49AB0B3DF79CF | 1CCF5469F3C58335940907CE427CAD17D9035C226DE17E846F6E3AC5C2561A7A |
+| positive-net48-x86 | 98206C42C5A10E99993DA024980DA68B3CAD0DCC0FA5383F6D664360448D1501 | E739C6AB2A959D2F7A4BF2C5CDA2818AF650A7001BD328BB9B5F4DBF14355931 |
+| negative-net48 | 6EF422D3D2739743118C6897B893035DC39456463189F6F55E792E340A18D458 | 2DD7B4FA7B5B29F17FCCDC4C657A7E60144A1D77D77BAA0B1CF3DC92271C8759 |
+| negative-net8 | 9E57B0DA90E3CB4CC834DF1F04782DB82B7A8673AE66D89998733E0A7F682FD8 | 426886FF4BCDA9D172240691E9A9E8760168DEBA4F74BCA5C198D5B69E75D4BA |
+
+Managed helper DLL net8: positive 03B6D8F8AA9FB7DCCB98703A7BAC217BAFBE5A1AA2F7243DCAE56CA23F8322B7, negative B9D21B684E1C04DDA581116CAE0218812F1E7DA50EAFC140E4379AA9D5D1F713.

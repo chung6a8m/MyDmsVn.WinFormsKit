@@ -22,7 +22,8 @@ public sealed class BootstrapBusyOverlayHost : Panel
     private readonly Label _message;
     private readonly Button _cancel;
     private double _opacity = .35;
-    private bool _disposing, _handleDestroying, _hasCancel;
+    private bool _disposing, _handleDestroying, _hasCancel, _hasPositiveClientSize;
+    private long _presentationGeneration;
 
     /// <summary>Creates a host and takes ownership of an unparented content control.</summary>
     public BootstrapBusyOverlayHost(Control content) : this(content, new BootstrapBusyDelay()) { }
@@ -46,6 +47,7 @@ public sealed class BootstrapBusyOverlayHost : Panel
         _messageViewport.Controls.Add(_message);
         _card.Controls.AddRange(new Control[] { _spinner, _messageViewport, _cancel });
         _controller = new BootstrapBusyOverlayController(delay, CanPresent, Present, HidePresentation);
+        _hasPositiveClientSize = ClientSize.Width > 0 && ClientSize.Height > 0;
         content.Dock = DockStyle.Fill;
         Controls.AddRange(new[] { content, _backdrop, _card });
         BootstrapThemeManager.ThemeChanged += OnThemeChanged;
@@ -96,6 +98,16 @@ public sealed class BootstrapBusyOverlayHost : Panel
     /// <inheritdoc />
     protected override void OnHandleDestroyed(EventArgs e) { _handleDestroying = true; _controller?.RefreshVisibility(); base.OnHandleDestroyed(e); }
     /// <inheritdoc />
+    protected override void OnClientSizeChanged(EventArgs e)
+    {
+        base.OnClientSizeChanged(e);
+        var positive = ClientSize.Width > 0 && ClientSize.Height > 0;
+        if (positive == _hasPositiveClientSize) return;
+        // Commit before callbacks: a mode subscriber may resize/Begin again.
+        _hasPositiveClientSize = positive;
+        _controller?.RefreshVisibility();
+    }
+    /// <inheritdoc />
     protected override void OnLayout(LayoutEventArgs e)
     {
         base.OnLayout(e);
@@ -135,24 +147,32 @@ public sealed class BootstrapBusyOverlayHost : Panel
     private void Present(BusyPresentation presentation)
     {
         if (!CanPresent()) return;
+        var generation = _presentationGeneration;
         _message.Text = presentation.Message;
         _message.AccessibleName = presentation.Message;
         _hasCancel = presentation.CancelRequested is not null;
         _cancel.Visible = _hasCancel;
         PerformLayout();
+        if (!IsCurrentPresentation(generation)) return;
         var mode = ConfigureBackdrop();
+        if (!IsCurrentPresentation(generation)) return;
         _inputFilter.Install();
         _backdrop.Visible = true;
+        if (!IsCurrentPresentation(generation)) return;
         _card.Visible = true;
+        if (!IsCurrentPresentation(generation)) return;
         _backdrop.BringToFront();
         _card.BringToFront();
+        if (!IsCurrentPresentation(generation)) return;
         _spinner.Start();
         SetMode(mode);
         // No work after the event: its handler may hide/dispose/reenter Begin.
     }
+    private bool IsCurrentPresentation(long generation) => generation == _presentationGeneration && CanPresent();
     private void HidePresentation()
     {
         if (_card is null) return;
+        ++_presentationGeneration;
         _inputFilter.Dispose();
         _spinner.Stop();
         _card.Visible = false;

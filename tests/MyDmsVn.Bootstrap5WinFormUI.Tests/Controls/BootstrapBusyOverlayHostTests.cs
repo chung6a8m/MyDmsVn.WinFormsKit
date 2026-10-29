@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -230,6 +231,95 @@ public sealed class BootstrapBusyOverlayHostTests
         }));
         host.Dispose();
         Assert.That(delay.Disposals, Is.EqualTo(1));
+    }
+    [TestCase(0, 250), TestCase(400, 0), TestCase(0, 0)]
+    public void Zero_size_Begin_then_positive_client_schedules_once_without_new_token(int width, int height)
+    {
+        using var form = new Form { ClientSize = new Size(500, 350) };
+        var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { ClientSize = new Size(width, height) };
+        form.Controls.Add(host); form.Show(); host.CreateControl();
+        Assert.That(host.IsHandleCreated, Is.True);
+        using var token = host.Begin(new BusyPresentation("busy"));
+        Assert.That(delay.Schedules, Is.Zero); AssertPresentation(host, false);
+        host.ClientSize = new Size(400, 250);
+        Assert.That(delay.Schedules, Is.EqualTo(1)); Assert.That(delay.LastDelay, Is.EqualTo(TimeSpan.FromMilliseconds(150))); AssertPresentation(host, false);
+        host.ClientSize = new Size(420, 260);
+        Assert.That(delay.Schedules, Is.EqualTo(1), "positive to positive must preserve pending delay");
+        delay.Fire(); AssertPresentation(host, true);
+        host.ClientSize = new Size(430, 270);
+        Assert.That(delay.Schedules, Is.EqualTo(1), "positive to positive must keep visible operation"); AssertPresentation(host, true);
+    }
+
+    [TestCase(false), TestCase(true)]
+    public void Zero_size_cancels_pending_or_visible_presentation_and_stale_delay_cannot_return(bool alreadyVisible)
+    {
+        using var form = new Form { ClientSize = new Size(500, 350) };
+        var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { ClientSize = new Size(400, 250) };
+        form.Controls.Add(host); form.Show(); using var token = host.Begin(new BusyPresentation("busy"));
+        var stale = delay.Pending!;
+        if (alreadyVisible) delay.Fire();
+        host.ClientSize = new Size(0, 250);
+        AssertPresentation(host, false); Assert.That((object?)delay.Pending, Is.Null);
+        stale(); AssertPresentation(host, false);
+        host.ClientSize = new Size(400, 250);
+        Assert.That(delay.Schedules, Is.EqualTo(2)); Assert.That(delay.LastDelay, Is.EqualTo(TimeSpan.FromMilliseconds(150)));
+        stale(); AssertPresentation(host, false); Assert.That((object?)delay.Pending, Is.Not.Null);
+        delay.Fire(); AssertPresentation(host, true);
+        token.Dispose(); AssertPresentation(host, false);
+    }
+
+    [TestCase(false), TestCase(true)]
+    public void Zero_size_mode_callback_can_regrow_and_Begin_without_stale_delay_resurrection(bool setClientSize)
+    {
+        using var form = new Form { ClientSize = new Size(500, 350) }; var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { ClientSize = new Size(400, 250) };
+        form.Controls.Add(host); form.Show(); using var old = host.Begin(new BusyPresentation("old")); var stale = delay.Pending!; delay.Fire();
+        Action<Size> resize = size => { if (setClientSize) host.ClientSize = size; else host.Size = size; };
+        IDisposable? newest = null; var reentered = false;
+        host.RenderModeChanged += (_, _) =>
+        {
+            if (host.RenderMode != BootstrapBusyOverlayRenderMode.None || reentered) return;
+            reentered = true; resize(new Size(400, 250)); newest = host.Begin(new BusyPresentation("newest"));
+        };
+        resize(new Size(0, 250)); Assert.That(reentered, Is.True); AssertPresentation(host, false);
+        // WinForms SetClientSizeCore can restore the outer setter's dimensions
+        // after the callback. Eligibility must follow the resulting client size.
+        var outerSetterRestoredZero = host.ClientSize.Width == 0;
+        if (outerSetterRestoredZero)
+        {
+            Assert.That((object?)delay.Pending, Is.Null);
+            resize(new Size(400, 250));
+        }
+        Assert.That(delay.Schedules, Is.EqualTo(outerSetterRestoredZero ? 3 : 2));
+        Assert.That((object?)delay.Pending, Is.Not.Null);
+        stale(); AssertPresentation(host, false); delay.Fire(); AssertPresentation(host, true);
+        Assert.That(All(host).OfType<Label>().Single().Text, Is.EqualTo("newest"));
+        old.Dispose(); AssertPresentation(host, true); newest!.Dispose(); AssertPresentation(host, false);
+    }
+    [TestCase(false), TestCase(true)]
+    public void Zero_size_during_Present_layout_cannot_resurrect_old_generation(bool regrow)
+    {
+        using var form = new Form { ClientSize = new Size(500, 350) }; var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { ClientSize = new Size(400, 250) };
+        form.Controls.Add(host); form.Show(); using var token = host.Begin(new BusyPresentation("busy")); var armed = true;
+        host.Layout += (_, _) =>
+        {
+            if (!armed) return;
+            armed = false; host.ClientSize = new Size(0, 250);
+            if (regrow) host.ClientSize = new Size(400, 250);
+        };
+        delay.Fire(); Assert.That(armed, Is.False); AssertPresentation(host, false);
+        Assert.That(delay.Schedules, Is.EqualTo(regrow ? 2 : 1));
+        if (regrow) { delay.Fire(); AssertPresentation(host, true); }
+    }
+
+    private static void AssertPresentation(BootstrapBusyOverlayHost host, bool visible)
+    {
+        Assert.That(host.RenderMode, Is.EqualTo(visible ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.None));
+        Assert.That(host.InputFilterInstalled, Is.EqualTo(visible));
+        Assert.That(All(host).OfType<BootstrapSpinner>().Single().Spinning, Is.EqualTo(visible));
     }
     private static IEnumerable<Control> All(Control root) => new[] { root }.Concat(root.Controls.Cast<Control>().SelectMany(All));
     private sealed class UnsupportedNative : IBootstrapBusyLayeredWindow { public bool IsSupported => false; public bool SetAlpha(IntPtr hwnd, byte alpha, out int error) { error = 0; throw new InvalidOperationException("Unsupported native path must not be called"); } }

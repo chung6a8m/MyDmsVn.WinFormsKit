@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–2, 4–5](../design/20261029-tabs-hottrack-live-busy-overlay.md). [Plan TAB](20261029-002-bootstrap-tabs-hottrack.md) có thể chạy song song; chỉ tích hợp shared files theo một integrator.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** PLANNED; chưa có implementation/native/Owner acceptance. Chỉ plan task này sở hữu tiến độ BUS.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04–06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
 
 ## Global Constraints
 
@@ -67,11 +67,11 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 
 ## Trình tự và trạng thái
 
-| Task | Depends on | Trạng thái ban đầu |
+| Task | Depends on | Trạng thái hiện hành theo evidence |
 |---|---|---|
-| BUS-01 — child-layer proof và negative manifest | baseline | PENDING |
-| BUS-02 — host/controller/public contract | BUS-01 proof | PENDING |
-| BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | PENDING |
+| BUS-01 — child-layer proof và negative manifest | baseline | Đã triển khai/review; gate96 DPI PASS net48 x64/x86 và net8 x64; [evidence proof](../verification/20261029-live-busy-overlay.md); mixed-DPI NOT RUN |
+| BUS-02 — host/controller/public contract | BUS-01 proof | Đã triển khai/review, regression host/controller PASS hai TFM; [evidence production](../verification/20261030-live-busy-overlay-production.md); API fingerprint acceptance thuộc BUS-06 |
+| BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | Đã triển khai; minimum Cancel width và zero-size recovery đã sửa sau review; focused tests + native96 DPI theo [candidate evidence](../verification/20261030-live-busy-overlay-production.md); acceptance ngoài96 DPI còn mở |
 | BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | PENDING |
 | BUS-05 — demo và manifest gallery | BUS-03/04 | PENDING |
 | BUS-06 — contract, API, evidence | BUS-01–05 | PENDING |
@@ -82,14 +82,16 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 
 **Interfaces:** produce hai helper scenario commands và evidence; native probe ban đầu nằm trong helper, chưa cần public host production. Existing manifested helper là positive host; negative EXE cùng code nhưng không có supportedOS.
 
-- [ ] Tạo probe child hierarchy `card > layered backdrop > content` bằng real HWNDs, `WS_EX_LAYERED` + `SetLayeredWindowAttributes(LWA_ALPHA)`, không Form.Opacity/UpdateLayeredWindow. Kiểm window class không có CS_OWNDC/CS_CLASSDC; report actual styles/parents/bitness.
-- [ ] Content gồm native TextBox, native ListView hoặc TreeView, progress control và các patch màu phẳng. Trong cùng phiên overlay liên tục, đổi text/value/patch ít nhất ba lần. Capture desktop từ **helper** trước/sau; mask foreground/spinner và kiểm đúng thay đổi dưới tint, không chỉ so tổng số pixel thay đổi.
-- [ ] Giữ token/probe generation, backdrop HWND và Visible không đổi trong chuỗi capture. Instrument Content WM_PRINT/WM_PRINTCLIENT; show/update overlay không được gọi chúng. Capture phải đợi paint/composition theo điều kiện hữu hạn, không sleep dài hoặc giả định một lần DoEvents đủ.
-- [ ] Kiểm alpha 0, 0.35, 1 và foreground opaque. Real SendInput phải xác minh queued mouse không kích hoạt Content trong khi Cancel và nút sibling ngoài host hoạt động. Probe filter scoped HWND subtree; không thay test bằng PerformClick.
+- [x] Tạo probe child hierarchy `card > layered backdrop > content` bằng real HWNDs, `WS_EX_LAYERED` + `SetLayeredWindowAttributes(LWA_ALPHA)`, không Form.Opacity/UpdateLayeredWindow. Kiểm window class không có CS_OWNDC/CS_CLASSDC; report actual styles/parents/bitness.
+- [x] Content gồm native TextBox, native ListView hoặc TreeView, progress control và các patch màu phẳng. Trong cùng phiên overlay liên tục, đổi text/value/patch ít nhất ba lần. Capture desktop từ **helper** trước/sau; mask foreground/spinner và kiểm đúng thay đổi dưới tint, không chỉ so tổng số pixel thay đổi.
+- [x] Giữ token/probe generation, backdrop HWND và Visible không đổi trong chuỗi capture. Instrument Content WM_PRINT/WM_PRINTCLIENT; show/update overlay không được gọi chúng. Capture phải đợi paint/composition theo điều kiện hữu hạn, không sleep dài hoặc giả định một lần DoEvents đủ.
+- [x] Kiểm alpha 0, 0.35, 1 và foreground opaque. Real SendInput phải xác minh queued mouse không kích hoạt Content trong khi Cancel và nút sibling ngoài host hoạt động. Probe filter scoped HWND subtree; không thay test bằng PerformClick.
 - [ ] Thử ancestor clip/scroll, higher overlapping sibling, TabPage ẩn/hiện, owned modal, minimize/restore và mixed-DPI trên hai TFM. Modal test có auto-close/cleanup hữu hạn; không modal wait không timeout.
-- [ ] Build positive/negative manifested EXEs tách output, chạy trực tiếp `.exe` (net8 apphost), không chạy `dotnet host.dll` rồi gán manifest cho process khác. Query executable compatibility context bằng API documented, đối chiếu embedded manifest. Negative host phải dẫn OpaqueFallback sau khi production được nối vào scenario; không được fail-crash hoặc báo NativeLayered.
-- [ ] Gate: có native live PASS ở **cả net48 và net8**, không snapshot, đúng card/input/clipping. Nếu failed essential case trên supported host, ghi BLOCKED + minimal repro và sửa thiết kế trước BUS-02/03; không dùng opaque fallback để vượt gate hoặc tự đổi sang top-level overlay.
-- [ ] Commit `test: prove native child busy overlay composition` gồm helper/manifest/report text. Nếu thiếu Windows, được viết helper nhưng trạng thái proof vẫn NOT RUN, không đánh task DONE.
+- [x] Build positive/negative manifested EXEs tách output, chạy trực tiếp `.exe` (net8 apphost), không chạy `dotnet host.dll` rồi gán manifest cho process khác. Query executable compatibility context bằng API documented, đối chiếu embedded manifest. Negative host phải dẫn OpaqueFallback sau khi production được nối vào scenario; không được fail-crash hoặc báo NativeLayered.
+- [x] Gate: có native live PASS ở **cả net48 và net8**, không snapshot, đúng card/input/clipping. Nếu failed essential case trên supported host, ghi BLOCKED + minimal repro và sửa thiết kế trước BUS-02/03; không dùng opaque fallback để vượt gate hoặc tự đổi sang top-level overlay.
+- [x] Commit `test: prove native child busy overlay composition` gồm helper/manifest/report text. Nếu thiếu Windows, được viết helper nhưng trạng thái proof vẫn NOT RUN, không đánh task DONE.
+
+BUS-01: các cases96 DPI đã PASS như evidence; checkbox combined clip/scroll/modal/minimize/mixed-DPI vẫn mở vì không có monitor DPI khác. Native incidental Content WM_PRINT totals không bằng0; chỉ alpha-only delta0 và production không capture/WM_PRINT, đúng phân biệt trong report.
 
 ### BUS-02 — Public host và token controller
 
@@ -97,12 +99,12 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 
 **Interfaces:** produce exact public API; controller interface ở trên. Các lớp nội bộ không xuất hiện trong exported API. Enum modes phải phản ánh presentation thực, không suy từ BackdropOpacity đơn lẻ.
 
-- [ ] Viết test RED contract/defaults: content null hoặc có parent bị từ chối; failed construction không dispose content của caller; thành công sở hữu Content, Dock Fill. Host/children constructor chưa tạo HWND, chưa chạy delay/spinner/native capability query; opacity mặc định 0.35, RenderMode None.
-- [ ] `OpacityRejectsInvalidValuesBeforeMutation` kiểm -0.01, 1.01, NaN, ±Infinity; 0/0.35/1 hợp lệ; alpha rounding gồm midpoint. `Begin(null)` bị từ chối, Begin sau disposal ném ObjectDisposedException; mutation/release khi còn sống phải đúng UI thread.
-- [ ] Cài controller newest-live-token và 150 ms delay bằng abstraction hiện hữu; tests fast operation không show, old release không ẩn newer, newest release hiện previous, double-dispose no-op, latest callback đúng và cancel không tự release. Giữ guards với pending callback bị hủy nhưng đã queued.
-- [ ] Cài RenderMode state/event: None khi hidden/pending, NativeLayered hoặc OpaqueFallback khi show, đổi event sau commit state; setter cùng opacity không gây redraw/recreate/delay thừa. Test handler reenter Begin/Dispose/Hide không hồi sinh UI.
-- [ ] Chạy old `BootstrapBusyHostTests` nguyên assertions cùng tests mới; source/API/ownership host cũ giữ nguyên. Không chuyển host cũ sang controller mới để tiết kiệm code.
-- [ ] Commit `feat: add live busy overlay host contract and token lifecycle`.
+- [x] Viết test RED contract/defaults: content null hoặc có parent bị từ chối; failed construction không dispose content của caller; thành công sở hữu Content, Dock Fill. Host/children constructor chưa tạo HWND, chưa chạy delay/spinner/native capability query; opacity mặc định 0.35, RenderMode None.
+- [x] `OpacityRejectsInvalidValuesBeforeMutation` kiểm -0.01, 1.01, NaN, ±Infinity; 0/0.35/1 hợp lệ; alpha rounding gồm midpoint. `Begin(null)` bị từ chối, Begin sau disposal ném ObjectDisposedException; mutation/release khi còn sống phải đúng UI thread.
+- [x] Cài controller newest-live-token và 150 ms delay bằng abstraction hiện hữu; tests fast operation không show, old release không ẩn newer, newest release hiện previous, double-dispose no-op, latest callback đúng và cancel không tự release. Giữ guards với pending callback bị hủy nhưng đã queued.
+- [x] Cài RenderMode state/event: None khi hidden/pending, NativeLayered hoặc OpaqueFallback khi show, đổi event sau commit state; setter cùng opacity không gây redraw/recreate/delay thừa. Test handler reenter Begin/Dispose/Hide không hồi sinh UI.
+- [x] Chạy old `BootstrapBusyHostTests` nguyên assertions cùng tests mới; source/API/ownership host cũ giữ nguyên. Không chuyển host cũ sang controller mới để tiết kiệm code.
+- [x] Commit `feat: add live busy overlay host contract and token lifecycle`.
 
 ### BUS-03 — Layered backdrop, capability và layout
 
@@ -120,7 +122,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 - [x] Chạy native live/fallback scenarios bằng exact EXEs và lưu evidence mới từ implementation thật; kiểm Content WM_PRINT count vẫn không tăng và background thay đổi dưới cùng overlay HWND.
 - [x] Commit `feat: render live busy backdrop with native child opacity`.
 
-Candidate BUS-03: implementation production và regression đã có; review Important về minimum Cancel width đã có regression tại119/120/143/144 logical pixels và sửa spacing ngang theo caption, evidence candidate sửa nằm ở cuối report production; native proof 96 DPI trên hai targets/x86 được ghi riêng tại [evidence production](../verification/20261030-live-busy-overlay-production.md). BUS-04/05/06 và acceptance đầy đủ vẫn mở; không chuyển historical BUS-01 PASS thành nghiệm thu toàn feature.
+Candidate BUS-03: implementation production và regression đã có; zero↔positive client eligibility được đồng bộ có guard qua OnClientSizeChanged, không refresh vô điều kiện trong OnLayout; review Important về minimum Cancel width đã có regression tại119/120/143/144 logical pixels và sửa spacing ngang theo caption, evidence candidate sửa nằm ở cuối report production; native proof 96 DPI trên hai targets/x86 được ghi riêng tại [evidence production](../verification/20261030-live-busy-overlay-production.md). BUS-04/05/06 và acceptance đầy đủ vẫn mở; không chuyển historical BUS-01 PASS thành nghiệm thu toàn feature.
 
 ### BUS-04 — Mouse, focus và vòng đời cửa sổ
 
