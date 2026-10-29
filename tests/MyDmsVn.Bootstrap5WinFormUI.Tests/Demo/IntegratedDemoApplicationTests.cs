@@ -38,7 +38,8 @@ public sealed class IntegratedDemoApplicationTests
         "Menus / ToolStrips",
         "DataGrid",
         "Pagination",
-        "Navigation / Tabs"
+        "Navigation / Tabs",
+        "Navigation / BootstrapTabs"
     };
 
     [Test]
