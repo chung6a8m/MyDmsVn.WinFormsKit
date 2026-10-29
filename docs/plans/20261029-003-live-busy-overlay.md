@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–2, 4–5](../design/20261029-tabs-hottrack-live-busy-overlay.md). [Plan TAB](20261029-002-bootstrap-tabs-hottrack.md) có thể chạy song song; chỉ tích hợp shared files theo một integrator.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation nhưng resource gate BLOCKED; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, physical125/SourceGrid còn mở; BUS-06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation và strict resource gate 5/5 PASS sau attribution/cleanup prefix RCWs; physical/mixed-DPI còn mở; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, physical125/SourceGrid còn mở; BUS-06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
 
 ## Global Constraints
 
@@ -72,7 +72,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 | BUS-01 — child-layer proof và negative manifest | baseline | Đã triển khai/review; gate96 DPI PASS net48 x64/x86 và net8 x64; [evidence proof](../verification/20261029-live-busy-overlay.md); mixed-DPI NOT RUN |
 | BUS-02 — host/controller/public contract | BUS-01 proof | Đã triển khai/review, regression host/controller PASS hai TFM; [evidence production](../verification/20261030-live-busy-overlay-production.md); API fingerprint acceptance thuộc BUS-06 |
 | BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | Đã triển khai; minimum Cancel width và zero-size recovery đã sửa sau review; focused tests + native96 DPI theo [candidate evidence](../verification/20261030-live-busy-overlay-production.md); acceptance ngoài96 DPI còn mở |
-| BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai; Hai Important về hide callback đã sửa; 95/95 Busy tests mỗi TFM PASS; native helper3 PASS/2 FAIL ở strict USER-resource gate; resource gate BLOCKED, mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
+| BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai và sửa findings review; strict native resource matrix 5/5 PASS sau attribution finalizer HIMC và bounded prefix RCW drain; mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
 | BUS-05 — demo và manifest gallery | BUS-03/04 | Đã triển khai provisional; regression59/59 mỗi TFM và actual EXE context96 DPI PASS; physical125/SourceGrid NOT RUN; [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md) |
 | BUS-06 — contract, API, evidence | BUS-01–05 | PENDING |
 
@@ -136,10 +136,10 @@ Candidate BUS-03: implementation production và regression đã có; zero↔posi
 - [x] Caller keyboard/UIA admission test minh họa cả pending và visible; host không giả lập bảo vệ business command. Native popup đang mở phải được caller đóng trước busy; docs/demo thực hiện quy tắc đó, không dò tất cả windows trong process. Raw touch/pen không tự nhận support từ mouse test.
 - [x] `HiddenMinimizedOrDestroyedHost_RemovesFilterAndStopsSpinner`: ancestor hide/tab switch, owner minimize/dispose, host handle recreate/reparent, content disposed, pending callback cũ. Re-show/restore còn token thì reschedule 150 ms; owner deactivate vẫn giữ child presentation, không activate window.
 - [ ] `ClippedHostAndHigherSibling_KeepNativeOcclusion`, `OwnedModal_RemainsAboveAndUsable`, `DpiChange_DoesNotResetOperationOrLeakHandles`: verify nested scroll, partially clipped host, independent busy hosts, modal, mixed-DPI và owner move. Đăng ký owner events cần thiết khi parent thay đổi, unsubscribe owner cũ.
-- [ ] Resource soak có warm-up rồi 100 show/hide/recreate cycles; assert owned HWND/filter/delay/subscriptions về trạng thái zero sau dispose và process USER/GDI không tăng theo batch. Ghi actual counts/caching, không nới tolerance để giấu leak.
+- [x] Resource soak có warm-up rồi 100 show/hide/recreate cycles; assert owned HWND/filter/delay/subscriptions về trạng thái zero sau dispose và process USER/GDI không tăng theo batch. Ghi actual counts/caching, không nới tolerance để giấu leak.
 - [x] Commit `fix: harden busy overlay input focus and native lifecycle`.
 
-BUS-04 chưa DONE: strict resource gate còn FAIL ở final net48 x86 live và net48 x64 fallback (USER +1 sau warm-up, GDI không tăng, không có HWND set delta); không nới tolerance. Physical/mixed-DPI NOT RUN/BLOCKED BY ENVIRONMENT. Caller admission/popup recipe đã có tests và component docs; demo cùng recipe thuộc BUS-05, chưa sửa demo trong task này. Chi tiết RED/GREEN, native matrix và raw/settled counts ở [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md).
+BUS-04 chưa DONE: strict resource gate đã PASS 5/5 trên candidate sửa PR #5 sau native ETW/PDB attribution xác định USER+1 là default HIMC trên CLR finalizer thread trong RCW cleanup. Helper drain prefix trước warm10 có bounded STA pumping; không tăng warm-up/tolerance, không GC trong measured cycles. Các failure candidate trước giữ nguyên trong evidence. Physical/mixed-DPI NOT RUN/BLOCKED BY ENVIRONMENT. Caller admission/popup recipe đã có tests và component docs; demo cùng recipe thuộc BUS-05, chưa sửa demo trong task này. Chi tiết RED/GREEN, native matrix và raw/settled counts ở [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md).
 
 ### BUS-05 — Demo live overlay và executable prerequisites
 
@@ -155,7 +155,7 @@ BUS-04 chưa DONE: strict resource gate còn FAIL ở final net48 x86 live và n
 - [ ] Bổ sung bước nghiệm thu SourceGrid bằng consumer/test host có reference adapter nếu cần xác nhận use case sản phẩm; UI core không thêm dependency BSG. Không tuyên bố đã hỗ trợ hardware/third-party rendering chưa có native evidence; integration với MyDmsVn là PR riêng.
 - [x] Commit `feat: add live busy overlay gallery and manifest setup`.
 
-Candidate BUS-05: source/demo/tests triển khai provisional dù BUS-04 resource gate còn BLOCKED; runtime gallery EXE96 DPI hai TFM có embedded manifest + executable context + PerMonitorV2/NativeLayered. Physical125 và SourceGrid acceptance NOT RUN, không nhận full BUS acceptance. Xem [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md).
+Candidate BUS-05: source/demo/tests đã triển khai provisional khi BUS-04 resource gate còn BLOCKED (gate resource sau đó đạt 5/5 trong sửa PR #5; không thay physical acceptance); runtime gallery EXE96 DPI hai TFM có embedded manifest + executable context + PerMonitorV2/NativeLayered. Physical125 và SourceGrid acceptance NOT RUN, không nhận full BUS acceptance. Xem [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md).
 
 ### BUS-06 — Contract, API và acceptance
 

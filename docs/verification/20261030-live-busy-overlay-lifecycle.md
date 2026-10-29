@@ -228,3 +228,70 @@ SHA256 source và exact normal binaries (hash sau final runs; source không đ�
 | `artifacts/bus04/final45-bin/negative-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `D1DAE16C49EB2CA25EB123C045141C3EE02E9E1392F01184FE6ED9846C00617A` |
 | `artifacts/bus04/final45-bin/negative-net8/MyDmsVn.Bootstrap5WinFormUI.dll` | `087AEB6E4931C483E86272106B3655D46EFCA73EB559045FB1C5FDFA0F10A876` |
 | `artifacts/bus04/final45-bin/negative-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.dll` | `F92AFDED35E4EC2DE76A4DA92EB8ADA3C529BBD5292385C0B6FD00BC422FB087` |
+
+## PR #5 — attribution USER+1 và ranh giới đo resource
+
+Candidate: `3f1065a` + helper trong commit chứa mục này; marker helper `PR5-resource-finalizer-drain`. Phần này tiếp tục lịch sử FAIL bên trên, không chuyển các run cũ thành PASS. Chỉ test helper thay đổi; không đổi production IME/GC, ownership, tolerance, warm-up10, số cycles100 hoặc checkpoint25/50/75/100.
+
+### Native attribution và đối chứng nhân quả
+
+Windows provider `Microsoft-Windows-Win32k`, keyword `UserHandleOperation=0x0000020000000000`, có native events452 `CreateHandle`,453 `DestroyHandle`,454 `UpdateHandleOwner` với `HandleValue`, `HandleType`, `SessionId`, `OwnerProcessId` và native thread/UTC. Calibration `CreatePopupMenu`/`DestroyMenu` khớp exact handle/type2; `SetTimer`/`KillTimer` khớp type16 (public timer ID khác USER handle); `ImmCreateContext`/`ImmDestroyContext` khớp exact HIMC/type17. Không suy USER count từ HWND inventory hoặc đọc bảng handle undocumented.
+
+Đối chứng net48 x64 fallback, prefix hai UIA Invoke trên native Buttons + plain Panel/TextBox/Timer soak, không có BootstrapBusyOverlayHost: process22540 strict FAIL, USER warm26→26/26/27/27, GDI28. Native active handle totals khớp raw GetGuiResources: HWND14, type15=2, timer16=2, menu2=2, cursor3=3 giữ nguyên; HIMC/type17 tăng3→4. Allocation gây tăng là HIMC300356085, event452 tại22:43:14.6665389Z trên background thread16676 (UI thread18460). Exact handle được destroy trên đúng thread tại22:43:19.9570730Z khi process kết thúc. Toàn process native create/destroy totals cân bằng; không gọi đây là leak production hoặc cache vô hại chỉ từ việc cân bằng shutdown.
+
+Đối chứng thứ hai có stack ETW tái hiện strict FAIL. Extra HIMC926486589 được tạo tại22:49:01.4932191Z trên native thread23964 đã tồn tại từ process startup. Module ranges lấy từ chính process; PDB keys từ RSDS của exact DLL và symbol files tải từ Microsoft symbol server: `clr.pdb/CD5F48F2937842D999FF0B4604FA70C61`, `user32.pdb/F0BF56EE0A784974D49A58173A7CBC7E1`. Stack caller→callee:
+
+```text
+clr!FinalizerThread::FinalizerThreadStart
+  → clr!FinalizerThread::FinalizerThreadWorker
+  → clr!Thread::DoExtraWorkForFinalizer
+  → clr!SyncBlockCache::CleanupSyncBlocks
+  → clr!RCWCleanupList::CleanupAllWrappers
+  → clr!RCWCleanupList::ReleaseRCWListInCorrectCtx
+  → USER32!InSendMessage
+  → win32u → native USER initialization / HIMC
+```
+
+Đây là CLR finalizer cleanup RCWs lần đầu vào USER32 và có default input context theo thread; không phải worker UIA trực tiếp cấp extra handle này. Hai input contexts sớm khác có stack UIAutomationCore, được phân biệt trong trace. [Input Context](https://learn.microsoft.com/en-us/windows/win32/intl/input-context) mô tả default input context dùng chung theo thread; [ImmCreateContext](https://learn.microsoft.com/en-us/windows/win32/api/imm/nf-imm-immcreatecontext) xác định loại resource của calibration. Thread start address qua ProcessThread trả0; không dùng nó làm căn cứ attribution. Kernel thread provider/WPR stack recording Access denied; direct ETW provider stack recording bằng cached TraceEvent3.1.21 hoạt động. Không thêm package/runtime dependency hay runner framework vào repo.
+
+Đối chứng điều kiện cleanup trên cùng no-host workload:
+
+| Điều kiện trước warm10 | Raw USER trước→sau cleanup | warm10→25/50/75/100 | GDI sau warm | Kết quả |
+|---|---|---|---|---|
+| Chỉ `Marshal.CleanupUnusedObjectsInCurrentContext` | 26→26 | 26→26/26/26/27 | 28 | strict FAIL |
+| Collect prefix RCWs + bounded finalizer drain + cleanup STA | 26→27 | 27→27/27/27/27 | 28 | PASS |
+
+Run drain process8580: interval22:53:49.0367448–22:53:49.0510468Z; extra HIMC340329869 được cấp **trong interval** lúc22:53:49.0379756Z, trên finalizer thread11164 với cùng CLR stack offsets `0x4c6372`, `0x2680c`; destroy tại shutdown22:54:08.5409502Z. Thử nghiệm chuyển đúng allocation đã xác định từ measured soak sang thời điểm kết thúc prefix, không chọn count thấp hơn hoặc thêm allowance. Chỉ current-context cleanup không đủ nên không dùng nó như một fix chưa chứng minh.
+
+### Sửa methodology của helper
+
+Trước warm10, helper giữ raw USER/GDI rồi `GC.Collect` để retire temporary RCWs của workload trước đó; `GC.WaitForPendingFinalizers` chạy trên Task trong khi STA dùng bounded `Wait`/message pumping, sau đó `Marshal.CleanupUnusedObjectsInCurrentContext` và ghi raw counts sau. Nếu drain không kết thúc trong timeout, scenario vẫn FAIL/cleanup; outer75s/deadline60s giữ nguyên. GC không chạy trong warm10 hay100 measured cycles/checkpoints. Mọi owned HWND/filter/subscription assertions trong cycle, full UIA/input/modal/capture scenarios và process-wide USER/GDI strict zero-growth assertions giữ nguyên. Đây là chuẩn hóa ranh giới workload do nguồn nhiễu đã có stack và đối chứng nhân quả, không phải production cleanup hoặc giảm phạm vi acceptance.
+
+Raw local (không commit): `artifacts/bus04/pr5-resource/trace-uia-control*`, `stack-attribution.txt`, `finalizer-stack-attribution.txt`, `*-calibration.etl`, `symbols/`, `tooling/`. Report điều tra: `artifacts/sdd/bus/pr5-resource-report.md`. Raw artifacts không bảo đảm retention; source/commands và kết quả tóm tắt nằm trong evidence này.
+
+### Final-source full normal matrix sau sửa methodology
+
+Build tuần tự từng helper bằng `dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj -c Release -f <net48|net8.0-windows> --no-restore -o artifacts/bus04/pr5-resource/final-bin/<kind>`; x86 thêm `-p:PlatformTarget=x86`, fallback thêm absolute `-p:ApplicationManifest=<repo>/tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/app.no-layered.manifest`. Năm builds PASS,0 warnings/errors. Chạy actual EXE/apphost `--scenario <busy-overlay-live|busy-overlay-fallback> <absolute output>`; `BUS_RESOURCE_PROOF` unset, không opt-in diagnostic/drain env và không bỏ UIA/input/modal/capture. Source thực hiện prefix drain trực tiếp. Launcher title click chỉ thiết lập foreground prerequisite, bỏ TopMost trước khi test thấy foreground. Deadline60s/outer75s giữ nguyên.
+
+| Normal helper | Raw prefix USER trước→sau drain | USER warm10→25/50/75/100 | GDI warm/batches | Exit/result | Cleanup ms |
+|---|---|---|---|---|---|
+| positive-net48-x86 | 47→48 | 49→49/49/49/49 | 45 | 0/PASS | 38294 |
+| negative-net48 | 46→47 | 48→48/48/48/48 | 45 | 0/PASS | 30428 |
+| positive-net48 | 46→47 | 48→48/48/48/48 | 45 | 0/PASS | 35171 |
+| positive-net8 | 49→49 | 50→50/50/50/50 | 48 | 0/PASS | 37695 |
+| negative-net8 | 48→48 | 49→49/49/49/49 | 48 | 0/PASS | 30430 |
+
+5 discovered/executed,5 PASS,0 FAIL,0 SKIP. Mọi full scenario blocks và strict process resource assertions PASS; cleanup5/5 PASS, windowsRemaining0/hooks7/7. Counter `filters=0/0` legacy không được dùng chứng minh registration production. Raw=settled tại cả5 warm checkpoints và20 batch checkpoints. Embedded manifests/executable QueryActCtx, actual32/64bit và DPI96 được xác nhận; live3/3 PASS, fallback2/2 đúng OpaqueFallback (không tính fallback là live). Full old failures được giữ ở mục candidate trước; không dùng giảm scenario để đóng resource gate. Không đổi thành nghiệm thu physical125/150/200%, mixed-DPI hoặc Owner acceptance; các gate đó vẫn NOT RUN/BLOCKED BY ENVIRONMENT/còn mở.
+
+Raw local: `artifacts/bus04/pr5-resource/final-<kind>/result.txt`, `final-matrix.log`, `final-build-<kind>.log`. Không chạy lại NUnit trong riêng resource task này; suite owner ghi full Controls/explicit/build kết quả của candidate tích hợp riêng. Source helper không đổi giữa năm builds/runs và hash bên dưới.
+
+| Exact file dưới `artifacts/bus04/pr5-resource/final-bin/` (trừ source) | SHA256 |
+|---|---|
+| `tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/BusyOverlayScenario.cs` | `533B521AE919E5E48FB9F7CBFEF9F198A69EECC2C5156210386E0719170345E9` |
+| `positive-net48-x86/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `F37FD66BD3A59F9EDAA7B8BCC8F9FA3FAD5F0F9B1F348D1AFC39829BDBE23554` |
+| `negative-net48/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `0B08C49B354844E5ACA9028BDC2EF911C13F0043EF57814DE568F1CFEE377C89` |
+| `positive-net48/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `E5782B81BB4EDD4AB0C5712CAF84184F27B1B20D4D324B93A7C5A2E99C7C92DE` |
+| `positive-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `53DF090448315055D0E76C5B7687E72D94D971FBD91B8E18E12C982D91259776` |
+| `positive-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.dll` | `E3C9FF6D65265512A2D1F72C7A8ECF6AB8CC9BB14CBE7CBCF20ABC453A183D61` |
+| `negative-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `677C27B1813FE4807BE33608F8E1A6F797E4E0D8FBCBA8FD49F2082411CE3A8F` |
+| `negative-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.dll` | `72CA52496F6300ECFC6E754CE5AA9730747485615455B2273D2C70BEC2306B1B` |

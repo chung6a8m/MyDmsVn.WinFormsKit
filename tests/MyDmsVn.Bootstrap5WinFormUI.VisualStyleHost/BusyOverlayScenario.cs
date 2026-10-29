@@ -47,7 +47,8 @@ internal static class BusyOverlayScenario
             {
                 form.Show(); form.Activate();
                 Wait(() => form.Visible && GetForegroundWindow() == form.Handle, "resource foreground");
-                log.WriteLine("DIAGNOSTIC resource=" + resourceProof);
+                using var diagnosticProcess = Process.GetCurrentProcess();
+                log.WriteLine($"DIAGNOSTIC resource={resourceProof}; processId={diagnosticProcess.Id}; utc={DateTime.UtcNow:O}");
                 if (resourceProof == "uia-only" || resourceProof == "uia-control")
                 {
                     using var first = new Button { Text = "First native button", Bounds = new Rectangle(20, 20, 180, 40) };
@@ -303,6 +304,19 @@ internal static class BusyOverlayScenario
     {
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
         using var counts = Process.GetCurrentProcess();
+        // UIA prefix RCWs can otherwise first enter USER32!InSendMessage on the CLR
+        // finalizer thread during the soak, allocating that thread's default HIMC.
+        // Native ETW/PDB attribution and a no-host control establish this cause.
+        // Drain only the preceding workload, before warm10; never collect inside
+        // the measured cycles or replace the strict process-wide resource counts.
+        log.WriteLine($"SOAK prefix before COM drain; USER={GetGuiResources(counts.Handle, 1)}; GDI={GetGuiResources(counts.Handle, 0)}; utc={DateTime.UtcNow:O}");
+        GC.Collect();
+        var finalizers = System.Threading.Tasks.Task.Run((Action)GC.WaitForPendingFinalizers);
+        // Keep this STA pumping so COM cleanup can return to its owning context.
+        Wait(() => finalizers.IsCompleted, "UIA prefix finalizer drain");
+        finalizers.GetAwaiter().GetResult();
+        Marshal.CleanupUnusedObjectsInCurrentContext();
+        log.WriteLine($"SOAK prefix after COM drain; USER={GetGuiResources(counts.Handle, 1)}; GDI={GetGuiResources(counts.Handle, 0)}; utc={DateTime.UtcNow:O}");
         var diagnostic = Environment.GetEnvironmentVariable("BUS_RESOURCE_PROOF") != null;
         var cycleNumber = 0;
         Action cycle = () =>
@@ -344,7 +358,7 @@ internal static class BusyOverlayScenario
             if (diagnostic)
             {
                 var afterUser = GetGuiResources(counts.Handle, 1); var afterGdi = GetGuiResources(counts.Handle, 0);
-                log.WriteLine($"CYCLE {cycleNumber}; USER={beforeUser}->{afterUser}; GDI={beforeGdi}->{afterGdi}; thread={System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                log.WriteLine($"CYCLE {cycleNumber}; USER={beforeUser}->{afterUser}; GDI={beforeGdi}->{afterGdi}; thread={System.Threading.Thread.CurrentThread.ManagedThreadId}; utc={DateTime.UtcNow:O}");
                 if (afterUser != beforeUser) LogOwnedWindows(counts, log);
             }
         };
@@ -352,7 +366,7 @@ internal static class BusyOverlayScenario
         using var process = Process.GetCurrentProcess();
         SettleResources(process, log, "warm10");
         var user = GetGuiResources(process.Handle, 1); var gdi = GetGuiResources(process.Handle, 0);
-        log.WriteLine($"SOAK warm10 USER={user}; GDI={gdi}; mode={(fallback ? "OpaqueFallback" : "NativeLayered")}");
+        log.WriteLine($"SOAK warm10 USER={user}; GDI={gdi}; mode={(fallback ? "OpaqueFallback" : "NativeLayered")}; utc={DateTime.UtcNow:O}");
         LogOwnedWindows(process, log);
         var grew = false;
         for (var batch = 1; batch <= 4; batch++)
@@ -360,7 +374,7 @@ internal static class BusyOverlayScenario
             for (var i = 0; i < 25; i++) cycle();
             SettleResources(process, log, $"cycles={batch * 25}");
             var nextUser = GetGuiResources(process.Handle, 1); var nextGdi = GetGuiResources(process.Handle, 0);
-            log.WriteLine($"SOAK cycles={batch * 25}; USER={nextUser}; GDI={nextGdi}");
+            log.WriteLine($"SOAK cycles={batch * 25}; USER={nextUser}; GDI={nextGdi}; utc={DateTime.UtcNow:O}");
             LogOwnedWindows(process, log);
             grew |= nextUser > user || nextGdi > gdi;
         }
