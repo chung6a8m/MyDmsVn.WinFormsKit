@@ -1,6 +1,6 @@
 # BUS-04 — input, focus và native lifecycle
 
-Ngày 30/10/2026. Candidate: base `6880df8b7b58160743d2e4387456ccd8d24a3624` cộng commit chứa report này; marker executable cuối `6880df8+BUS04-verified`. Chỉ BUS-04; không đổi `BootstrapBusyHost` cũ, namespace/targets/dependencies/vendor hoặc fingerprint. BUS-05/06 chưa triển khai trong task này. Trạng thái acceptance physical125/150/200% và mixed-DPI **NOT RUN / BLOCKED BY ENVIRONMENT**, không dùng synthetic DPI thay thế.
+Ngày 30/10/2026. Candidate BUS-04 đầu: `2e4a8192e457dccb3e97428a930511ba60bd70b0` (base `6880df8b7b58160743d2e4387456ccd8d24a3624`); marker `6880df8+BUS04-verified`. Phần sửa review ở cuối trang sở hữu candidate mới; các bảng trước phần đó là lịch sử của candidate đầu. Chỉ BUS-04; không đổi `BootstrapBusyHost` cũ, namespace/targets/dependencies/vendor hoặc fingerprint. BUS-05/06 chưa triển khai trong task này. Trạng thái acceptance physical125/150/200% và mixed-DPI **NOT RUN / BLOCKED BY ENVIRONMENT**, không dùng synthetic DPI thay thế.
 
 ## Thay đổi và phạm vi kiểm
 
@@ -96,3 +96,62 @@ Managed helper DLL negative-net8: 1E3DA577DC1CCB60ADC55DB168BC53196D2C1515E84A0F
 ## Acceptance còn mở
 
 Physical125/150/200% và mixed-DPI **NOT RUN / BLOCKED BY ENVIRONMENT**: chỉ có monitor96 DPI. Synthetic DPI notification và owner move trong cùng DPI không chứng minh mixed-DPI. Native Dark matrix, SourceGrid/third-party controls, Owner visual approval, durable artifacts, demo BUS-05 và fingerprint/full acceptance BUS-06 còn mở. Không nhận historical full-suite PASS; full Controls suite từng có failures ngoài BUS ở candidate trước, không suy kết quả mới từ đó. Không triển khai demo hay sửa API fingerprint trong BUS-04.
+
+## Sửa hai Important về HidePresentation sau review
+
+Ngày30/10/2026. Candidate mới: base `2e4a8192e457dccb3e97428a930511ba60bd70b0` cộng commit chứa mục này; marker `2e4a819+BUS04-hide-review-fix`. Chỉ sửa hide/controller exception handling, HostTests và diagnostic trong helper hiện có; BusyHost cũ, input filter và API public không đổi. BUS-05/06 không sửa.
+
+Hai findings đã tái hiện: VisibleChanged của card/backdrop reenter Begin/fire delay làm hide cũ ghi đè presentation mới; callback ném lỗi bỏ dở backdrop/mode cleanup. Hide mới chạy từng bước qua generation guard, tiếp tục best-effort cleanup sau lỗi của generation đang dọn, nhưng không đụng generation mới. ExceptionDispatchInfo giữ exception đầu tiên/stack; nếu presentation đã ném lỗi trước thì controller không để exception thứ hai từ cleanup thay thế lỗi gốc.
+
+RED deterministic trên source2e4a819:8 discovered/executed,2 PASS/6 FAIL/0 skip (`bus04-review-red3.log`). Hai case reenter-then-throw vốn PASS vì exception ngắt hide cũ, giữ làm regression; không gọi chúng là RED. Sáu FAIL gồm card/backdrop reenter bình thường, throwing card/backdrop/managed focus fallback, presentation error bị cleanup error che mất. Test Select override dùng selectable consumer control thật trên native traversal fallback; Cancel.TabStop=false là cấu hình fixture để traversal thực sự đi tới control đó.
+
+Sau fix,8/8 PASS (`bus04-review-green3.log`). Một lần copy source fix về giữ timestamp cũ làm incremental build dùng binary RED; log tên green2 vẫn FAIL6, không được tính GREEN. Đã rebuild Controls bằng `--no-incremental --no-restore` rồi chạy lại. Không dùng binary cũ làm proof.
+
+Probe Enter trực tiếp ban đầu làm net8 testhost abort trong WinForms WmSetFocus/UpdateFocusedControl:9 discovered,7 cases có kết quả (2 PASS/5 FAIL), Enter aborted và Leave chưa chạy. Các probes này đã được tách khỏi owner suite. WinForms native focus event chuyển exception qua Application.ThreadException, không phải exception managed từ Focus trả về cho host. Diagnostic opt-in `BUS_FOCUS_EXCEPTION_PROOF=enter|leave` chạy trong **helper subprocess riêng**; đặt CatchException trước khi tạo deadline timer/controls, thu nhận original exception đúng1 lần, không modal wait. Production không đổi exception policy hoặc bắt ThreadException.
+
+| Native focus diagnostic | Executed/PASS/FAIL/skip | Cleanup ms |
+|---|---|---:|
+| net48 enter | 1/1/0/0 | 314 |
+| net48 leave | 1/1/0/0 | 302 |
+| net8 enter | 1/1/0/0 | 310 |
+| net8 leave | 1/1/0/0 | 290 |
+
+Cả4 xác nhận modeNone, card/backdrop hidden, filterfalse, spinnerfalse, cleanup windows0. Outer watchdog15s; helper vẫn có bounded deadline. EXEs positive tại `tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/bin/Release/<tfm>/`; args `--scenario busy-overlay-live <absolute artifacts/bus04/review-focus-<tfm>-<boundary>>`, environment flag chỉ trong process execution này. Không tính4 probes thành live-composition hoặc resource PASS.
+
+Final Busy suites: **95 discovered/executed/PASS,0 FAIL/skip mỗi TFM x64** (net48 12.4535s, net8 12.5826s). Gồm8 boundary cases mới cùng87 regression trước. Discovery riêng và tests giữ hang diagnostics5m; commands/filter như trên, raw logs `artifacts/bus04/review-discovery-<tfm>.log`, `review-tests-<tfm>.log`. NUnit resource: net48 warm/batches USER24/GDI30, net8 USER23/GDI28, flat. `build.ps1 -Configuration Release -Scope All` sau cùng PASS0 warnings/errors,5.15s. Full broad suite và x86 NUnit không chạy lại; không suy ra PASS.
+
+Năm helper EXEs đều build mới từ source cuối theo recipe trước, output `artifacts/bus04/reviewfix-bin/<kind>`, results `reviewfix-<kind>/result.txt`, absolute negative manifest, net48x86 PlatformTarget=x86. Không đổi tolerance/settle condition hoặc warm-up. **5 selected/discovered/executed,3 PASS/2 FAIL,0 skip; wrapper exit1**:
+
+| Output | Mode/bitness | USER warm10→25→50→75→100 | GDI mọi checkpoint | Exit | Cleanup ms |
+|---|---|---|---|---:|---:|
+| positive-net48 | NativeLayered x64 | 49→49→49→49→49 | 45 | 0 | 35499 |
+| positive-net8 | NativeLayered x64 | 50→50→50→50→50 | 46 | 0 | 40443 |
+| positive-net48-x86 | NativeLayered x86 | 47→48→48→48→48 | 45 | 1 | 38776 |
+| negative-net48 | OpaqueFallback x64 | 47→48→48→48→48 | 43 | 1 | 30832 |
+| negative-net8 | OpaqueFallback x64 | 50→50→50→50→50 | 46 | 0 | 30643 |
+
+Raw bằng settled ở mọi checkpoint của matrix mới; settle251–327ms. Hai failures vẫn là strict USER+1, GDI flat; source USER object chưa xác định. Một sampling read-only GetGUIThreadInfo trong x86 run thấy caret0/capture0, nhưng không đủ đối chứng theo checkpoint để quy nguyên nhân hoặc loại trừ resource nào. Không gọi nguồn tăng là cache hay leak đã được chứng minh. [GetGuiResources](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getguiresources) đếm USER objects rộng hơn inventory HWND; inventory không delta không đóng gate.
+
+Trên cả5 EXEs, block live/fallback scenarios trước soak PASS: alpha/input/selection/scroll, UIA, same-HWND live regions, opaque card, clipping/higher sibling, modal usable, tab/minimize/restore và owner move96. Print total16 live/9 fallback, alpha-only delta0. Cả5 cleanup windows0/hooks7/7; không còn helper/testhost khi trả desktop. Legacy probe filter counters0/0 vẫn không được diễn giải thành production registrations.
+
+**Hai Important đã có fix và regression; BUS-04 vẫn BLOCKED/resource gate mở**, physical125/150/200 và mixed-DPI NOT RUN. Không dùng các PASS mới để xóa failures cũ. BUS-05 nếu được integrator cho phép chỉ là provisional work; task này không triển khai demo hoặc đóng acceptance.
+
+### Hash của candidate sửa hide
+| Source | SHA-256 |
+|---|---|
+| src/MyDmsVn.Bootstrap5WinFormUI/Controls/BootstrapBusyOverlayHost.cs | 550C2BAE5BB4D71985FB306AC4D4BA359D0BFA01E109E2E8C151EE638222B24E |
+| src/MyDmsVn.Bootstrap5WinFormUI/Controls/Internal/BootstrapBusyOverlayController.cs | 76232ACC88CC518BDB1D8706E228BE1C188679C08F2DB7BDE86FA07F56CF382B |
+| tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Controls/BootstrapBusyOverlayHostTests.cs | 5EC570F4D0CB43EBA938C5D07443F955B20B629D2C3FD0BB5FD87BE0C9E830E5 |
+| tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/BusyOverlayScenario.cs | D29E83241EA007C2B53F6EAC7A85326222649749B7FE34E947DDE93D1ECAD508 |
+
+| reviewfix-bin output | EXE SHA-256 | Core DLL SHA-256 |
+|---|---|---|
+| positive-net48 | 70E10FC32D9BAE936CD8F9AA968D6C9B5E57D83CF1FEE43313270F4C73489863 | 7A117C93470E3E10B70334F5C8E8EBAA6F6D1501C7385C20EFB405A41222ECC3 |
+| positive-net8 | 775870B2C6148DB323F63E9905DBA9B5BD726D7C2E303E39C4F1D9752D6CFF28 | 97452ADDB49A684164EBEA30A39D564516A1541ACA2BEFBD770075E2F3507E46 |
+| positive-net48-x86 | A81ACB236A1AFDC2B16A5DC48F8A36D1FDC63CF20C6386D64C47E142BCF3C318 | 7A117C93470E3E10B70334F5C8E8EBAA6F6D1501C7385C20EFB405A41222ECC3 |
+| negative-net48 | B933715542B53B415BA05A4E7A228023CC4DF7028FAD9918242EBFBBD7FE8B6C | 45747E387696D329BEE494BDEC300B62040E9DB8ECFC73737734544605FFD045 |
+| negative-net8 | DB0AA15363D96ADA81BF6338662369DBB270CB61A55379CD0669EC290BCA4498 | 3678090387A5400DC971F530A2BF2C907E89F279A1620FDE2D3487B1C3D92A0D |
+
+Managed helper DLL positive-net8: B4150A7188309CC0FA95410ECB9766846F777E59A6DB21868DC132DA256F95E7.
+
+Managed helper DLL negative-net8: FB19B22E3E2F2018E7E7FE162E76A87DE2E483DEF028A6CD2220CC43A83F36FD.

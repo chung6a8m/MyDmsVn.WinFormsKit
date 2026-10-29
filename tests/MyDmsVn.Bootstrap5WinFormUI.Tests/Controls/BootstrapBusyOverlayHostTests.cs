@@ -499,6 +499,81 @@ public sealed class BootstrapBusyOverlayHostTests
         finally { next?.Dispose(); }
     }
 
+    [TestCase("card", false), TestCase("backdrop", false), TestCase("card", true), TestCase("backdrop", true)]
+    public void HideBoundary_ReentrantPresentationSurvivesOldHide(string boundary, bool throws)
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show();
+        var token = host.Begin(new BusyPresentation("old", () => { })); delay.Fire();
+        var card = All(host).OfType<Button>().Single().Parent!;
+        var backdrop = host.Controls.Cast<Control>().Single(c => c != host.Content && c != card);
+        var watched = boundary == "card" ? card : backdrop;
+        var expected = new InvalidOperationException("original hide event"); var armed = true; IDisposable? newer = null;
+        watched.VisibleChanged += (_, _) =>
+        {
+            if (!armed || watched.Visible) return;
+            armed = false; newer = host.Begin(new BusyPresentation("new", () => { })); delay.Fire();
+            if (throws) throw expected;
+        };
+        try
+        {
+            if (throws) Assert.That(Assert.Throws<InvalidOperationException>((Action)token.Dispose), Is.SameAs(expected));
+            else token.Dispose();
+            Assert.That(armed, Is.False); AssertPresentation(host, true);
+            Assert.That(card.Visible, Is.True); Assert.That(backdrop.Visible, Is.True);
+            Assert.That(All(host).OfType<Label>().Single().Text, Is.EqualTo("new"));
+        }
+        finally { newer?.Dispose(); token.Dispose(); }
+    }
+
+    [TestCase("card"), TestCase("backdrop"), TestCase("focus")]
+    public void HideBoundary_ThrowingCallbacksFinishCleanupAndKeepOriginalException(string boundary)
+    {
+        using var form = new Form(); var delay = new ManualDelay(); var content = new TextBox();
+        using var host = new BootstrapBusyOverlayHost(content, delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); BootstrapBusyOverlayNativeTests.Activate(form); content.Focus();
+        var token = host.Begin(new BusyPresentation("old", () => { })); delay.Fire();
+        var cancel = All(host).OfType<Button>().Single(); var card = cancel.Parent!;
+        var backdrop = host.Controls.Cast<Control>().Single(c => c != host.Content && c != card);
+        cancel.Focus();
+        var expected = new InvalidOperationException("first callback"); var secondary = new InvalidOperationException("later cleanup callback");
+        var armed = true;
+        EventHandler first = (_, _) => { if (armed) { armed = false; throw expected; } };
+        if (boundary == "card") card.VisibleChanged += (_, e) => { if (!card.Visible) first(card, e); };
+        if (boundary == "backdrop") backdrop.VisibleChanged += (_, e) => { if (!backdrop.Visible) first(backdrop, e); };
+        if (boundary == "focus")
+        {
+            content.Enabled = false; cancel.TabStop = false;
+            var outside = new ThrowingSelectControl { Failure = expected }; form.Controls.Add(outside);
+        }
+        if (boundary != "backdrop") backdrop.VisibleChanged += (_, _) => { if (!backdrop.Visible) throw secondary; };
+        Assert.That(Assert.Throws<InvalidOperationException>((Action)token.Dispose), Is.SameAs(expected));
+        AssertPresentation(host, false); Assert.That(card.Visible, Is.False); Assert.That(backdrop.Visible, Is.False);
+        Assert.That((object?)delay.Pending, Is.Null); token.Dispose();
+    }
+
+    [Test]
+    public void HideBoundary_PresentationFailureKeepsOriginalWhenCleanupAlsoThrows()
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show(); using var token = host.Begin(new BusyPresentation("old")); delay.Fire();
+        var card = All(host).OfType<Button>().Single().Parent!;
+        var expected = new InvalidOperationException("presentation callback");
+        All(host).OfType<Label>().Single().TextChanged += (_, _) => throw expected;
+        card.VisibleChanged += (_, _) => { if (!card.Visible) throw new InvalidOperationException("cleanup callback"); };
+        Assert.That(Assert.Throws<InvalidOperationException>((Action)(() => host.Begin(new BusyPresentation("new")))), Is.SameAs(expected));
+        AssertPresentation(host, false);
+        Assert.That(host.Controls.Cast<Control>().Where(c => c != host.Content).All(c => !c.Visible), Is.True);
+    }
+
+    private sealed class ThrowingSelectControl : TextBox
+    {
+        internal Exception? Failure;
+        protected override void Select(bool directed, bool forward) { var error = Failure; Failure = null; if (error is not null) throw error; base.Select(directed, forward); }
+    }
+
     private static void AssertPresentation(BootstrapBusyOverlayHost host, bool visible)
     {
         Assert.That(host.RenderMode, Is.EqualTo(visible ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.None));

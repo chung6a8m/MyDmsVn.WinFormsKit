@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
@@ -203,15 +204,23 @@ public sealed class BootstrapBusyOverlayHost : Panel
     {
         if (_card is null) return;
         var generation = ++_presentationGeneration;
-        _inputFilter.Dispose();
-        _spinner.Stop();
-        RestoreFocus();
-        // Focus events may pump messages and present a new operation while hiding.
-        if (generation != _presentationGeneration) return;
-        _savedFocus = null;
-        _card.Visible = false;
-        _backdrop.Visible = false;
-        SetMode(BootstrapBusyOverlayRenderMode.None);
+        ExceptionDispatchInfo? firstError = null;
+        // Each step may synchronously call consumer code. Finish this generation's
+        // cleanup after errors, but never mutate a newer reentrant presentation.
+        void Cleanup(Action action)
+        {
+            if (generation != _presentationGeneration) return;
+            try { action(); }
+            catch (Exception error) { firstError ??= ExceptionDispatchInfo.Capture(error); }
+        }
+        Cleanup(_inputFilter.Dispose);
+        Cleanup(_spinner.Stop);
+        Cleanup(RestoreFocus);
+        if (generation == _presentationGeneration) _savedFocus = null;
+        Cleanup(() => _card.Visible = false);
+        Cleanup(() => _backdrop.Visible = false);
+        Cleanup(() => SetMode(BootstrapBusyOverlayRenderMode.None));
+        firstError?.Throw();
     }
     private void SetMode(BootstrapBusyOverlayRenderMode mode)
     {

@@ -27,6 +27,9 @@ internal static class BusyOverlayScenario
         Directory.CreateDirectory(directory);
         using var log = new StreamWriter(Path.Combine(directory, "result.txt"), false, new UTF8Encoding(false)) { AutoFlush = true };
         var timeoutProof = Environment.GetEnvironmentVariable("BUS_TIMEOUT_PROOF") == "1";
+        var focusExceptionProof = Environment.GetEnvironmentVariable("BUS_FOCUS_EXCEPTION_PROOF");
+        if (focusExceptionProof == "enter" || focusExceptionProof == "leave")
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException, true);
         // Includes 110 real 150ms delay cycles in the resource soak.
         using var deadline = new ScenarioDeadline(log, timeoutProof ? 3000 : 60000);
         currentDeadline = deadline;
@@ -35,6 +38,8 @@ internal static class BusyOverlayScenario
             log.WriteLine($"Candidate={Environment.GetEnvironmentVariable("BUS_CANDIDATE")}; Runtime={RuntimeInformation.FrameworkDescription}; Bitness={IntPtr.Size * 8}; OS={Environment.OSVersion}; Interactive={Environment.UserInteractive}");
             var capability = QueryExecutable(log);
             Require(capability != fallback, "Executable capability does not match requested scenario.");
+            if (focusExceptionProof == "enter" || focusExceptionProof == "leave")
+                return RunFocusExceptionProof(log, focusExceptionProof);
             using var form = new Form { Text = "BUS-01 native child-layer proof", StartPosition = FormStartPosition.Manual, Location = new Point(80, 80), ClientSize = new Size(940, 680) };
             deadline.Track(form);
             using var tabs = new TabControl { Bounds = new Rectangle(10, 10, 760, 620) };
@@ -234,6 +239,39 @@ internal static class BusyOverlayScenario
             try { deadline.VerifyCleanup(); }
             finally { currentDeadline = null; }
         }
+    }
+
+    private static int RunFocusExceptionProof(TextWriter log, string boundary)
+    {
+        // An explicit diagnostic subprocess: never install a global exception policy
+        // in production or in the shared NUnit testhost.
+        var observed = new List<Exception>();
+        System.Threading.ThreadExceptionEventHandler handler = (_, e) => observed.Add(e.Exception);
+        Application.ThreadException += handler;
+        try
+        {
+            using var form = new Form { ClientSize = new Size(500, 300), StartPosition = FormStartPosition.CenterScreen };
+            currentDeadline!.Track(form);
+            var content = new TextBox();
+            using var host = new BootstrapBusyOverlayHost(content) { Dock = DockStyle.Fill };
+            form.Controls.Add(host); form.Show(); form.Activate();
+            Wait(() => GetForegroundWindow() == form.Handle, "focus exception foreground");
+            content.Focus();
+            using var token = host.Begin(new BusyPresentation("focus exception", () => { }));
+            Wait(() => host.RenderMode != BootstrapBusyOverlayRenderMode.None, "focus exception show");
+            var cancel = Owned(host).OfType<Button>().Single(); cancel.Focus();
+            var expected = new InvalidOperationException("native " + boundary + " callback"); var armed = true;
+            EventHandler fail = (_, _) => { if (armed) { armed = false; throw expected; } };
+            if (boundary == "enter") content.Enter += fail; else cancel.Leave += fail;
+            token.Dispose(); Application.DoEvents();
+            Require(observed.Count == 1 && ReferenceEquals(observed[0], expected), "Native focus exception did not reach ThreadException exactly once");
+            Require(host.RenderMode == BootstrapBusyOverlayRenderMode.None && host.Controls.Cast<Control>().Where(c => c != content).All(c => !c.Visible), "Native focus exception left visible presentation");
+            Require(!Owned(host).OfType<BootstrapSpinner>().Single().Spinning, "Native focus exception left spinner");
+            Require(!(bool)typeof(BootstrapBusyOverlayHost).GetProperty("InputFilterInstalled", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(host)!, "Native focus exception left filter");
+            log.WriteLine($"PASS native {boundary} exception delivered to ThreadException once; mode=None; card/backdrop hidden; filter=false; spinner=false; no production exception interception");
+            return 0;
+        }
+        finally { Application.ThreadException -= handler; }
     }
 
     private static void ResourceSoak(Form form, bool fallback, TextWriter log)

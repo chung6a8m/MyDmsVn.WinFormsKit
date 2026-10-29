@@ -96,7 +96,12 @@ internal sealed class BootstrapBusyOverlayController : IDisposable
         {
             // A consumer event can fail after physical show/filter installation.
             // Retain operations, but leave no half-presented UI or queued delay.
-            Hide();
+            try { Hide(); }
+            catch (Exception)
+            {
+                // Hide performs best-effort cleanup. Its consumer callback failure
+                // must not replace the original presentation callback exception.
+            }
             throw;
         }
     }

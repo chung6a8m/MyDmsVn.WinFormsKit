@@ -72,7 +72,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 | BUS-01 — child-layer proof và negative manifest | baseline | Đã triển khai/review; gate96 DPI PASS net48 x64/x86 và net8 x64; [evidence proof](../verification/20261029-live-busy-overlay.md); mixed-DPI NOT RUN |
 | BUS-02 — host/controller/public contract | BUS-01 proof | Đã triển khai/review, regression host/controller PASS hai TFM; [evidence production](../verification/20261030-live-busy-overlay-production.md); API fingerprint acceptance thuộc BUS-06 |
 | BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | Đã triển khai; minimum Cancel width và zero-size recovery đã sửa sau review; focused tests + native96 DPI theo [candidate evidence](../verification/20261030-live-busy-overlay-production.md); acceptance ngoài96 DPI còn mở |
-| BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai; 87/87 Busy tests mỗi TFM PASS; native helper3 PASS/2 FAIL ở strict USER-resource gate; resource gate BLOCKED, mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
+| BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai; Hai Important về hide callback đã sửa; 95/95 Busy tests mỗi TFM PASS; native helper3 PASS/2 FAIL ở strict USER-resource gate; resource gate BLOCKED, mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
 | BUS-05 — demo và manifest gallery | BUS-03/04 | PENDING |
 | BUS-06 — contract, API, evidence | BUS-01–05 | PENDING |
 
