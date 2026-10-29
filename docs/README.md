@@ -12,8 +12,9 @@ Tài liệu tại đây đi cùng source toolkit. MyDmsVn.Docs sở hữu ý đ�
 | Notices/license theo component | [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
 | Consumer migration và rollback | [CONSUMER_MIGRATION](CONSUMER_MIGRATION.md) |
 | Điều kiện package/distribution | [RELEASING](RELEASING.md) |
-| Công việc được chọn | [ROADMAP](ROADMAP.md) → [plan chiều cao input và góc bo popup](plans/20261029-001-input-popup-rendering.md) |
-| Phân tích source, lịch sử sửa góc bo và giải pháp kỹ thuật | [Thiết kế input/popup rendering](design/20261029-input-popup-rendering.md) |
+| Công việc mới được chọn | [ROADMAP](ROADMAP.md) → [plan TAB](plans/20261029-002-bootstrap-tabs-hottrack.md), [plan BUS](plans/20261029-003-live-busy-overlay.md) |
+| Contract/API, native paint, HotTrack và phương án 3B live busy overlay | [Thiết kế tabs/HotTrack/live overlay](design/20261029-tabs-hottrack-live-busy-overlay.md) |
+| Scope input/popup trước đó, cùng lịch sử và điều kiện nghiệm thu riêng | [Plan input/popup](plans/20261029-001-input-popup-rendering.md), [thiết kế input/popup rendering](design/20261029-input-popup-rendering.md) |
 | Scope ba ngoại lệ Business Compact đã hoàn tất | [Plan ba ngoại lệ](plans/20261028-001-business-compact-exceptions.md) |
 | Kết quả source/build, Windows/native PASS và Owner APPROVED/CLOSED của scope ba ngoại lệ | [Candidate evidence](verification/20261028-business-compact-exceptions.md) |
 | Trạng thái bootstrap và điều kiện A3 còn lại | [Plan A3](plans/20261024-001-a3-winformskit.md) |

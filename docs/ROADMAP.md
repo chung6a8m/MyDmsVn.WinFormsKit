@@ -1,6 +1,17 @@
 # Công việc hiện hành
 
-Scope được Owner chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](design/20261029-input-popup-rendering.md) giữ căn cứ source, lịch sử sửa và quyết định geometry/backing/layout. T01–T07 đã có implementation và [candidate evidence](verification/20261029-input-popup-rendering.md): kết quả trước review giữ theo candidate lịch sử. [Stability evidence](verification/20261029-input-popup-rendering-stability.md) giữ full-suite production source; [Owner visual review](verification/20261029-input-popup-rendering-owner-visual-review.md) ghi APPROVED cho bộ ảnh canonical physical 100%/125% trên hai TFM. Consumer MyDmsVn acceptance còn mở, chưa ghi CLOSED; physical 150%/200% chưa chạy.
+Scope mới được Owner chọn ngày **2026-10-29**: **BootstrapTabs mới + sửa HotTrack dùng chung + phương án 3B live busy overlay, có demo cho cả hai**. [Thiết kế chung](design/20261029-tabs-hottrack-live-busy-overlay.md) giữ baseline, căn cứ source và các quyết định kỹ thuật.
+
+| Luồng thực thi | Plan sở hữu trạng thái |
+|---|---|
+| BootstrapTabs trực tiếp kế thừa TabControl, shared HotTrack/painter/close, demo | [TAB-01–06](plans/20261029-002-bootstrap-tabs-hottrack.md) |
+| BootstrapBusyOverlayHost dùng child-layer native opacity, input/focus/lifecycle, demo và manifest | [BUS-01–06](plans/20261029-003-live-busy-overlay.md) |
+
+Commit lập plan chỉ bổ sung tài liệu; implementation và native acceptance bắt đầu ở PLANNED/PENDING trong từng plan. Hai luồng có thể làm song song ở source riêng; GUI execution và tích hợp Program/MainForm/API baseline phải tuần tự. Snapshot hoặc opaque fallback không thay live acceptance của BUS. Trang này chỉ điều hướng, không duy trì bảng tiến độ thứ hai.
+
+## Scope trước và các điều kiện còn lại
+
+Scope [chiều cao input và góc bo popup Select/LookupBox](plans/20261029-001-input-popup-rendering.md): [thiết kế kỹ thuật](design/20261029-input-popup-rendering.md) giữ căn cứ source, lịch sử sửa và quyết định geometry/backing/layout. T01–T07 đã có implementation và [candidate evidence](verification/20261029-input-popup-rendering.md): kết quả trước review giữ theo candidate lịch sử. [Stability evidence](verification/20261029-input-popup-rendering-stability.md) giữ full-suite production source; [Owner visual review](verification/20261029-input-popup-rendering-owner-visual-review.md) ghi APPROVED cho bộ ảnh canonical physical 100%/125% trên hai TFM. Consumer MyDmsVn acceptance còn mở, chưa ghi CLOSED; physical 150%/200% chưa chạy.
 
 Bốn findings PR #3 và regression Windows tương ứng được ghi ở [evidence sửa review](verification/20261029-input-popup-rendering-review-fixes.md). Đây là lịch sử candidate vòng một; không thay evidence candidate mới.
 
