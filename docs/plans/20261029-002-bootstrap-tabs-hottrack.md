@@ -97,7 +97,7 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 | TAB-03 — painter/close extraction | TAB-02 | IN PROGRESS — painter/close và focused tests hai TFM; physical 125%/orientation còn mở |
 | TAB-04 — BootstrapTabs và composition | TAB-01 proof, TAB-03 | IN PROGRESS — code, tests và native DPI96 proof hai TFM đã có; physical/Owner gate OPEN |
 | TAB-05 — demo | TAB-04 | IN PROGRESS — route/actions/tests đã có; Light/Dark và physical review PENDING |
-| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API, native 100%/125% Light/Dark và 18 visual artifact URLs đã có; mixed-DPI BLOCKED (một monitor), 150%/200%, Owner gate OPEN |
+| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API, native 100%/125% Light/Dark, 18 artifact URLs và Owner static visual APPROVED; temporal no-flicker, mixed-DPI (một monitor), 150%/200% OPEN |
 
 ### TAB-01 — Reproducer và proof cho native paint
 
@@ -178,7 +178,8 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 - [ ] Chạy Commands và native matrix: hai TFM × Light/Dark × physical 100/125 **PASS**, actual window DPI 96/120 đã ghi; representative 150/200 **NOT RUN**, mixed-DPI **BLOCKED BY ENVIRONMENT** vì chỉ có một monitor; hover/overflow/print/fallback/close đã kiểm trong matrix. Thiếu môi trường giữ gate mở.
 - [x] Build graph All để phát hiện consumer compile issues; tests chọn Controls fixtures liên quan, không tự kéo SQL hoặc full suites ngoài boundary. Nếu manifest/DPI gallery đổi đồng thời bởi BUS, chạy thêm integrated typography/layout regressions trên candidate hợp nhất.
 - [x] Lưu 18 ảnh visual có thể mở lại bằng [artifact URL + candidate/scenario/hash manifest](../verification/20261029-tabs-hottrack-visual-artifacts.md); các URL đã kiểm GET không đăng nhập và hash byte khớp. Raw trace/JSON vẫn local và được ghi giới hạn.
-- [ ] Owner review chuỗi hover và hình Light/Dark trên candidate đó; chưa có quyết định thì ghi PENDING, không tự APPROVED. Ảnh tĩnh không thay quyết định temporal no-flicker.
+- [x] Owner review 18 ảnh Light/Dark, fallback và ba frame hover tĩnh trên candidate đó: **APPROVED visual ảnh tĩnh** ngày 29/10/2026, đúng phạm vi trong [manifest](../verification/20261029-tabs-hottrack-visual-artifacts.md).
+- [ ] Owner temporal no-flicker decision sau tương tác trực tiếp hoặc clip đủ frame rate; ảnh tĩnh và `flicker=NOT REPRODUCED` của helper không thay gate này.
 - [ ] Commit `docs: record tabs contracts and candidate verification`; chỉ đánh DONE từng task đã đạt cả deliverable và evidence của chính nó.
 
 ## Commands cho implementer
