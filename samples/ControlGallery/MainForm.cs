@@ -271,6 +271,8 @@ public sealed class MainForm : DemoFormBase
                 new DemoPageSection("Spinner", () => new SpinnerDemoForm()),
                 new DemoPageSection("Button loading", () => new ButtonDemoForm())));
 
+        AddPage("Loading / Busy Overlay", "Live native opacity, nested operations, cancellation and opaque comparison.", () => new BusyOverlayDemoForm());
+
         AddPage(
             "Placeholder / Skeleton",
             "Static, Glow, and Wave placeholders; skeleton composition; theme/reduced-motion behavior; and application-owned content swapping.",

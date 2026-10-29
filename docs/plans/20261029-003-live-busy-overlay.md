@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–2, 4–5](../design/20261029-tabs-hottrack-live-busy-overlay.md). [Plan TAB](20261029-002-bootstrap-tabs-hottrack.md) có thể chạy song song; chỉ tích hợp shared files theo một integrator.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation nhưng resource gate BLOCKED; BUS-05–06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation nhưng resource gate BLOCKED; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, physical125/SourceGrid còn mở; BUS-06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
 
 ## Global Constraints
 
@@ -73,7 +73,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 | BUS-02 — host/controller/public contract | BUS-01 proof | Đã triển khai/review, regression host/controller PASS hai TFM; [evidence production](../verification/20261030-live-busy-overlay-production.md); API fingerprint acceptance thuộc BUS-06 |
 | BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | Đã triển khai; minimum Cancel width và zero-size recovery đã sửa sau review; focused tests + native96 DPI theo [candidate evidence](../verification/20261030-live-busy-overlay-production.md); acceptance ngoài96 DPI còn mở |
 | BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai; Hai Important về hide callback đã sửa; 95/95 Busy tests mỗi TFM PASS; native helper3 PASS/2 FAIL ở strict USER-resource gate; resource gate BLOCKED, mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
-| BUS-05 — demo và manifest gallery | BUS-03/04 | PENDING |
+| BUS-05 — demo và manifest gallery | BUS-03/04 | Đã triển khai provisional; regression59/59 mỗi TFM và actual EXE context96 DPI PASS; physical125/SourceGrid NOT RUN; [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md) |
 | BUS-06 — contract, API, evidence | BUS-01–05 | PENDING |
 
 ### BUS-01 — Proof native trước khi triển khai đầy đủ
@@ -147,13 +147,15 @@ BUS-04 chưa DONE: strict resource gate còn FAIL ở final net48 x86 live và n
 
 **Interfaces:** form kế thừa DemoFormBase, chỉ public host API; theme selector hiện hữu. Manifest Windows 10 supportedOS + common-controls v6; net48 App.config PerMonitorV2 như helper hiện có; net8 giữ Application.SetHighDpiMode trước HWND. Không thay process DPI từ control library.
 
-- [ ] Test gallery route, control hierarchy, alpha slider wiring, live content timer, cancellation/nested operation lifecycle và cleanup khi đóng form; source demo không gọi SQL hoặc capture-content API.
-- [ ] Tạo vùng Content có TextBox, BootstrapDataGridView/native ListView và progress/counter đổi định kỳ; host vẫn busy. Alpha slider 0–100%, default 35%; điều khiển slider/theme/tác vụ đặt ngoài vùng bị chặn để có thể thao tác khi busy. Có fast operation, long operation, hai tokens hoàn thành khác thứ tự, cancel và hide/show.
-- [ ] Hiển thị message nghiệp vụ đơn giản, spinner/cancel rõ; khu diagnostics riêng báo RenderMode, actual DPI và fallback khi có. So sánh host cũ opaque bằng content instance riêng, không reparent cùng Content giữa hai owners.
-- [ ] Wire ApplicationManifest rõ trong csproj cho hai targets; net48 chọn App.config, giữ net8 DPI API hiện hành. Kiểm embedded manifest của built EXE và runtime context ở cả hai TFM. Không thêm DPI manifest cũ ghi đè App.config/SetHighDpiMode.
+- [x] Test gallery route, control hierarchy, alpha slider wiring, live content timer, cancellation/nested operation lifecycle và cleanup khi đóng form; source demo không gọi SQL hoặc capture-content API.
+- [x] Tạo vùng Content có TextBox, BootstrapDataGridView/native ListView và progress/counter đổi định kỳ; host vẫn busy. Alpha slider 0–100%, default 35%; điều khiển slider/theme/tác vụ đặt ngoài vùng bị chặn để có thể thao tác khi busy. Có fast operation, long operation, hai tokens hoàn thành khác thứ tự, cancel và hide/show.
+- [x] Hiển thị message nghiệp vụ đơn giản, spinner/cancel rõ; khu diagnostics riêng báo RenderMode, actual DPI và fallback khi có. So sánh host cũ opaque bằng content instance riêng, không reparent cùng Content giữa hai owners.
+- [x] Wire ApplicationManifest rõ trong csproj cho hai targets; net48 chọn App.config, giữ net8 DPI API hiện hành. Kiểm embedded manifest của built EXE và runtime context ở cả hai TFM. Không thêm DPI manifest cũ ghi đè App.config/SetHighDpiMode.
 - [ ] Vì DPI awareness gallery net48 thay đổi, chạy IntegratedDemoTypography/Layout và đại diện input/navigation ở physical 100/125; ghi regression nếu layout cũ đổi. Không gọi manifest XML tồn tại là proof runtime DPI đúng.
 - [ ] Bổ sung bước nghiệm thu SourceGrid bằng consumer/test host có reference adapter nếu cần xác nhận use case sản phẩm; UI core không thêm dependency BSG. Không tuyên bố đã hỗ trợ hardware/third-party rendering chưa có native evidence; integration với MyDmsVn là PR riêng.
-- [ ] Commit `feat: add live busy overlay gallery and manifest setup`.
+- [x] Commit `feat: add live busy overlay gallery and manifest setup`.
+
+Candidate BUS-05: source/demo/tests triển khai provisional dù BUS-04 resource gate còn BLOCKED; runtime gallery EXE96 DPI hai TFM có embedded manifest + executable context + PerMonitorV2/NativeLayered. Physical125 và SourceGrid acceptance NOT RUN, không nhận full BUS acceptance. Xem [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md).
 
 ### BUS-06 — Contract, API và acceptance
 
