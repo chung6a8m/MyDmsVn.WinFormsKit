@@ -88,6 +88,72 @@ public sealed class BootstrapTabPaintCompatibilityTests
     }
 
     [Test]
+    public void RemovingPageClearsStaleCloseMenuTarget()
+    {
+        using var tabs = new BootstrapTabControl();
+        var first = new TabPage("Xóa ngay");
+        var second = new TabPage("Giữ lại");
+        tabs.TabPages.Add(first);
+        tabs.TabPages.Add(second);
+        tabs.SetTabClosable(first, true);
+        tabs.SelectedTab = first;
+        var menu = tabs.ContextMenuStrip!;
+        var command = (ToolStripMenuItem)menu.Items[0];
+        Assert.That(command.Enabled, Is.True);
+        var requests = 0;
+        tabs.TabCloseRequested += (_, _) => requests++;
+
+        tabs.TabPages.Remove(first);
+        command.PerformClick();
+
+        Assert.That(command.Enabled, Is.False);
+        Assert.That(command.AccessibleName, Is.EqualTo("Close tab Giữ lại"));
+        Assert.That(requests, Is.Zero);
+        first.Dispose();
+    }
+
+    [TestCase(BootstrapTabStyle.Tabs, BootstrapVariant.Primary, "Tiếng Việt", false, true)]
+    [TestCase(BootstrapTabStyle.Pills, BootstrapVariant.Success, "", true, true)]
+    [TestCase(BootstrapTabStyle.Underline, BootstrapVariant.Danger, "Tiêu đề tiếng Việt rất dài cần ellipsis", true, true)]
+    [TestCase(BootstrapTabStyle.Tabs, BootstrapVariant.Info, "Có ảnh", true, false)]
+    public void CaptionLayoutKeepsTextAndImageInsideAvailableContent(
+        BootstrapTabStyle style, BootstrapVariant variant, string caption, bool withImage, bool closable)
+    {
+        var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(BootstrapThemeMetrics.Default, 96, -1);
+        var header = new Rectangle(7, 4, 160, 32);
+        var close = closable ? new Rectangle(143, 12, 16, 16) : Rectangle.Empty;
+        var imageSize = withImage ? new Size(16, 16) : Size.Empty;
+        using var font = new Font("Segoe UI", 9f);
+        var textWidth = string.IsNullOrEmpty(caption) ? 0 : TextRenderer.MeasureText(
+            caption, font, new Size(int.MaxValue, 32),
+            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding).Width;
+        var layout = BootstrapTabControlRenderLogic.CalculateLayout(
+            header, style, metrics, textWidth, imageSize, withImage, close);
+        var colors = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light).Colors;
+        var palette = BootstrapTabControlRenderLogic.ResolvePalette(
+            colors,
+            variant, style, selected: true, enabled: true, hovered: false);
+
+        Assert.That(layout.ContentBounds.Right, Is.LessThanOrEqualTo(closable ? close.Left - 4 : header.Right));
+        Assert.That(layout.TextBounds.Left, Is.GreaterThanOrEqualTo(layout.ContentBounds.Left));
+        Assert.That(layout.TextBounds.Right, Is.LessThanOrEqualTo(layout.ContentBounds.Right));
+        if (withImage)
+        {
+            Assert.That(layout.ImageBounds.Left, Is.GreaterThanOrEqualTo(layout.ContentBounds.Left));
+            Assert.That(layout.ImageBounds.Right, Is.LessThanOrEqualTo(layout.ContentBounds.Right));
+        }
+        var expectedAccent = variant switch
+        {
+            BootstrapVariant.Primary => colors.Primary,
+            BootstrapVariant.Success => colors.Success,
+            BootstrapVariant.Danger => colors.Danger,
+            BootstrapVariant.Info => colors.Info,
+            _ => throw new InvalidOperationException()
+        };
+        Assert.That(palette.Accent, Is.EqualTo(expectedAccent));
+    }
+
+    [Test]
     public void ClosableCaption_IsCenteredInRemainingContent()
     {
         using var host = new Form { ClientSize = new Size(360, 180) };

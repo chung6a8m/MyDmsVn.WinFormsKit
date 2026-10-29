@@ -77,7 +77,22 @@ internal sealed class BootstrapTabCloseController : IDisposable
     internal void PageRemoved(TabPage page)
     {
         _closablePages.Remove(page);
-        if (ReferenceEquals(_menuPage, page)) UpdateMenuPage(_owner.SelectedTab);
+        if (ReferenceEquals(_menuPage, page))
+        {
+            // ControlRemoved can fire while the native selection still points at the removed page.
+            var replacement = _owner.SelectedTab;
+            if (ReferenceEquals(replacement, page)) replacement = null;
+            if (replacement is null)
+            {
+                foreach (TabPage candidate in _owner.TabPages)
+                {
+                    if (ReferenceEquals(candidate, page)) continue;
+                    replacement = candidate;
+                    break;
+                }
+            }
+            UpdateMenuPage(replacement);
+        }
         if (ReferenceEquals(_keyboardMenuPage, page)) _keyboardMenuPage = null;
     }
 

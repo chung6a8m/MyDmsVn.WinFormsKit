@@ -92,3 +92,17 @@ dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.
 ```
 
 Sau khi GUI lane được cấp độc quyền, discovery/execution **9/9 PASS, fail 0, skip 0** trên `net48` và **9/9 PASS, fail 0, skip 0** trên `net8.0-windows`; helper `tabs-hover` chạy tuần tự exit 0/0, metadata `PROBE PASS`, `fullGate=OPEN`, `flicker=NOT REPRODUCED` (elapsed 703/675 ms). Một lần chạy net8 trước đó có khả năng trùng helper của agent khác và bị **loại khỏi evidence**. Broad `FullyQualifiedName~BootstrapTab` trên net48 trước khi TAB-03 sửa close stale target: 53 PASS, 1 FAIL (`RemovingPageClearsStaleCloseMenuTarget`), skip 0; lỗi này thuộc TAB-03 và đã chuyển cho owner task, không diễn giải focused TAB-02 thành full-suite PASS. Raw artifacts chỉ ở ignored local folder. Physical 125%, visual/Owner decision, artifact URL và final compositor gate vẫn **PENDING**.
+
+## TAB-03 bổ sung — stale close target và tổ hợp caption
+
+Candidate lúc chạy: `998509f` cộng diff TAB-03 ở `BootstrapTabCloseController.cs` và `BootstrapTabPaintCompatibilityTests.cs`; Windows NT 10.0.26300.0, SDK `8.0.427`, Release, x64, native DPI 96, warm restore. Regression `RemovingPageClearsStaleCloseMenuTarget` phát hiện RED trong broad run net48: menu còn `AccessibleName="Close tab Xóa ngay"` sau khi page đã bị remove, vì `ControlRemoved` có thể phát trước khi `SelectedTab` thôi trỏ tới page đó. Controller giờ loại page đang xóa khỏi lựa chọn menu và chọn page còn sở hữu làm target hiển thị, không đổi native selection hoặc dispose page. Test gọi lệnh menu sau removal và kiểm không phát close request cũ.
+
+`CaptionLayoutKeepsTextAndImageInsideAvailableContent` bổ sung bốn tổ hợp caption tiếng Việt/ngắn/rỗng/dài, icon/no-icon, closable/nonclosable, Tabs/Pills/Underline và Primary/Success/Danger/Info. Oracle kiểm text/image nằm trong content đã trừ close, cùng accent của variant; đây là geometry/palette regression, không thay physical focus proof.
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --filter "FullyQualifiedName~BootstrapTab" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter "FullyQualifiedName~BootstrapTab" --blame-hang --blame-hang-timeout 5m
+# Bounded VisualStyleHost tabs-hover EXE: net48, rồi net8.0-windows; WaitForExit(30000).
+```
+
+Final GUI lane độc quyền: discovered/executed `net48` **54/54 PASS**, fail 0, skip 0; sau đó `net8.0-windows` **54/54 PASS**, fail 0, skip 0. Helper `tabs-hover` sau test chạy tuần tự, exit 0/0. Các lượt chồng GUI trước đó bị loại khỏi evidence. `fullGate=OPEN`, physical 125%, focus clearance bằng capture màn hình thật, artifact URL và Owner visual review vẫn **PENDING**; không chuyển thành PASS từ bitmap/layout tests.
