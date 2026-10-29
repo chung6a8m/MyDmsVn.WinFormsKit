@@ -12,3 +12,16 @@ VisualStyleHost Release `tabs-temporal` di chuyển pointer desktop thật qua h
 | net8 Dark | [Xem clip](https://github.com/user-attachments/assets/cea1b9d6-2870-4164-93db-70b0232dbc55) | 254 | 46.2 | `2666F031C335F8DD3790793DDF6E722CB43E3A54D7EF9930C8CB2AF46F0B307D` |
 
 **Owner temporal no-flicker decision: APPROVED temporal 125%** ngày 29/10/2026 cho đúng bốn clip/candidate nêu trên, qua câu trả lời trong task sau khi nhận [comment review](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/pull/4#issuecomment-6500854046). Ảnh tĩnh đã APPROVED riêng. Quyết định này không thay mixed-DPI, 150%/200% hoặc physical 100% temporal; `fullGate=OPEN`.
+
+## Physical 100%
+
+Ngày upload: 29/10/2026. [Comment PR #4](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/pull/4#issuecomment-6501178439). Candidate `9e7af4a3199a0f86682ccb108be52c592283cdb6`; production source không đổi từ `5ec6923070c0370d91c9b1eb5932e0fb5960dd76`. Windows Settings hiển thị DISPLAY1 scale 100%; helper xác nhận native HWND DPI 96. Cùng `tabs-temporal` và phương thức capture như bộ 125%: bốn run Light/Dark × hai TFM, mỗi run 15/15 hover đúng HWND, PASS. Frame rate thực tế trung bình 50–53 fps. Bốn URL tải lại không đăng nhập có SHA-256 byte khớp clip gốc.
+
+| TFM / theme | Clip | Frames / duration | FPS trung bình | SHA-256 |
+|---|---|---:|---:|---|
+| net48 Light | [Xem clip](https://github.com/user-attachments/assets/4490aec5-e62e-4765-a6f9-d8c48882bca2) | 290 / 5.47 s | 53.0 | `4BB1025AB9134F25684ABA3FED5321F52DF4A6655CC6AE0CFA7EFEC0EE26AE32` |
+| net48 Dark | [Xem clip](https://github.com/user-attachments/assets/f1d434c0-19e8-4d53-9d75-8ca5b57ff2ca) | 291 / 5.5 s | 52.9 | `6EB93013DD8B0B747A5003B3017BDA67FA23DE53D8667E0C21CCE0FC66A9428C` |
+| net8 Light | [Xem clip](https://github.com/user-attachments/assets/76b9498a-5be0-43f2-bd5a-f3dd9b154a55) | 278 / 5.5 s | 50.5 | `0B3FABBFAE9D1425120A6A82BEE9A83173038E443B62B0053A3CE50A80D8E9EF` |
+| net8 Dark | [Xem clip](https://github.com/user-attachments/assets/a13e6032-7e7b-474a-9a83-b6a5e7a5cef7) | 293 / 5.5 s | 53.3 | `A32D7A0A9C453F69406FFBE0C5ECE9A5EFD97382C0CB70324394EE0E60247F10` |
+
+**Owner temporal no-flicker decision physical 100%: PENDING.** Hai lượt FAIL trước final do Settings che pointer bị loại và ghi trong [report](20261029-tabs-hottrack.md); chỉ bốn clip PASS ở bảng này được trình duyệt. `fullGate=OPEN`.

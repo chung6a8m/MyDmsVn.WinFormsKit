@@ -179,7 +179,7 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 - [x] Build graph All để phát hiện consumer compile issues; tests chọn Controls fixtures liên quan, không tự kéo SQL hoặc full suites ngoài boundary. Nếu manifest/DPI gallery đổi đồng thời bởi BUS, chạy thêm integrated typography/layout regressions trên candidate hợp nhất.
 - [x] Lưu 18 ảnh visual có thể mở lại bằng [artifact URL + candidate/scenario/hash manifest](../verification/20261029-tabs-hottrack-visual-artifacts.md); các URL đã kiểm GET không đăng nhập và hash byte khớp. Raw trace/JSON vẫn local và được ghi giới hạn.
 - [x] Owner review 18 ảnh Light/Dark, fallback và ba frame hover tĩnh trên candidate đó: **APPROVED visual ảnh tĩnh** ngày 29/10/2026, đúng phạm vi trong [manifest](../verification/20261029-tabs-hottrack-visual-artifacts.md).
-- [x] Owner **APPROVED temporal 125%** cho [4 clip hover](../verification/20261029-tabs-hottrack-temporal-artifacts.md) Light/Dark × hai TFM trên candidate `5dfa854`, ngày 29/10/2026. Clip yêu cầu 60 fps, thực tế trung bình 43–51 fps. Quyết định chỉ bao phủ physical 125%; full gate vẫn OPEN cho DPI/environment chưa kiểm.
+- [x] Owner **APPROVED temporal 125%** cho [4 clip hover](../verification/20261029-tabs-hottrack-temporal-artifacts.md) Light/Dark × hai TFM trên candidate `5dfa854`, ngày 29/10/2026. Bốn clip physical 100% trên candidate `9e7af4a` đã upload cùng manifest; Owner decision 100% **PENDING**. Full gate vẫn OPEN cho phạm vi chưa được duyệt và DPI/environment chưa kiểm.
 - [ ] Commit `docs: record tabs contracts and candidate verification`; chỉ đánh DONE từng task đã đạt cả deliverable và evidence của chính nó.
 
 ## Commands cho implementer
