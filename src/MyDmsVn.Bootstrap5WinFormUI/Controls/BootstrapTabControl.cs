@@ -495,7 +495,7 @@ public class BootstrapTabControl : TabControl
             text,
             Font,
             new Size(int.MaxValue, Math.Max(1, height)),
-            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding).Width;
+            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis).Width;
     }
 
     private Image? ResolveTabImage(TabPage page)

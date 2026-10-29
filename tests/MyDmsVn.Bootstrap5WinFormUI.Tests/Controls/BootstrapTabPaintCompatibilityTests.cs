@@ -189,6 +189,86 @@ public sealed class BootstrapTabPaintCompatibilityTests
             $"header={header}, close={close}, ink={minX}..{maxX}");
     }
 
+    [Test]
+    public void ItalicCaption_PreservesOverhangingInkWithinHeader()
+    {
+        using var font = new Font("Times New Roman", 16f, FontStyle.Italic);
+        using var tabs = new CaptionDrawTabs { Font = font, TabStyle = BootstrapTabStyle.Underline };
+        const string caption = "f";
+        const TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
+            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding;
+        tabs.TabPages.Add(new TabPage(caption));
+        var bounds = new Rectangle(0, 0, 120, 40);
+        var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(BootstrapThemeMetrics.Default, 96, -1);
+        var layout = BootstrapTabControlRenderLogic.CalculateLayout(bounds, BootstrapTabStyle.Underline,
+            metrics, 0, Size.Empty, false);
+        var theme = BootstrapThemeManager.CurrentTheme;
+        var background = theme.Colors.Surface;
+        var foreground = theme.Colors.Primary;
+
+        using var actual = new Bitmap(bounds.Width, bounds.Height);
+        using (var graphics = Graphics.FromImage(actual))
+        {
+            graphics.Clear(background);
+            tabs.DrawForTest(new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None));
+        }
+
+        using var reference = new Bitmap(bounds.Width, bounds.Height);
+        using (var graphics = Graphics.FromImage(reference))
+        {
+            graphics.Clear(background);
+            TextRenderer.DrawText(graphics, caption, font, layout.ContentBounds, foreground, flags);
+        }
+
+        var actualInk = CountForegroundPixels(actual, layout.ContentBounds, foreground, background);
+        var referenceInk = CountForegroundPixels(reference, layout.ContentBounds, foreground, background);
+        TestContext.WriteLine($"actual={actualInk}, reference={referenceInk}, content={layout.ContentBounds}");
+        Assert.That(actualInk, Is.GreaterThanOrEqualTo(referenceInk - 1),
+            "The native tab painter cropped italic caption ink compared with a generously bounded rendering.");
+    }
+
+    [Test]
+    public void PaddedItalicCaption_ClearsFocusRingAt125Percent()
+    {
+        using var font = new Font("Times New Roman", 16f, FontStyle.Italic);
+        var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(BootstrapThemeMetrics.Default, 120, -1);
+        var header = new Rectangle(0, 0, 160, 50);
+        var textWidth = TextRenderer.MeasureText("f", font, new Size(int.MaxValue, header.Height),
+            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis).Width;
+        var layout = BootstrapTabControlRenderLogic.CalculateLayout(
+            header, BootstrapTabStyle.Tabs, metrics, textWidth, Size.Empty, false);
+
+        Assert.That(layout.TextBounds.Left, Is.GreaterThan(layout.FocusBounds.Left + metrics.FocusBorderWidth));
+        Assert.That(layout.TextBounds.Right, Is.LessThan(layout.FocusBounds.Right - metrics.FocusBorderWidth));
+    }
+
+    private static int CountForegroundPixels(Bitmap bitmap, Rectangle bounds, Color foreground, Color background)
+    {
+        var count = 0;
+        for (var y = bounds.Top; y < bounds.Bottom; y++)
+        for (var x = bounds.Left; x < bounds.Right; x++)
+        {
+            var pixel = bitmap.GetPixel(x, y);
+            var toForeground = ColorDistanceSquared(pixel, foreground);
+            var toBackground = ColorDistanceSquared(pixel, background);
+            if (toForeground < toBackground) count++;
+        }
+        return count;
+    }
+
+    private static int ColorDistanceSquared(Color left, Color right)
+    {
+        var red = left.R - right.R;
+        var green = left.G - right.G;
+        var blue = left.B - right.B;
+        return red * red + green * green + blue * blue;
+    }
+
+    private sealed class CaptionDrawTabs : BootstrapTabControl
+    {
+        internal void DrawForTest(DrawItemEventArgs args) => OnDrawItem(args);
+    }
+
     private sealed class DrawProbeTabs : BootstrapTabControl
     {
         internal List<string> Order { get; } = new();

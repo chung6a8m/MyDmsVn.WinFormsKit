@@ -48,7 +48,15 @@ internal sealed class BootstrapTabInteractionController : IDisposable
     internal void RefreshFromPointer()
     {
         if (_disposed || !_owner.IsHandleCreated) return;
-        MouseMoved(_owner.PointToClient(Cursor.Position));
+        var screenPoint = Cursor.Position;
+        var pointerWindow = WindowFromPoint(screenPoint);
+        if (IsOverflowChild(pointerWindow) ||
+            (pointerWindow != _owner.Handle && !IsChild(_owner.Handle, pointerWindow)))
+        {
+            MouseLeft();
+            return;
+        }
+        MouseMoved(_owner.PointToClient(screenPoint));
     }
 
     internal void Reset()
@@ -109,4 +117,11 @@ internal sealed class BootstrapTabInteractionController : IDisposable
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? windowName);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(Point point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsChild(IntPtr parent, IntPtr window);
 }

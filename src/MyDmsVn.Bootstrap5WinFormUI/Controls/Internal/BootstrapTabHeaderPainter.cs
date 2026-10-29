@@ -29,7 +29,7 @@ internal static class BootstrapTabHeaderPainter
             if (layout.TextBounds.Width > 0 && layout.TextBounds.Height > 0)
                 TextRenderer.DrawText(graphics, text, e.Font, layout.TextBounds, palette.Foreground,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
-                    TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                    TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
 
             if (!closeBounds.IsEmpty)
             {

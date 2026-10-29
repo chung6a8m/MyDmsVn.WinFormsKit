@@ -222,15 +222,70 @@ public sealed class BootstrapTabInteractionTests
         finally { Cursor.Position = previousPointer; }
     }
 
+    [Test]
+    public void OverflowArrowPointer_DoesNotHoverCoveredHeaderAfterClickOrLeave()
+    {
+        using var form = new Form { ClientSize = new Size(340, 230) };
+        using var tabs = new MessageProbeTabs { Dock = DockStyle.Fill, HotTrack = true };
+        for (var index = 0; index < 12; index++) tabs.TabPages.Add($"Tab {index}");
+        form.Controls.Add(tabs);
+        form.Show();
+        Application.DoEvents();
+        var child = FindWindowEx(tabs.Handle, IntPtr.Zero, "msctls_updown32", null);
+        Assert.That(child, Is.Not.EqualTo(IntPtr.Zero), "Expected native overflow child HWND.");
+        var previousPointer = Cursor.Position;
+        try
+        {
+            Cursor.Position = tabs.PointToScreen(Center(tabs.GetTabRect(1)));
+            GetInteraction(tabs).RefreshFromPointer();
+            Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(1));
+
+            Assert.That(GetWindowRect(child, out var childScreenRect), Is.True);
+            var arrowPoint = new Point(childScreenRect.Left + (childScreenRect.Right - childScreenRect.Left) * 3 / 4,
+                childScreenRect.Top + (childScreenRect.Bottom - childScreenRect.Top) / 2);
+            Cursor.Position = arrowPoint;
+            Assert.That(WindowFromPoint(arrowPoint), Is.EqualTo(child), "Pointer must be on native overflow HWND.");
+            var clickPoint = new Point(arrowPoint.X - childScreenRect.Left, arrowPoint.Y - childScreenRect.Top);
+            var click = (IntPtr)((clickPoint.Y << 16) | (clickPoint.X & 0xffff));
+            var firstHeaderBeforeClick = tabs.GetTabRect(0);
+            SendMessage(child, 0x0201, (IntPtr)1, click);
+            SendMessage(child, 0x0202, IntPtr.Zero, click);
+            Assert.That(tabs.GetTabRect(0), Is.Not.EqualTo(firstHeaderBeforeClick), "Native overflow arrow did not scroll tabs.");
+            Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(-1), "WM_HSCROLL must clear hover over the overflow arrow.");
+
+            var visibleHeader = -1;
+            for (var index = 0; index < tabs.TabCount; index++)
+            {
+                var screenCenter = tabs.PointToScreen(Center(tabs.GetTabRect(index)));
+                if (WindowFromPoint(screenCenter) != tabs.Handle) continue;
+                visibleHeader = index;
+                Cursor.Position = screenCenter;
+                break;
+            }
+            Assert.That(visibleHeader, Is.GreaterThanOrEqualTo(0), "Expected a visible native header after scrolling.");
+            SendMove(tabs, tabs.PointToClient(Cursor.Position));
+            Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(visibleHeader));
+            Cursor.Position = new Point(form.Right + 10, form.Bottom + 10);
+            for (var attempt = 0; attempt < 4 && GetInteraction(tabs).HoveredIndex != -1; attempt++)
+                Application.DoEvents();
+            Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(-1), "Leaving the control must keep hover cleared.");
+        }
+        finally { Cursor.Position = previousPointer; }
+    }
+
     private static void AssertHoveredMatchesPointer(BootstrapTabControl tabs)
     {
-        var clientPoint = tabs.PointToClient(Cursor.Position);
+        var screenPoint = Cursor.Position;
+        var clientPoint = tabs.PointToClient(screenPoint);
         var expected = -1;
-        for (var index = 0; index < tabs.TabCount; index++)
+        if (WindowFromPoint(screenPoint) == tabs.Handle)
         {
-            if (!tabs.GetTabRect(index).Contains(clientPoint)) continue;
-            expected = index;
-            break;
+            for (var index = 0; index < tabs.TabCount; index++)
+            {
+                if (!tabs.GetTabRect(index).Contains(clientPoint)) continue;
+                expected = index;
+                break;
+            }
         }
         Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(expected));
     }
@@ -335,4 +390,11 @@ public sealed class BootstrapTabInteractionTests
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetClientRect(IntPtr window, out NativeRectangle rectangle);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr window, out NativeRectangle rectangle);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(Point point);
 }
