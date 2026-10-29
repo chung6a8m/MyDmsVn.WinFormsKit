@@ -54,7 +54,8 @@ internal static class BootstrapTabHeaderPainter
                     var imageState = graphics.Save();
                     try
                     {
-                        if (!vertical && !rightToLeft && !close.IsEmpty)
+                        graphics.SetClip(imageBounds, CombineMode.Intersect);
+                        if (!vertical && !close.IsEmpty)
                             graphics.SetClip(Rectangle.FromLTRB(bounds.Left, bounds.Top,
                                 Math.Max(bounds.Left, close.Left - 3), bounds.Bottom), CombineMode.Intersect);
                         if (enabled) graphics.DrawImage(image, imageBounds);

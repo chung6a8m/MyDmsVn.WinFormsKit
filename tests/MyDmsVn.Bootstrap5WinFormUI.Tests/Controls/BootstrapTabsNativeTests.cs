@@ -251,9 +251,11 @@ public sealed class BootstrapTabsNativeTests
         Assert.That(changedIconPixels, Is.Zero, "Rotated Left text must not enter the icon rectangle.");
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public void LtrFallback_NarrowHeaderClipsLargeIconBeforeClose(bool enabled)
+    [TestCase(false, true)]
+    [TestCase(false, false)]
+    [TestCase(true, true)]
+    [TestCase(true, false)]
+    public void Fallback_NarrowHeaderClipsLargeIconBeforeClose(bool rightToLeft, bool enabled)
     {
         var theme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light);
         var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(theme.Metrics, 96, 0);
@@ -269,12 +271,12 @@ public sealed class BootstrapTabsNativeTests
         using (var graphics = Graphics.FromImage(withIcon))
             BootstrapTabHeaderPainter.DrawHeaderFallback(
                 new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None),
-                TabAlignment.Bottom, false, metrics, palette, string.Empty, icon,
+                TabAlignment.Bottom, rightToLeft, metrics, palette, string.Empty, icon,
                 close, enabled, false, false);
         using (var graphics = Graphics.FromImage(withoutIcon))
             BootstrapTabHeaderPainter.DrawHeaderFallback(
                 new DrawItemEventArgs(graphics, font, bounds, 0, DrawItemState.None),
-                TabAlignment.Bottom, false, metrics, palette, string.Empty, null,
+                TabAlignment.Bottom, rightToLeft, metrics, palette, string.Empty, null,
                 close, enabled, false, false);
 
         var iconPixels = 0;
