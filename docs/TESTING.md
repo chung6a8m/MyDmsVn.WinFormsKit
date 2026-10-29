@@ -117,6 +117,10 @@ Helper host input/popup hỗ trợ `--scenario rounded-popup <output-directory>`
 
 Với net48 host, dùng built-in `System.Windows.Forms.ApplicationConfigurationSection` trong App.config, không khai báo lại trong configSections. Manifest giữ Windows10 compatibility/Common-Controls; DPI opt-in thuộc App.config. Native HWND120 trong khi Control.DeviceDpi96 không đủ điều kiện nghiệm thu125%.
 
+Host `--scenario combo-accessibility <output-directory>` và `combo-accessibility-primed` kiểm style recreation với provider chưa tạo/đã tạo: gửi MSAA/UIA queries tới retiring HWND, sau đó lấy IAccessible trên HWND ổn định. Subprocess có timeout15 giây và bounded cleanup5 giây; fixture giữ hang diagnostics5 phút. Regression phân biệt object ID sign-extended và zero-extended trên x64. Xem [stability evidence](verification/20261029-input-popup-rendering-stability.md).
+
+Clipboard assertions chỉ chờ tối đa1 giây khi đọc rỗng và vẫn so sánh exact lexical text; không reissue copy/cut hoặc ghi lại expected value. Controlled republishing test giữ native empty interval tới khi observer thực sự thấy nó, rồi publish lại actual text đã copy. Test này chứng minh khả năng chịu transient availability, không xác định actor của lần lỗi lịch sử. Row-sharing performance assertions đo synchronous theme setter; consumer/accessibility reads được pump sau đó thuộc phạm vi riêng.
+
 ## Báo cáo kết quả
 
 Mỗi lần nghiệm thu ghi candidate SHA, engine pin, OS/SDK/runtime, configuration/framework/bitness, commands/filter, discovered/executed/pass/fail/skip và limitations. Ghi warm hay clean restore; với manual observations ghi gallery, thao tác và kỳ vọng quan sát được. Raw TRX/dumps/logs giữ ngoài Git; chỉ commit bản tóm tắt đã rà soát.

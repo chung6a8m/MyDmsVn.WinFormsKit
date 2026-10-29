@@ -8,7 +8,7 @@ Khi làm bootstrap hoặc đánh giá điều kiện A3, [plan A3](docs/plans/20
 
 ## Chọn đúng owner
 
-Sửa findings input/popup trong PR #3: đọc [evidence physical 125%](docs/verification/20261029-input-popup-rendering-physical125.md) cho candidate/tests mới nhất; [evidence vòng ba](docs/verification/20261029-input-popup-rendering-round-three.md), [evidence vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md), [review-fixes vòng một](docs/verification/20261029-input-popup-rendering-review-fixes.md) và evidence trước review là lịch sử. Owner visual decision, consumer acceptance và physical 150%/200% vẫn chưa hoàn tất.
+Sửa findings input/popup trong PR #3: đọc [stability evidence](docs/verification/20261029-input-popup-rendering-stability.md) cho candidate/tests mới nhất; [evidence physical 125%](docs/verification/20261029-input-popup-rendering-physical125.md) giữ lịch sử gate125%/broad-suite failures; [evidence vòng ba](docs/verification/20261029-input-popup-rendering-round-three.md), [evidence vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md), [review-fixes vòng một](docs/verification/20261029-input-popup-rendering-review-fixes.md) và evidence trước review là lịch sử. Owner visual decision, consumer acceptance và physical 150%/200% vẫn chưa hoàn tất.
 
 - Controls/theme/rendering/input: `src/MyDmsVn.Bootstrap5WinFormUI`, `tests/MyDmsVn.Bootstrap5WinFormUI.Tests`, [controls references](docs/components/controls/).
 - Grid/editor adapters: `src/MyDmsVn.BootstrapSourceGrid`, `tests/MyDmsVn.BootstrapSourceGrid.Tests`, [grid references](docs/components/grid/).
