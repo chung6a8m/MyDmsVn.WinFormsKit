@@ -1,5 +1,7 @@
 # BUS-01 — Proof layered child native
 
+Production BUS-03 có [evidence candidate riêng](20261030-live-busy-overlay-production.md); nội dung bên dưới giữ lịch sử probe BUS-01.
+
 ## Candidate sau review Important — deadline toàn scenario
 
 Candidate sau `fa9c5a9d24dcd6d24c486c4010bc24cca3810b62`: source blob `28c7e1d57513f08a12284e80716b8630250cf941`, SHA-256 `9E0283285BBBC91C30D7959BC2538144C27BA43205005441B545880B2B4266A4`. Đã thêm deadline tổng **30000 ms** bằng Stopwatch và UI-thread watchdog timer độc lập với timer tự đóng modal; Check trước/sau các pump và capture. Watchdog vẫn chạy trong nested `ShowDialog`, đóng modal rồi root, sau đó timeout unwind qua finally gỡ filter/hooks và dispose windows. Cleanup kiểm cả Form.IsDisposed lẫn HWND đã ghi bằng IsWindow; timer được stop/dispose. Không fail-fast production. Parent watchdog vẫn **60 giây** cho normal helper và **10 giây** cho injection, bảo vệ trường hợp UI thread/native call bị treo đến mức không thể xử lý timer hoặc Check; helper không thể tự cleanup trên UI thread đã bị khóa.

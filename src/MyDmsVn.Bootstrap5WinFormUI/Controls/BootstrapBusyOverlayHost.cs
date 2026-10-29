@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
+using MyDmsVn.Bootstrap5WinFormUI.Compatibility;
 using MyDmsVn.Bootstrap5WinFormUI.Theme;
 
 namespace MyDmsVn.Bootstrap5WinFormUI.Controls;
@@ -13,30 +14,37 @@ public sealed class BootstrapBusyOverlayHost : Panel
 {
     private readonly int _uiThread = Thread.CurrentThread.ManagedThreadId;
     private readonly BootstrapBusyOverlayController _controller;
-    private readonly Panel _backdrop;
+    private readonly BootstrapBusyLayeredBackdrop _backdrop;
+    private readonly BootstrapBusyOverlayInputFilter _inputFilter;
+    private readonly Panel _messageViewport;
     private readonly Panel _card;
     private readonly BootstrapSpinner _spinner;
     private readonly Label _message;
     private readonly Button _cancel;
     private double _opacity = .35;
-    private bool _disposing, _handleDestroying;
+    private bool _disposing, _handleDestroying, _hasCancel;
 
     /// <summary>Creates a host and takes ownership of an unparented content control.</summary>
     public BootstrapBusyOverlayHost(Control content) : this(content, new BootstrapBusyDelay()) { }
 
-    internal BootstrapBusyOverlayHost(Control content, IBootstrapBusyDelay delay)
+    internal BootstrapBusyOverlayHost(Control content, IBootstrapBusyDelay delay) : this(content, delay, BootstrapBusyLayeredWindow.Instance) { }
+
+    internal BootstrapBusyOverlayHost(Control content, IBootstrapBusyDelay delay, IBootstrapBusyLayeredWindow native)
     {
         if (content is null) throw new ArgumentNullException(nameof(content));
         if (content.Parent is not null) throw new ArgumentException("Content must be unparented.", nameof(content));
         if (delay is null) throw new ArgumentNullException(nameof(delay));
         Content = content;
-        _backdrop = new Panel { Dock = DockStyle.Fill, Visible = false, TabStop = false };
+        _backdrop = new BootstrapBusyLayeredBackdrop(native) { Dock = DockStyle.Fill, Visible = false };
+        _inputFilter = new BootstrapBusyOverlayInputFilter(content);
+        _messageViewport = new Panel { AutoScroll = true, TabStop = false };
         _card = new Panel { Visible = false, TabStop = false };
         _spinner = new BootstrapSpinner { Spinning = false, TabStop = false, AccessibleName = "Busy" };
-        _message = new Label { AutoSize = false, TextAlign = ContentAlignment.MiddleCenter, AccessibleRole = AccessibleRole.StaticText };
+        _message = new Label { AutoSize = false, UseMnemonic = false, TextAlign = ContentAlignment.MiddleCenter, AccessibleRole = AccessibleRole.StaticText };
         _cancel = new Button { Text = "Cancel", Visible = false, AccessibleRole = AccessibleRole.PushButton };
         _cancel.Click += OnCancel;
-        _card.Controls.AddRange(new Control[] { _spinner, _message, _cancel });
+        _messageViewport.Controls.Add(_message);
+        _card.Controls.AddRange(new Control[] { _spinner, _messageViewport, _cancel });
         _controller = new BootstrapBusyOverlayController(delay, CanPresent, Present, HidePresentation);
         content.Dock = DockStyle.Fill;
         Controls.AddRange(new[] { content, _backdrop, _card });
@@ -60,7 +68,7 @@ public sealed class BootstrapBusyOverlayHost : Panel
                 throw new ArgumentOutOfRangeException(nameof(value));
             if (_opacity == value) return;
             _opacity = value;
-            _backdrop.Invalidate();
+            if (RenderMode != BootstrapBusyOverlayRenderMode.None) UpdateBackdrop();
         }
     }
 
@@ -92,13 +100,13 @@ public sealed class BootstrapBusyOverlayHost : Panel
     {
         base.OnLayout(e);
         if (_card is null) return;
-        // BUS-02 scaffold only. BUS-03 supplies DPI-aware constrained card geometry.
-        var width = Math.Max(0, Math.Min(480, ClientSize.Width));
-        var height = Math.Max(0, Math.Min(160, ClientSize.Height));
-        _card.Bounds = new Rectangle((ClientSize.Width - width) / 2, (ClientSize.Height - height) / 2, width, height);
-        _spinner.Bounds = new Rectangle(Math.Max(0, (width - 24) / 2), 8, 24, Math.Min(24, height));
-        _message.Bounds = new Rectangle(0, Math.Min(40, height), width, Math.Max(0, height - 80));
-        _cancel.Bounds = new Rectangle(Math.Max(0, (width - 96) / 2), Math.Max(0, height - 32), Math.Min(96, width), Math.Min(32, height));
+        var layout = BootstrapBusyOverlayLayoutLogic.Calculate(ClientSize, Font, _message.Text, _cancel.Text, _hasCancel, DeviceDpi, BootstrapThemeManager.CurrentTheme.Metrics);
+        _card.Bounds = layout.Card;
+        _spinner.Bounds = layout.Spinner;
+        _spinner.Visible = layout.Spinner.Width > 0 && layout.Spinner.Height > 0;
+        _messageViewport.Bounds = layout.Viewport;
+        _message.Bounds = new Rectangle(Point.Empty, layout.Message);
+        _cancel.Bounds = layout.Cancel;
     }
 
     /// <inheritdoc />
@@ -129,19 +137,23 @@ public sealed class BootstrapBusyOverlayHost : Panel
         if (!CanPresent()) return;
         _message.Text = presentation.Message;
         _message.AccessibleName = presentation.Message;
-        _cancel.Visible = presentation.CancelRequested is not null;
+        _hasCancel = presentation.CancelRequested is not null;
+        _cancel.Visible = _hasCancel;
+        PerformLayout();
+        var mode = ConfigureBackdrop();
+        _inputFilter.Install();
         _backdrop.Visible = true;
         _card.Visible = true;
         _backdrop.BringToFront();
         _card.BringToFront();
         _spinner.Start();
-        // Explicit opaque scaffold until BUS-03 installs and verifies the native renderer.
-        SetMode(BootstrapBusyOverlayRenderMode.OpaqueFallback);
+        SetMode(mode);
         // No work after the event: its handler may hide/dispose/reenter Begin.
     }
     private void HidePresentation()
     {
         if (_card is null) return;
+        _inputFilter.Dispose();
         _spinner.Stop();
         _card.Visible = false;
         _backdrop.Visible = false;
@@ -158,12 +170,30 @@ public sealed class BootstrapBusyOverlayHost : Panel
     private void ApplyTheme()
     {
         var colors = BootstrapThemeManager.CurrentTheme.Colors;
-        _backdrop.BackColor = colors.SurfaceSecondary;
-        _card.BackColor = colors.Surface;
+        _card.BackColor = Color.FromArgb(255, colors.Surface);
         _message.ForeColor = colors.Text;
-        _cancel.BackColor = colors.Surface;
+        _cancel.BackColor = Color.FromArgb(255, colors.Surface);
         _cancel.ForeColor = colors.Text;
+        PerformLayout();
+        if (RenderMode != BootstrapBusyOverlayRenderMode.None) UpdateBackdrop();
     }
+    internal int BlockedMouseMessages => _inputFilter.Blocked;
+    internal bool InputFilterInstalled => _inputFilter.Installed;
+    private BootstrapBusyOverlayRenderMode ConfigureBackdrop()
+    {
+        var colors = BootstrapThemeManager.CurrentTheme.Colors;
+        return _backdrop.Configure(ToAlpha(_opacity), colors.Dark, colors.SurfaceSecondary);
+    }
+    private void UpdateBackdrop()
+    {
+        var mode = ConfigureBackdrop();
+        _backdrop.BringToFront(); _card.BringToFront();
+        SetMode(mode);
+    }
+    /// <inheritdoc />
+    protected override void OnFontChanged(EventArgs e) { base.OnFontChanged(e); if (_card is not null) PerformLayout(); }
+    /// <inheritdoc />
+    protected override void OnDpiChangedAfterParent(EventArgs e) { base.OnDpiChangedAfterParent(e); PerformLayout(); }
     private void AssertUiThread()
     {
         if (Thread.CurrentThread.ManagedThreadId != _uiThread)

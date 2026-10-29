@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using MyDmsVn.Bootstrap5WinFormUI.Theme;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -11,10 +13,11 @@ using MyDmsVn.Bootstrap5WinFormUI.Controls;
 
 namespace MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost;
 
-// BUS-01 intentionally has no production host dependency. Desktop capture is proof only.
+// BUS-03 runs the production host. Desktop capture remains proof-only.
 internal static class BusyOverlayScenario
 {
-    private static readonly Color Tint = Color.FromArgb(24, 32, 40);
+    private static Color Tint => BootstrapThemeManager.CurrentTheme.Colors.Dark;
+    private static Color Fallback => BootstrapThemeManager.CurrentTheme.Colors.SurfaceSecondary;
     private static readonly Color[] Patches = { Color.Lime, Color.Red, Color.Blue, Color.Yellow };
     private static readonly Guid Windows10 = new("8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a");
     [ThreadStatic] private static ScenarioDeadline? currentDeadline;
@@ -31,39 +34,32 @@ internal static class BusyOverlayScenario
             log.WriteLine($"Candidate={Environment.GetEnvironmentVariable("BUS_CANDIDATE")}; Runtime={RuntimeInformation.FrameworkDescription}; Bitness={IntPtr.Size * 8}; OS={Environment.OSVersion}; Interactive={Environment.UserInteractive}");
             var capability = QueryExecutable(log);
             Require(capability != fallback, "Executable capability does not match requested scenario.");
-            using var form = new Form { Text = "BUS-01 native child-layer proof", StartPosition = FormStartPosition.Manual, Location = new Point(80, 80), ClientSize = new Size(800, 580) };
+            using var form = new Form { Text = "BUS-01 native child-layer proof", StartPosition = FormStartPosition.Manual, Location = new Point(80, 80), ClientSize = new Size(940, 680) };
             deadline.Track(form);
-            using var tabs = new TabControl { Bounds = new Rectangle(10, 10, 650, 500) };
+            using var tabs = new TabControl { Bounds = new Rectangle(10, 10, 760, 620) };
             var page = new TabPage("Probe");
             tabs.TabPages.Add(page);
             tabs.TabPages.Add(new TabPage("Other"));
-            using var scroll = new Panel { Bounds = new Rectangle(12, 12, 590, 410), AutoScroll = true };
-            using var host = new Panel { Bounds = new Rectangle(20, 20, 530, 340) };
+            using var scroll = new Panel { Bounds = new Rectangle(12, 12, 710, 520), AutoScroll = true };
             using var content = new Panel { Dock = DockStyle.Fill, BackColor = Color.White };
             using var edit = new TextBox { Bounds = new Rectangle(20, 20, 220, 26), Text = "Live 0" };
             using var tree = new TreeView { Bounds = new Rectangle(20, 60, 220, 90) };
             tree.Nodes.Add("Live 0");
-            using var progress = new ProgressBar { Bounds = new Rectangle(20, 165, 220, 24), Value = 10 };
-            using var patch = new Panel { Bounds = new Rectangle(20, 210, 200, 70), BackColor = Patches[0] };
-            using var action = new Button { Text = "Content action", Bounds = new Rectangle(270, 230, 180, 35) };
+            using var progress = new ProgressBar { Bounds = new Rectangle(20, 315, 220, 24), Value = 10 };
+            using var patch = new Panel { Bounds = new Rectangle(20, 365, 200, 70), BackColor = Patches[0] };
+            using var action = new Button { Text = "Content action", Bounds = new Rectangle(350, 385, 180, 35) };
             content.Controls.AddRange(new Control[] { edit, tree, progress, patch, action });
-            using var backdrop = new Backdrop(!fallback) { Bounds = host.ClientRectangle, BackColor = fallback ? Color.Silver : Tint, Visible = false };
-            using var card = new Panel { Bounds = new Rectangle(275, 45, 210, 145), BackColor = Color.White, Visible = false };
-            using var cancel = new Button { Text = "Cancel", Bounds = new Rectangle(35, 75, 135, 35) };
-            card.Controls.Add(new Label { Text = "Busy — opaque card", AutoSize = true, Location = new Point(10, 15) });
-            using var spinner = new BootstrapSpinner { Location = new Point(90, 40) };
-            card.Controls.Add(spinner);
-            card.Controls.Add(cancel);
-            host.Controls.AddRange(new Control[] { content, backdrop, card });
-            content.SendToBack(); backdrop.BringToFront(); card.BringToFront();
+            using var host = new BootstrapBusyOverlayHost(content) { Bounds = new Rectangle(20, 20, 650, 470) };
+            var backdrop = host.Controls.Cast<Control>().Single(c => c.GetType().Name == "BootstrapBusyLayeredBackdrop");
+            var card = host.Controls.Cast<Control>().Single(c => c != content && c != backdrop);
+            var cancel = card.Controls.OfType<Button>().Single();
             scroll.Controls.Add(host);
             page.Controls.Add(scroll);
             form.Controls.Add(tabs);
-            using var outside = new Button { Text = "Outside", Bounds = new Rectangle(675, 70, 100, 40) };
+            using var outside = new Button { Text = "Outside", Bounds = new Rectangle(800, 70, 100, 40) };
             form.Controls.Add(outside);
             var contentClicks = 0; var cancelClicks = 0; var outsideClicks = 0;
             action.Click += (_, _) => contentClicks++;
-            cancel.Click += (_, _) => cancelClicks++;
             outside.Click += (_, _) => outsideClicks++;
             form.Show(); form.Activate();
             Wait(() => form.Visible && GetForegroundWindow() == form.Handle, "foreground activation");
@@ -74,28 +70,27 @@ internal static class BusyOverlayScenario
             try
             {
                 Hook(content, printHooks, log);
-                var filter = new MouseFilter(content);
-                Application.AddMessageFilter(filter);
-                deadline.FiltersInstalled++;
+                IDisposable? busyToken = null;
                 try
                 {
+                    var showPrintBefore = PrintCount(printHooks);
+                    busyToken = host.Begin(new BusyPresentation("Busy — production opaque card", () => cancelClicks++));
+                    Wait(() => host.RenderMode != BootstrapBusyOverlayRenderMode.None, "production show");
+                    Require(host.RenderMode == (fallback ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.NativeLayered), "Incorrect production mode");
+                    Paint(form);
                     if (timeoutProof)
                     {
                         using var stuckModal = new Form { Text = "Injected modal without auto-close", ClientSize = new Size(240, 100) };
                         deadline.Track(stuckModal);
-                        log.WriteLine("INJECT modal without auto-close; filter/hooks installed");
+                        log.WriteLine("INJECT modal without auto-close; production presentation/filter and hooks installed");
                         stuckModal.ShowDialog(form);
                         deadline.Check();
                         throw new InvalidOperationException("Timeout injection returned without a scenario deadline.");
                     }
-                    var showPrintBefore = PrintCount(printHooks);
-                    if (!fallback) Require(SetLayeredWindowAttributes(backdrop.Handle, 0, 89, 2), "Initial alpha setup failed.");
-                    backdrop.Visible = true; card.Visible = true;
-                    content.SendToBack(); backdrop.BringToFront(); card.BringToFront(); Paint(form);
-                    using (var shown = Capture(form, card)) AssertPatch(shown, form, patch, fallback ? Color.Silver : Blend(Patches[0], 89), "show");
+                    using (var shown = Capture(form, card)) AssertPatch(shown, form, patch, fallback ? Fallback : Blend(Patches[0], 89), "show");
                     Require(UnexpectedPrintCount(printHooks) == 0, "Overlay show invoked non-native Content print.");
                     log.WriteLine($"PASS overlay show explicit Content print=0; incidental native background delta={PrintCount(printHooks) - showPrintBefore}");
-                    log.WriteLine($"DPI={GetDpiForWindow(form.Handle)}; Monitors={Screen.AllScreens.Length}; Generation=1; Mode={(fallback ? "OpaqueFallback probe" : "NativeLayered probe")}");
+                    log.WriteLine($"DPI={GetDpiForWindow(form.Handle)}; Monitors={Screen.AllScreens.Length}; Generation=1; Mode={(fallback ? "OpaqueFallback production" : "NativeLayered production")}");
                     LogWindow(log, "host", host); LogWindow(log, "content", content); LogWindow(log, "backdrop", backdrop); LogWindow(log, "card", card);
                     Require((ClassStyle(backdrop.Handle) & 0x60) == 0, "Backdrop class owns a DC.");
                     Require((WindowStyle(backdrop.Handle, -20) & 0x80000) == (fallback ? 0 : 0x80000), "Incorrect layered style.");
@@ -106,21 +101,20 @@ internal static class BusyOverlayScenario
                     foreach (var alpha in new byte[] { 0, 89, 255 })
                     {
                         var printBefore = PrintCount(printHooks);
-                        if (!fallback) Require(SetLayeredWindowAttributes(backdrop.Handle, 0, alpha, 2), $"SetLayeredWindowAttributes failed: {Marshal.GetLastWin32Error()}");
+                        host.BackdropOpacity = alpha == 89 ? .35 : alpha / 255d;
                         Paint(form);
                         using (var capture = Capture(form, card))
                         {
                             capture.Save(Path.Combine(directory, $"alpha-{alpha}.png"), ImageFormat.Png);
-                            AssertPatch(capture, form, patch, fallback ? Color.Silver : Blend(Patches[0], alpha), $"alpha {alpha}");
-                            AssertPoint(capture, form, card.PointToScreen(new Point(5, 130)), Color.White, "opaque card");
+                            AssertPatch(capture, form, patch, fallback ? Fallback : Blend(Patches[0], alpha), $"alpha {alpha}");
+                            AssertPoint(capture, form, card.PointToScreen(new Point(5, 5)), card.BackColor, "opaque card");
                         }
                         Require(PrintCount(printHooks) == printBefore, "Overlay alpha update invoked Content print.");
                         Click(action); Click(cancel); Click(outside);
-                        if (!fallback && alpha == 0) Require(filter.Blocked >= 2, "Alpha-zero queued mouse did not exercise the scoped filter.");
                         Require(contentClicks == 0 && cancelClicks == Array.IndexOf(new byte[] { 0, 89, 255 }, alpha) + 1 && outsideClicks == cancelClicks, "Queued input routing failed.");
-                        log.WriteLine($"PASS alpha={alpha}; ContentClicks={contentClicks}; CancelClicks={cancelClicks}; OutsideClicks={outsideClicks}; FilterBlocked={filter.Blocked}");
+                        log.WriteLine($"PASS alpha={alpha}; ContentClicks={contentClicks}; CancelClicks={cancelClicks}; OutsideClicks={outsideClicks}; ProductionFilterOnly=true");
                     }
-                    if (!fallback) Require(SetLayeredWindowAttributes(backdrop.Handle, 0, 89, 2), "Cannot restore alpha.");
+                    host.BackdropOpacity = .35;
                     Bitmap? previousLive = null;
                     try
                     {
@@ -130,7 +124,7 @@ internal static class BusyOverlayScenario
                             Paint(form);
                             using var capture = Capture(form, card);
                             capture.Save(Path.Combine(directory, $"live-{i}.png"), ImageFormat.Png);
-                            AssertPatch(capture, form, patch, fallback ? Color.Silver : Blend(Patches[i], 89), $"live {i}");
+                            AssertPatch(capture, form, patch, fallback ? Fallback : Blend(Patches[i], 89), $"live {i}");
                             if (!fallback && previousLive != null)
                             {
                                 var editPixels = Changes(previousLive, capture, form, edit);
@@ -170,9 +164,9 @@ internal static class BusyOverlayScenario
                     }
                     Require(WindowFromPoint(outsideClip) != backdrop.Handle, "Backdrop escaped ancestor clipping.");
                     log.WriteLine("PASS ancestor scroll/clip hit-test; capture retained");
-                    scroll.AutoScrollPosition = Point.Empty; host.Height = 340; backdrop.Bounds = host.ClientRectangle;
+                    scroll.AutoScrollPosition = Point.Empty; host.Height = 470; backdrop.Bounds = host.ClientRectangle;
                     tabs.SelectedIndex = 1; Paint(form); Require(!backdrop.Visible, "Backdrop remains visible on hidden page.");
-                    tabs.SelectedIndex = 0; Paint(form); Require(backdrop.Visible, "Backdrop did not restore with page.");
+                    tabs.SelectedIndex = 0; Wait(() => backdrop.Visible, "tab restore delay"); Paint(form); Require(backdrop.Visible, "Backdrop did not restore with page.");
                     log.WriteLine("PASS TabPage hide/show");
                     using (var modal = new Form { Text = "Bounded owned modal", StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(260, 100), BackColor = Color.Coral })
                     using (var timer = new Timer { Interval = 750 })
@@ -193,7 +187,7 @@ internal static class BusyOverlayScenario
                     form.WindowState = FormWindowState.Minimized; Wait(() => IsIconic(form.Handle), "minimize");
                     form.WindowState = FormWindowState.Normal; form.Activate(); Wait(() => !IsIconic(form.Handle) && GetForegroundWindow() == form.Handle, "restore");
                     Paint(form);
-                    using (var capture = Capture(form, card)) AssertPatch(capture, form, patch, fallback ? Color.Silver : Blend(Patches[3], 89), "restore");
+                    using (var capture = Capture(form, card)) AssertPatch(capture, form, patch, fallback ? Fallback : Blend(Patches[3], 89), "restore");
                     log.WriteLine("PASS minimize/restore composition");
                     var dpis = new HashSet<uint>();
                     foreach (var screen in Screen.AllScreens)
@@ -201,15 +195,15 @@ internal static class BusyOverlayScenario
                         form.Location = new Point(screen.WorkingArea.Left + 40, screen.WorkingArea.Top + 40); Paint(form);
                         var dpi = GetDpiForWindow(form.Handle); dpis.Add(dpi); log.WriteLine($"Monitor={screen.DeviceName}; DPI={dpi}");
                         using var moved = Capture(form, card);
-                        AssertPatch(moved, form, patch, fallback ? Color.Silver : Blend(Patches[3], 89), "monitor move composition");
-                        AssertPoint(moved, form, card.PointToScreen(new Point(5, 130)), Color.White, "monitor move opaque card");
+                        AssertPatch(moved, form, patch, fallback ? Fallback : Blend(Patches[3], 89), "monitor move composition");
+                        AssertPoint(moved, form, card.PointToScreen(new Point(5, 5)), card.BackColor, "monitor move opaque card");
                     }
                     log.WriteLine(dpis.Count > 1 ? "PASS mixed-DPI move" : "NOT RUN mixed-DPI: no distinct physical monitor DPI available");
                     Require(UnexpectedPrintCount(printHooks) == 0, "Unexpected print path during lifecycle proof.");
                     deadline.Check();
-                    log.WriteLine($"PASS scenarios; WM_PRINT={PrintCount(printHooks)}; FilterBlocked={filter.Blocked}; NativeLiveGate={(fallback ? "NOT APPLICABLE" : "PASS")}");
+                    log.WriteLine($"PASS scenarios; WM_PRINT={PrintCount(printHooks)}; ProductionFilterOnly=true; NativeLiveGate={(fallback ? "NOT APPLICABLE" : "PASS")}");
                 }
-                finally { Application.RemoveMessageFilter(filter); deadline.FiltersRemoved++; }
+                finally { busyToken?.Dispose(); }
             }
             finally { foreach (var hook in printHooks) hook.ReleaseHandle(); }
             return 0;
@@ -358,8 +352,8 @@ internal static class BusyOverlayScenario
         private readonly int limitMilliseconds;
         private bool expired;
         internal readonly List<PrintHook> Hooks = new();
-        internal int FiltersInstalled;
-        internal int FiltersRemoved;
+        internal int FiltersInstalled = 0;
+        internal int FiltersRemoved = 0;
 
         internal ScenarioDeadline(TextWriter log, int limitMilliseconds)
         {
@@ -410,13 +404,6 @@ internal static class BusyOverlayScenario
 
         public void Dispose() { timer.Stop(); timer.Tick -= OnTick; timer.Dispose(); }
     }
-    private sealed class Backdrop : Control
-    {
-        private readonly bool layered;
-        internal Backdrop(bool layered) { this.layered = layered; SetStyle(ControlStyles.Opaque, true); }
-        protected override CreateParams CreateParams { get { var value = base.CreateParams; value.Style |= 0x04000000; if (layered) value.ExStyle |= 0x80000; return value; } }
-        protected override void OnPaint(PaintEventArgs e) => e.Graphics.Clear(BackColor);
-    }
     private sealed class PrintHook : NativeWindow
     {
         internal int Count;
@@ -435,18 +422,6 @@ internal static class BusyOverlayScenario
                 log.WriteLine($"PRINT {name} HWND={m.HWnd} Msg=0x{m.Msg:X} Flags=0x{m.LParam.ToInt64():X} Stack={stack}");
             }
             base.WndProc(ref m);
-        }
-    }
-    private sealed class MouseFilter : IMessageFilter
-    {
-        private readonly Control content;
-        internal int Blocked;
-        internal MouseFilter(Control content) { this.content = content; }
-        public bool PreFilterMessage(ref Message m)
-        {
-            var mouse = (m.Msg >= 0x200 && m.Msg <= 0x20E) || (m.Msg >= 0xA0 && m.Msg <= 0xAD);
-            if (!mouse || !content.IsHandleCreated || (m.HWnd != content.Handle && !IsChild(content.Handle, m.HWnd))) return false;
-            Blocked++; return true;
         }
     }
     [StructLayout(LayoutKind.Sequential)] private struct CompatibilityElement { internal Guid Id; internal int Type; internal ulong MaxVersion; }

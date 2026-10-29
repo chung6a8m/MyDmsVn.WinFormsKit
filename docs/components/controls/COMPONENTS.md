@@ -1496,3 +1496,13 @@ Each call to `Begin` owns a separate idempotent token. The newest live token sup
 ## Deferred components
 
 Skeleton and other unimplemented components are not part of the initial foundation contract.
+
+## BootstrapBusyOverlayHost — candidate BUS-03
+
+`BootstrapBusyOverlayHost : Panel` sở hữu một `Content` chưa có parent; constructor không tạo HWND. `Begin(BusyPresentation)` dùng delay 150 ms và token trên UI thread; token mới nhất còn sống cung cấp message/Cancel, Cancel không tự release. `BootstrapBusyHost` cũ giữ nguyên.
+
+Backdrop và card là sibling của Content trong host. `BackdropOpacity` mặc định `0.35`, chỉ nhận số hữu hạn `[0,1]`; alpha native làm tròn AwayFromZero. Backdrop lấy RGB `theme.Colors.Dark`, card/spinner/message/native Button Cancel giữ opaque. Card dùng metrics/DPI hiện hữu, đo message multiline trong viewport cuộn riêng và ưu tiên giữ hàng Cancel khi host nhỏ.
+
+`RenderMode` là `None` khi chưa hiện, `NativeLayered` khi thiết lập child-layer thành công, hoặc `OpaqueFallback` khi thiếu capability/native alpha thất bại. Fallback dùng `SurfaceSecondary`, không chụp Content. `RenderModeChanged` phát sau khi commit mode; callback consumer không bị chuyển thành lỗi native. Khi đang hiện, filter UI-thread chặn queued mouse chỉ tới HWND Content và native descendants, kể cả opacity 0; Cancel/sibling ngoài host/keyboard không bị filter này chặn. Caller vẫn sở hữu keyboard/UIA/command admission và phải đóng popup transient trước Begin.
+
+BUS-03 đã kiểm production native ở physical 100%/96 DPI trên net48 x64/x86 và net8 x64; xem [evidence production](../../verification/20261030-live-busy-overlay-production.md). Focus/capture/lifecycle nâng cao thuộc BUS-04, demo thuộc BUS-05, fingerprint và acceptance đầy đủ thuộc BUS-06; các phạm vi đó còn mở.

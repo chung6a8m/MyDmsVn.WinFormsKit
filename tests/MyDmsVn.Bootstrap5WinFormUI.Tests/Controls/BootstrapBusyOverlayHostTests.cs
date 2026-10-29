@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
 using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
+using MyDmsVn.Bootstrap5WinFormUI.Compatibility;
 using NUnit.Framework;
 
 namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
@@ -85,7 +86,7 @@ public sealed class BootstrapBusyOverlayHostTests
     {
         using var form = new Form();
         var delay = new ManualDelay();
-        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay) { Dock = DockStyle.Fill };
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
         form.Controls.Add(host);
         form.Show();
         var modes = new List<BootstrapBusyOverlayRenderMode>();
@@ -156,7 +157,7 @@ public sealed class BootstrapBusyOverlayHostTests
     {
         using var form = new Form();
         var delay = new ManualDelay();
-        using var host = new BootstrapBusyOverlayHost(new Panel(), delay) { Dock = DockStyle.Fill };
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
         form.Controls.Add(host); form.Show();
         using var token = host.Begin(new BusyPresentation("busy"));
         var stale = delay.Pending!;
@@ -231,6 +232,7 @@ public sealed class BootstrapBusyOverlayHostTests
         Assert.That(delay.Disposals, Is.EqualTo(1));
     }
     private static IEnumerable<Control> All(Control root) => new[] { root }.Concat(root.Controls.Cast<Control>().SelectMany(All));
+    private sealed class UnsupportedNative : IBootstrapBusyLayeredWindow { public bool IsSupported => false; public bool SetAlpha(IntPtr hwnd, byte alpha, out int error) { error = 0; throw new InvalidOperationException("Unsupported native path must not be called"); } }
     private sealed class ManualDelay : IBootstrapBusyDelay
     {
         public Action? Pending;
