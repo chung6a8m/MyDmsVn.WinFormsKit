@@ -40,6 +40,18 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
                 .ToArray();
             Assert.That(metadata.Count(line => line == "popup.visible=true"), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("owner.dpi=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("popup.windowDpi=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("process.awareness=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("thread.awareness=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("popup.awareness=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("awareness.source=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("popup.region.bounds=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("content.bounds=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line.StartsWith("footer.bounds=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.edge-continuity=pass"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.corner-symmetry=pass"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.shell-band=pass"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.content-containment=pass"), Is.EqualTo(4));
         }
         finally
         {

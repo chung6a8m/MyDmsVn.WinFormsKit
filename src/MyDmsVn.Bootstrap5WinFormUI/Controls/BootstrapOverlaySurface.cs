@@ -16,8 +16,8 @@ internal sealed class BootstrapOverlaySurface : Panel
     private Padding _logicalContentPadding = new Padding(12, 8, 12, 8);
     private int _logicalBorderRadius = -1;
     private int _dpi = DpiScaler.DefaultDpi;
-    private int _borderWidth = 1;
-    private int _radius = 6;
+    private float _borderWidth = 1f;
+    private float _radius = 6f;
     private Region? _ownedRegion;
     private Region? _ownedContentHostRegion;
 
@@ -196,7 +196,7 @@ internal sealed class BootstrapOverlaySurface : Panel
     {
         base.OnLayout(levent);
         var insets = GetEffectiveContentInsets(ClientSize);
-        var hostInset = Math.Max(0, _borderWidth);
+        var hostInset = SaturateCeiling(_borderWidth);
         var x = Math.Min(ClientSize.Width, hostInset);
         var y = Math.Min(ClientSize.Height, hostInset);
         var width = Math.Max(0, ClientSize.Width - x - hostInset);
@@ -253,9 +253,9 @@ internal sealed class BootstrapOverlaySurface : Panel
 
     private void ResolveMetrics()
     {
-        _borderWidth = Math.Max(0, DpiScaler.Scale(_theme.Metrics.BorderWidth, _dpi));
+        _borderWidth = Math.Max(0f, DpiScaler.Scale((float)_theme.Metrics.BorderWidth, _dpi));
         var logicalRadius = _logicalBorderRadius < 0 ? _theme.Metrics.Radius : _logicalBorderRadius;
-        _radius = Math.Max(0, DpiScaler.Scale(logicalRadius, _dpi));
+        _radius = Math.Max(0f, DpiScaler.Scale((float)logicalRadius, _dpi));
     }
 
     private void ReplaceRegion()
@@ -319,9 +319,19 @@ internal sealed class BootstrapOverlaySurface : Panel
         return value >= int.MaxValue ? int.MaxValue : (int)Math.Max(0L, value);
     }
 
+    private static int SaturateCeiling(float value)
+    {
+        if (value >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        return (int)Math.Ceiling(Math.Max(0f, value));
+    }
+
     private Padding GetConservativeContentInsets()
     {
-        var extent = Math.Max(1, SaturateSize(Math.Max(1L, (long)_radius * 2L)));
+        var extent = Math.Max(1, SaturateCeiling(Math.Max(1f, _radius * 2f)));
         var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
             new RectangleF(0f, 0f, extent, extent),
             new CornerRadius(_radius),

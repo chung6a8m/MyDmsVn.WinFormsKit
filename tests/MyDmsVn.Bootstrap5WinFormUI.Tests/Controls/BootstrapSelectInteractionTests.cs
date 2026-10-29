@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -266,6 +267,7 @@ public sealed class BootstrapSelectInteractionTests
         using var form = new BootstrapSelectDemoForm
         {
             ShowInTaskbar = false,
+            TopMost = true,
             StartPosition = FormStartPosition.Manual,
             Location = new Point(100, 100)
         };
@@ -292,8 +294,14 @@ public sealed class BootstrapSelectInteractionTests
         // Form.Deactivate also fired once, and the existing ContainsFocus guard retained the popup.
         void ClickSelect(Point clientPoint)
         {
+            form.TopMost = false;
+            form.TopMost = true;
+            form.BringToFront();
+            Application.DoEvents();
             var clickPoint = select.PointToScreen(clientPoint);
             Assert.That(SetCursorPos(clickPoint.X, clickPoint.Y), Is.True);
+            Assert.That(WindowFromPoint(clickPoint), Is.EqualTo(select.Handle),
+                "The target must be unobscured before the native first click: " + clickPoint);
             var inputs = new[]
             {
                 new NativeInput { Type = InputMouse, Mouse = new NativeMouseInput { Flags = MouseEventLeftDown } },
@@ -302,12 +310,19 @@ public sealed class BootstrapSelectInteractionTests
             Assert.That(
                 SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(NativeInput))),
                 Is.EqualTo((uint)inputs.Length));
-            for (var turn = 0; turn < 8; turn++) Application.DoEvents();
+            var deadline = Stopwatch.StartNew();
+            while (deadline.ElapsedMilliseconds < 1000)
+            {
+                Application.DoEvents();
+                Thread.Sleep(2);
+            }
         }
 
         ClickSelect(clickArrow
             ? new Point(select.Width - 8, select.Height / 2)
             : new Point(select.Width / 2, select.Height / 2));
+        Assert.That(select.DropDownContentForTest, Is.Not.Null,
+            "The first native mouse click must create popup content within the bounded input pump.");
         var searchEditor = Descendants(select.DropDownContentForTest!)
             .OfType<TextBox>()
             .Single();
@@ -491,6 +506,9 @@ public sealed class BootstrapSelectInteractionTests
             }
         }
     }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(Point point);
 
     [DllImport("user32.dll")]
     private static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extraInfo);

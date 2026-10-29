@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
@@ -15,6 +16,28 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 public sealed class BootstrapOverlaySurfaceTests
 {
     private static readonly Color OpaqueContentColor = Color.Fuchsia;
+
+    [Test]
+    public void FractionalDpiKeepsOverlayPaintMetricsAsFloats()
+    {
+        using var surface = new BootstrapOverlaySurface();
+
+        surface.ApplyTheme(BootstrapTheme.CreateDefault(BootstrapThemeMode.Light), 120);
+
+        var borderWidth = typeof(BootstrapOverlaySurface)
+            .GetField("_borderWidth", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(surface);
+        var radius = typeof(BootstrapOverlaySurface)
+            .GetField("_radius", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(surface);
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(borderWidth, Is.TypeOf<float>());
+            Assert.That((float)borderWidth!, Is.EqualTo(1.25f).Within(0.001f));
+            Assert.That(radius, Is.TypeOf<float>());
+            Assert.That((float)radius!, Is.EqualTo(7.5f).Within(0.001f));
+        }));
+    }
 
     [Test]
     public void OpaqueBackingHasNoTransparentOrBlackFringeInStrokeBand()
