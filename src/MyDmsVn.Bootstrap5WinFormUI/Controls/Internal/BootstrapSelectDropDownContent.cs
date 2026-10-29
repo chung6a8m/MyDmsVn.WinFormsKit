@@ -75,7 +75,7 @@ internal sealed class BootstrapSelectDropDownContent : UserControl
     internal IReadOnlyList<BootstrapSelectResultRow> Rows => _resultsView.Rows;
     internal BootstrapSelectResultRow? HighlightedRow => _resultsView.HighlightedRow;
     internal int ScrollOffset => _resultsView.ScrollOffset;
-    internal void RestoreScrollOffset(int offset) => _resultsView.SetScrollOffset(offset);
+    internal void RestoreScrollOffset(int offset) => _resultsView.SetScrollOffset(offset, notifyNearEnd: false);
     internal int ResultRowHeight => _resultsView.RowHeight;
 
     internal void ApplyPresentation(IBootstrapSelectRenderer renderer, BootstrapTheme theme, int dpi)

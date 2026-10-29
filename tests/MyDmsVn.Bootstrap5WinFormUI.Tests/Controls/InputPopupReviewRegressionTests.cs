@@ -36,6 +36,8 @@ public sealed class InputPopupReviewRegressionTests
         var highlighted = select.HighlightedResultTextForTest;
         var handle = select.DropDownHandleForTest;
         var changes = 0;
+        var nearEndRequests = 0;
+        select.DropDownContentForTest.NearEndRequested += () => nearEndRequests++;
         select.SelectionChanged += (_, _) => changes++;
 
         select.BorderRadius = 0;
@@ -48,6 +50,7 @@ public sealed class InputPopupReviewRegressionTests
             Assert.That(select.HighlightedResultTextForTest, Is.EqualTo(highlighted));
             Assert.That(select.DropDownHandleForTest, Is.EqualTo(handle));
             Assert.That(changes, Is.Zero);
+            Assert.That(nearEndRequests, Is.Zero, "Geometry-only restoration must not request provider paging.");
         }));
     }
 
