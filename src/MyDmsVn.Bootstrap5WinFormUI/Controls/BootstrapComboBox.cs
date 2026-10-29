@@ -38,6 +38,7 @@ public class BootstrapComboBox : ComboBox
     // WinForms' default requested Simple height is 150, independently of its closed DefaultSize.
     private int _simpleRequestedHeight = 150;
     private ComboBoxStyle _lastSizingStyle = ComboBoxStyle.DropDown;
+    private ListAccessibilityWindow? _listAccessibilityWindow;
 
     /// <summary>
     /// Initializes a designer-safe native-backed Bootstrap combo box.
@@ -182,6 +183,8 @@ public class BootstrapComboBox : ComboBox
         }
         base.OnHandleCreated(e);
 
+        AttachListAccessibilityWindow();
+
         ApplyThemePresentation();
         ApplyOwnerDrawMetrics();
         ApplyShellRegion();
@@ -261,7 +264,48 @@ public class BootstrapComboBox : ComboBox
             DisposeThemeFont();
         }
 
-        base.Dispose(disposing);
+        try { base.Dispose(disposing); }
+        finally
+        {
+            if (disposing)
+            {
+                _listAccessibilityWindow?.ReleaseHandle();
+                _listAccessibilityWindow = null;
+            }
+        }
+    }
+
+    private void AttachListAccessibilityWindow()
+    {
+        var info = new NativeComboBoxInfo { Size = Marshal.SizeOf(typeof(NativeComboBoxInfo)) };
+        if (!GetComboBoxInfo(Handle, ref info) || info.List == IntPtr.Zero) return;
+        _listAccessibilityWindow?.ReleaseHandle();
+        _listAccessibilityWindow = new ListAccessibilityWindow(this, DropDownStyle);
+        _listAccessibilityWindow.AssignHandle(info.List);
+    }
+
+    private sealed class ListAccessibilityWindow : NativeWindow
+    {
+        private readonly BootstrapComboBox _owner;
+        private readonly ComboBoxStyle _nativeStyle;
+        internal ListAccessibilityWindow(BootstrapComboBox owner, ComboBoxStyle nativeStyle)
+        {
+            _owner = owner;
+            _nativeStyle = nativeStyle;
+        }
+        protected override void WndProc(ref Message m)
+        {
+            // WinForms changes DropDownStyle before destroying the old list HWND. Its .NET 8
+            // provider then dereferences the not-yet-created Simple list for an old dropdown.
+            // A retiring child has no valid provider; stable queries keep native processing.
+            if (m.Msg == 0x003D && (m.LParam == new IntPtr(-4) || m.LParam == new IntPtr(-25)) &&
+                (_owner.DropDownStyle != _nativeStyle || _owner.Disposing || _owner.IsDisposed))
+            {
+                m.Result = IntPtr.Zero;
+                return;
+            }
+            base.WndProc(ref m);
+        }
     }
 
     private void DrawBootstrapItem(DrawItemEventArgs e)
@@ -689,6 +733,19 @@ public class BootstrapComboBox : ComboBox
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetComboBoxInfo(IntPtr window, ref NativeComboBoxInfo info);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeComboBoxInfo
+    {
+        public int Size;
+        public NativeRect ItemBounds, ButtonBounds;
+        public int ButtonState;
+        public IntPtr Combo, Edit, List;
+    }
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
