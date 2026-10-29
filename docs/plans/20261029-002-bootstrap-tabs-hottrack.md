@@ -97,7 +97,7 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 | TAB-03 — painter/close extraction | TAB-02 | IN PROGRESS — painter/close và focused tests hai TFM; physical 125%/orientation còn mở |
 | TAB-04 — BootstrapTabs và composition | TAB-01 proof, TAB-03 | IN PROGRESS — code, tests và native DPI96 proof hai TFM đã có; physical/Owner gate OPEN |
 | TAB-05 — demo | TAB-04 | IN PROGRESS — route/actions/tests đã có; Light/Dark và physical review PENDING |
-| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API và focused proof hai TFM đã có; physical/Owner/artifact gate OPEN |
+| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API và native 100%/125% Light/Dark hai TFM đã có; 150%/200%/mixed-DPI, Owner/artifact gate OPEN |
 
 ### TAB-01 — Reproducer và proof cho native paint
 
@@ -175,7 +175,7 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 
 - [x] Ghi API/defaults, supported compact mode/native chrome fallback, inherited HotTrack, close/ownership và DrawItem compatibility. Consumer recipe thay app subclass bằng BootstrapTabs theo exact pin ở PR riêng; giải thích lớp app vẽ screen DC sau base nằm ngoài toolkit buffer.
 - [x] Review exported public/protected diff thực tế; thêm exact contract tests, rồi mới cập nhật fingerprint bằng assembly đã build trên hai TFM. Giữ assembly version; không hard-code một hash đoán trước hoặc nới gate để bỏ qua overrides mới.
-- [ ] Chạy Commands và native matrix: hai TFM × Light/Dark × physical 100/125; representative 150/200 và mixed-DPI; hover/overflow/print/fallback/close. Ghi actual window DPI. Thiếu môi trường ghi NOT RUN, giữ gate mở.
+- [ ] Chạy Commands và native matrix: hai TFM × Light/Dark × physical 100/125 **PASS**, actual window DPI 96/120 đã ghi; representative 150/200 và mixed-DPI **NOT RUN**; hover/overflow/print/fallback/close đã kiểm trong matrix. Thiếu môi trường giữ gate mở.
 - [x] Build graph All để phát hiện consumer compile issues; tests chọn Controls fixtures liên quan, không tự kéo SQL hoặc full suites ngoài boundary. Nếu manifest/DPI gallery đổi đồng thời bởi BUS, chạy thêm integrated typography/layout regressions trên candidate hợp nhất.
 - [ ] Lưu evidence có thể mở lại bằng artifact URL + candidate/scenario/hash metadata; không chỉ đường dẫn local đã mất. Owner review chuỗi hover và hình Light/Dark trên candidate đó; chưa có quyết định thì ghi PENDING, không tự APPROVED.
 - [ ] Commit `docs: record tabs contracts and candidate verification`; chỉ đánh DONE từng task đã đạt cả deliverable và evidence của chính nó.
