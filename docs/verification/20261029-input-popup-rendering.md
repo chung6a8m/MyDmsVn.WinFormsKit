@@ -4,8 +4,8 @@
 
 - Nhánh: `codex/plan-input-popup-rendering-20261029`.
 - Điểm bắt đầu plan: `0643770`.
-- Source implementation đã kiểm: `372eec221d03ee30b8a1362a4f9f27dd6fd4b4d1` cộng thay đổi test/docs T07 trong commit chứa report này.
-- Candidate để consumer pin là commit chứa report này; lấy exact SHA bằng `git rev-parse HEAD` sau commit T07. Không dùng riêng `372eec2` làm consumer pin vì commit đó chưa chứa reviewed API fingerprint và evidence cuối.
+- Production source revision cuối: `e45301b923e0ee0836577c3f106db545ce08bcee`; native capture host/test revision cuối: `9da028b` (bao gồm assert awareness); report hiện tại là phần docs bổ sung trên các revision đó.
+- Candidate để consumer pin là commit chứa phiên bản report hiện tại; lấy exact SHA bằng `git rev-parse HEAD`. Không pin riêng `372eec2` hoặc `0f8d665` vì chúng chưa có sửa fractional-DPI/native oracle sau review.
 - SourceGrid gitlink: `f4e457b43582bf01892f50bdc74aa480531e5944`, working tree sạch.
 - Configuration: `Release`; targets: `net48`, `net8.0-windows`; restore dùng cache hiện có và locked graph, không phải clean-cache claim.
 
@@ -19,7 +19,8 @@ T01–T06 đã triển khai theo thứ tự và commit riêng. T07 đã chạy b
 | .NET SDK | `8.0.427` (`global.json` cho phép latest feature từ baseline `8.0.400`) |
 | Desktop | Interactive Windows desktop, `DISPLAY1`, 1920×1080 |
 | Physical scale đã chạy | 100%; HWND/owner DPI `96`, `LOGPIXELSX=96`, `LOGPIXELSY=96` |
-| DPI awareness của native host | `PerMonitorV2` qua app manifest; awareness được thiết lập trước khi tạo HWND |
+| Awareness thực đo, net48 | process API báo `PerMonitor`; thread/popup contexts báo `PerMonitorV2`, khai báo trong `app.net48.manifest` trước HWND |
+| Awareness thực đo, net8.0-windows | process API báo `PerMonitor`; thread/popup contexts báo `PerMonitorV2`, thiết lập bằng `Application.SetHighDpiMode` trước HWND |
 | Physical scale chưa có | 125%, 150%, 175%, 200% — `NOT RUN`, máy chỉ có màn hình 96 DPI trong lần kiểm này |
 
 ## Kết quả theo task
@@ -32,7 +33,7 @@ T01–T06 đã triển khai theo thứ tự và commit riêng. T07 đã chạy b
 | T04 | `fba1eaa` | Rounded geometry, overlay, Popover và shown-popup capture | 107/107 PASS mỗi TFM |
 | T05 | `1555584` | Select/Lookup popup, content, interaction, embedded grid | 117/117 PASS mỗi TFM |
 | T06 | `372eec2` | Input contours và SourceGrid editors | Controls 69/69; adapters 73/73 PASS mỗi TFM |
-| T07 | commit chứa report | Build All, full owners, focused discovery/run, explicit first-click, native desktop capture, docs/handoff | Toolkit gates đã chạy đều PASS; physical 125%+, Owner visual và consumer acceptance còn mở |
+| T07 | `0f8d665` + `e45301b` + `9da028b` + commit report hiện tại | Build All, full owners, focused discovery/run, explicit first-click, native desktop capture, docs/handoff | Automated gates PASS; physical 125%+, Owner visual và consumer acceptance còn mở |
 
 Regression radius-only của Select và Lookup đổi contour trên popup đang mở nhưng giữ cùng HWND. Test cố ý cuộn viewport ra khỏi highlighted row rồi xác nhận query, caret, committed value, highlighted/current row, scroll position và event counts không đổi. Luồng này chỉ refresh geometry/layout; không gọi selection reconciliation hoặc tự cuộn về highlighted row.
 
@@ -46,18 +47,19 @@ Regression radius-only của Select và Lookup đổi contour trên popup đang 
 ```
 
 - Build: PASS, 0 warnings, 0 errors.
-- Controls owner: `2426/2426` PASS, 0 fail, 0 skip trên `net48`; `2426/2426` PASS, 0 fail, 0 skip trên `net8.0-windows`.
+- Build All mới nhất ở `9da028b`: PASS, 0 warnings/errors. Full/focused counts bên dưới được chạy sau production code freeze; sau đó chỉ harden helper explicit first-click và manifest/assertions awareness của capture host, đã rebuild và rerun exact native gates trên cả hai targets. Không suy thành một lần full-run mới trên commit docs cuối.
+- Controls owner: `2427/2427` PASS, 0 fail, 0 skip trên `net48`; `2427/2427` PASS, 0 fail, 0 skip trên `net8.0-windows`.
 - SourceGrid owner: `256/256` PASS, 0 fail, 0 skip trên mỗi TFM.
-- Tổng full owner executions: `5364`, 0 fail, 0 skip theo summaries. Hai cases `[Explicit]` first-click không nằm trong tổng broad run và được chạy riêng bên dưới.
+- Tổng full owner executions: `5366`, 0 fail, 0 skip theo summaries. Hai cases `[Explicit]` first-click không nằm trong tổng broad run và được chạy riêng bên dưới. Sau full/focused run, chỉ helper explicit first-click được tái xác lập z-order ngay trước input; đã rebuild và chạy lại exact gate trên cả hai TFM, không đổi production code hay broad cases.
 
 Full run đầu tiên phát hiện `Phase16PublicApiBaselineTests.ExportedApiMatchesApprovedV1Baseline` fail 1 case trên `net48`. Reconstructed export chỉ ra hai override có chủ đích của T03 (`BootstrapComboBox.GetPreferredSize(Size)` và protected `SetBoundsCore(...)`) đã được ghi trong component/API contract nhưng fingerprint chưa đổi. Sau review, fingerprint được cập nhật thành `1de84ca1b9a297e0caff576b4b18c0296ca17d0ebabf088be2f48213cad27755`; gate riêng PASS `15/15` mỗi TFM và full matrix phía trên được chạy lại từ build mới.
 
 ### Focused controls và explicit native click
 
-Command dùng đúng `$controlsFilter` trong [plan](../plans/20261029-001-input-popup-rendering.md#focused-final-commands), có discovery trước run.
+Command dùng `$controlsFilter` trong [plan](../plans/20261029-001-input-popup-rendering.md#focused-final-commands), bổ sung `|FullyQualifiedName~BootstrapInputShellContourTests`, có discovery trước run.
 
-- Discovery: 433 cases mỗi TFM, gồm 2 cases `[Explicit]`.
-- Broad focused run: 431/431 PASS mỗi TFM; 2 explicit cases không được broad runner thực thi.
+- Discovery: 437 cases mỗi TFM, gồm 2 cases `[Explicit]`.
+- Broad focused run: 435/435 PASS mỗi TFM; 2 explicit cases không được broad runner thực thi.
 - Exact explicit command:
 
 ```powershell
@@ -88,6 +90,14 @@ dotnet test $controlsProject -c Release -f $targetFramework --no-build --no-rest
 - Host mở thật Select và Lookup trong Light/Dark, đọc native popup bounds, rồi dùng `Graphics.CopyFromScreen` chụp rectangle gồm exterior band 12 px. Bốn capture mỗi run đều opaque, không blank và ghi `popup.visible=true`, `owner.dpi=96`.
 - Đây là bằng chứng desktop composition ở 100%, khác với `DrawToBitmap`/geometry tests. Nó chưa phải Owner visual approval và không chứng minh physical 125%.
 
+### Sửa sau review và failures đã quan sát
+
+- Review phát hiện overlay còn làm tròn paint metrics. Regression 120-DPI RED trên kiểu `int`, sau sửa giữ border `1.25f`, radius `7.5f`; chỉ cấp native bounds mới dùng ceil. Overlay/Popover/rounded suite PASS 108/108 mỗi TFM.
+- Native oracle trước review chỉ kiểm nonblank/opaque. Host mới kiểm RGB: continuity bốn cạnh (ít nhất 90%), mirrored corner intercepts lệch tối đa 1 px, black/backdrop leakage trong shell band và fuchsia nằm trong content rectangle. Metadata ghi native window DPI, process/thread/window awareness, Region/content/footer bounds.
+- Trong final verification có lần first-click fail vì Edge che tọa độ input (`WindowFromPoint` trả HWND `524946`, process `msedge`); tăng thời gian pump riêng không chữa được. Helper hiện dùng topmost/z-order trước input, kiểm HWND không bị che, bounded pump 1 giây và dispose form sau case. Exact gate cuối PASS 2/2 mỗi TFM.
+- RGB oracle cũng đã fail khi checker form/capture bị cửa sổ khác che. Host diagnostic hiện đưa checker form và popup lên trên trong thời gian chụp, giữ native shadow, không sửa production z-order. Native gate cuối PASS 1/1 mỗi TFM.
+- Reviewer kiểm lại đã xác nhận fractional metrics và native oracle được xử lý. Metadata ban đầu ở `e45301b` phát hiện host `net48` là `Unaware` dù có App.config; `9da028b` bổ sung manifest riêng cho net48 và assertions exact thread/popup `PerMonitorV2`. Build/gate đã PASS; metadata cuối đo được process `PerMonitor`, thread/popup `PerMonitorV2` trên cả hai targets.
+
 ## Geometry/bitmap so với physical desktop
 
 - Geometry/painter tests chạy synthetic DPI `96/120/144/168/192`; `HalfPixelPolicyKeepsCornerCoverageSymmetric` yêu cầu alpha thật `0 < A < 255` ở cả bốn góc, nên A=0/blank không được tính là anti-aliasing.
@@ -104,9 +114,13 @@ Raw PNG và metadata không commit vào Git theo policy. Artifact local có th�
 artifacts/verification/20261029-input-popup-rendering/
   before-d0f2624-100pct/
   after-372eec2-100pct/
+  after-9da028b-net48-100pct/
+  after-9da028b-net8.0-windows-100pct/
 ```
 
 Mỗi set có bốn full PNG 1:1 (`light|dark` × `select|lookup`), bốn file metadata và thư mục `corners/` chứa top-left/top-right/bottom-left/bottom-right crop 64×64 cho từng PNG. Before và after cùng `owner.dpi=96`, cùng screen và cùng exterior band. Baseline `d0f2624` là T01 trước production fixes; after `372eec2` là source implementation sau T06.
+
+Hai set `after-9da028b-*` là artifacts cuối sau review, có toàn bộ RGB oracle PASS markers và awareness thực đo. Cả hai targets ghi thread/popup `PerMonitorV2`; actual owner/popup window DPI vẫn là 96.
 
 Không có artifact URL bên ngoài hoặc GitHub Actions run cho candidate này vì task không yêu cầu push/upload. Consumer hoặc reviewer trên máy khác phải chạy lại native host bằng commands trên; local artifact path không phải durable CI storage.
 
@@ -127,6 +141,7 @@ Consumer PR kế tiếp cần:
 
 - Toolkit source/build/full/focused/native 100% gates: **PASS** trên hai TFM.
 - Physical 125% trở lên: **NOT RUN**.
+- DPI-awareness của capture host: **PASS** exact thread/popup `PerMonitorV2` trên cả hai targets ở actual 96 DPI; physical 125% vẫn **NOT RUN**.
 - Owner visual decision cho candidate: **PENDING**, không ghi APPROVED/CLOSED.
 - Consumer MyDmsVn acceptance: **NOT RUN**.
 - Public package/release: ngoài scope; không publish.
