@@ -142,6 +142,7 @@ internal sealed class BootstrapSelectDropDownController : IDisposable
             return;
         }
 
+        var scrollOffset = _content?.ScrollOffset ?? 0;
         _surface.LogicalBorderRadius = _owner.BorderRadius;
         _dropDown?.SynchronizeSurfacePresentation();
         if (_isOpen && _dropDown is not null && !_dropDown.IsDisposed && _owner.IsHandleCreated)
@@ -149,6 +150,9 @@ internal sealed class BootstrapSelectDropDownController : IDisposable
             _currentBounds = ComputeBounds();
             _dropDown.MoveTo(_currentBounds);
         }
+        // Intermediate layouts may temporarily enlarge the viewport and clamp its offset.
+        // Restore navigation only after final bounds; SetScrollOffset clamps to the final viewport.
+        _content?.RestoreScrollOffset(scrollOffset);
     }
 
     public void Dispose()
