@@ -135,7 +135,16 @@ public sealed class BootstrapBusyOverlayHost : Panel
         _spinner.Bounds = layout.Spinner;
         _spinner.Visible = layout.Spinner.Width > 0 && layout.Spinner.Height > 0;
         _messageViewport.Bounds = layout.Viewport;
-        _message.Bounds = new Rectangle(Point.Empty, layout.Message);
+        // Reserve the vertical bar before wrapping; child extent must fit the
+        // viewport client width or AutoScroll would also create a horizontal bar.
+        _messageViewport.AutoScrollPosition = Point.Empty;
+        var messageWidth = layout.Viewport.Width;
+        if (layout.Message.Height > layout.Viewport.Height)
+            messageWidth = Math.Max(0, messageWidth - SystemInformation.VerticalScrollBarWidth);
+        messageWidth = Math.Min(messageWidth, _messageViewport.ClientSize.Width);
+        var messageHeight = messageWidth == 0 ? 0 : TextRenderer.MeasureText(_message.Text, Font,
+            new Size(messageWidth, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.TextBoxControl).Height;
+        _message.Bounds = new Rectangle(0, 0, messageWidth, Math.Max(messageHeight, layout.Viewport.Height));
         _cancel.Bounds = layout.Cancel;
     }
 
@@ -251,7 +260,7 @@ public sealed class BootstrapBusyOverlayHost : Panel
             _ancestors.Add(parent);
             parent.ParentChanged += OnAncestorChanged;
         }
-        _owner = FindForm();
+        _owner = TopLevelControl as Form;
         if (_owner is null) return;
         _owner.Resize += OnOwnerStateChanged;
         _owner.Disposed += OnOwnerStateChanged;
@@ -289,8 +298,13 @@ public sealed class BootstrapBusyOverlayHost : Panel
     }
     private void UpdateBackdrop()
     {
+        var generation = _presentationGeneration;
         var mode = ConfigureBackdrop();
-        _backdrop.BringToFront(); _card.BringToFront();
+        if (!IsCurrentPresentation(generation)) return;
+        _backdrop.BringToFront();
+        if (!IsCurrentPresentation(generation)) return;
+        _card.BringToFront();
+        if (!IsCurrentPresentation(generation)) return;
         SetMode(mode);
     }
     /// <inheritdoc />

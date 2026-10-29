@@ -106,3 +106,7 @@ Rollback PR tabs bằng revert commit(s) của **PR consumer tabs** để khôi 
 [a3]: https://github.com/chung6a8m/MyDmsVn.Docs/blob/57cf5e0f506ac0c313e9d659939d863325250b53/proposals/2026-10-24-adoption.md#2-thứ-tự-đề-xuất-và-kết-quả-có-thể-xem-được
 [distribution]: https://github.com/chung6a8m/MyDmsVn.Docs/blob/57cf5e0f506ac0c313e9d659939d863325250b53/proposals/2026-10-24-organization.md#chuyển-source-và-chuyển-distribution-là-hai-việc-riêng
 [app-workspace-tabs]: https://github.com/chung6a8m/MyDmsVn/blob/16c24738a4758ccdceb1f3509f4e37adb0d03464/src/MyDmsVn.Desktop.WinForms/BusinessCompactWorkspaceTabs.cs
+
+### BootstrapBusyOverlayHost sau review PR #5
+
+Không đổi public API hoặc `BootstrapBusyHost` cũ. Consumer nhúng Form `TopLevel=false` trong shell được theo dõi đúng top-level owner khi minimize/restore/reparent và trả focus từ Cancel về Content descendant đã nhớ. Callback Layout có thể hide/release/Begin trong cập nhật opacity/theme mà không bị lượt cũ khôi phục RenderMode. Message dài wrap theo client width có scrollbar dọc; Cancel giữ native semantics. Consumer tiếp tục tự chặn keyboard/UIA/commands và đóng popup trước Begin; [evidence PR #5](verification/20261030-pr5-review-fixes.md) không đóng physical/mixed-DPI/Owner/resource gates còn mở.

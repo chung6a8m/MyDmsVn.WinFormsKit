@@ -568,6 +568,71 @@ public sealed class BootstrapBusyOverlayHostTests
         Assert.That(host.Controls.Cast<Control>().Where(c => c != host.Content).All(c => !c.Visible), Is.True);
     }
 
+    [Test]
+    public void Review_EmbeddedForm_RestoresFocusAndTracksOuterOwnerAfterReparent()
+    {
+        using var outer = new Form(); using var second = new Form();
+        using var embedded = new Form { TopLevel = false, Dock = DockStyle.Fill };
+        var content = new Panel(); var first = new TextBox(); var remembered = new TextBox { Top = 35 };
+        content.Controls.AddRange(new Control[] { first, remembered }); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(content, delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        embedded.Controls.Add(host); outer.Controls.Add(embedded); embedded.Show();
+        BootstrapBusyOverlayNativeTests.Activate(outer); remembered.Focus();
+        var token = host.Begin(new BusyPresentation("busy", () => { })); delay.Fire();
+        All(host).OfType<Button>().Single().Focus(); token.Dispose();
+        Assert.That(remembered.Focused, Is.True, "restore remembered descendant through embedded Form");
+        using var next = host.Begin(new BusyPresentation("again")); delay.Fire();
+        outer.WindowState = FormWindowState.Minimized; Application.DoEvents(); AssertPresentation(host, false);
+        outer.WindowState = FormWindowState.Normal; Application.DoEvents(); delay.Fire(); AssertPresentation(host, true);
+        second.Controls.Add(embedded); second.Show(); Application.DoEvents(); delay.Fire(); AssertPresentation(host, true);
+        outer.WindowState = FormWindowState.Minimized; Application.DoEvents(); AssertPresentation(host, true);
+        second.WindowState = FormWindowState.Minimized; Application.DoEvents(); AssertPresentation(host, false);
+    }
+
+    [TestCase(false, "release"), TestCase(false, "hide"), TestCase(false, "new")]
+    [TestCase(true, "release"), TestCase(true, "hide"), TestCase(true, "new")]
+    public void Review_BackdropUpdate_LayoutCannotCommitStaleMode(bool theme, string action)
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show(); var token = host.Begin(new BusyPresentation("old")); delay.Fire();
+        var oldTheme = MyDmsVn.Bootstrap5WinFormUI.Theme.BootstrapThemeManager.CurrentTheme;
+        IDisposable? newer = null; var armed = true;
+        host.Layout += (_, e) =>
+        {
+            // Theme also lays out before UpdateBackdrop; select its z-order callback.
+            if (!armed || e.AffectedProperty != "ChildIndex") return;
+            armed = false;
+            if (action == "hide") host.Hide();
+            else { token.Dispose(); if (action == "new") newer = host.Begin(new BusyPresentation("new")); }
+        };
+        try
+        {
+            if (theme) MyDmsVn.Bootstrap5WinFormUI.Theme.BootstrapThemeManager.CurrentTheme = MyDmsVn.Bootstrap5WinFormUI.Theme.BootstrapTheme.CreateDefault(MyDmsVn.Bootstrap5WinFormUI.Theme.BootstrapThemeMode.Dark);
+            else host.BackdropOpacity = .5;
+            Assert.That(armed, Is.False); AssertPresentation(host, false);
+            Assert.That(host.Controls.Cast<Control>().Where(c => c != host.Content).All(c => !c.Visible), Is.True);
+            if (action == "new") { delay.Fire(); AssertPresentation(host, true); Assert.That(All(host).OfType<Label>().Single().Text, Is.EqualTo("new")); }
+        }
+        finally { newer?.Dispose(); token.Dispose(); MyDmsVn.Bootstrap5WinFormUI.Theme.BootstrapThemeManager.CurrentTheme = oldTheme; }
+    }
+
+    [Test]
+    public void Review_LongMessage_RealViewportScrollsVerticallyOnlyAndCancelWorks()
+    {
+        using var form = new Form { ClientSize = new Size(400, 220) }; var delay = new ManualDelay(); var cancelled = 0;
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show();
+        using var token = host.Begin(new BusyPresentation(string.Join(" ", Enumerable.Repeat("Thông báo xử lý dữ liệu dài cần đọc đầy đủ.", 100)), () => cancelled++)); delay.Fire(); Application.DoEvents();
+        var label = All(host).OfType<Label>().Single(); var viewport = (Panel)label.Parent!;
+        Assert.That(viewport.VerticalScroll.Visible, Is.True);
+        Assert.That(viewport.HorizontalScroll.Visible, Is.False);
+        Assert.That(label.Width, Is.LessThanOrEqualTo(viewport.ClientSize.Width));
+        viewport.ScrollControlIntoView(label); viewport.AutoScrollPosition = new Point(0, label.Height);
+        Assert.That(viewport.AutoScrollPosition.Y, Is.LessThan(0));
+        var cancel = All(host).OfType<Button>().Single(); Assert.That(cancel.CanSelect, Is.True); cancel.PerformClick(); Assert.That(cancelled, Is.EqualTo(1));
+    }
+
     private sealed class ThrowingSelectControl : TextBox
     {
         internal Exception? Failure;
