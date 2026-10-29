@@ -173,6 +173,13 @@ public class BootstrapComboBox : ComboBox
     /// <inheritdoc />
     protected override void OnHandleCreated(EventArgs e)
     {
+        if (_sizingInitialized && DropDownStyle == ComboBoxStyle.Simple && _lastSizingStyle != ComboBoxStyle.Simple)
+        {
+            // RecreateHandle precedes DropDownStyleChanged. Restore the saved request before
+            // base raises HandleCreated, so a caller's newer Height/Size request wins.
+            _lastSizingStyle = ComboBoxStyle.Simple;
+            base.SetBoundsCore(Left, Top, Width, _simpleRequestedHeight, BoundsSpecified.Height);
+        }
         base.OnHandleCreated(e);
 
         ApplyThemePresentation();
