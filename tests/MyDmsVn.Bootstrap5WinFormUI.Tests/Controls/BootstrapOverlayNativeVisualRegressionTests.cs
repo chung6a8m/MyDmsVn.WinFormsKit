@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
 
@@ -13,6 +14,40 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 [NonParallelizable]
 public sealed class BootstrapOverlayNativeVisualRegressionTests
 {
+    [TestCase(0xE7EAED, false, true)]
+    [TestCase(0x41484E, true, true)]
+    [TestCase(0xFFFFFF, false, false)]
+    [TestCase(0xF8F8F8, false, false)]
+    [TestCase(0x000000, true, false)]
+    public void CornerOracleAcceptsAntialiasedBorderButRejectsSurfaceAndBackdrop(int rgb, bool dark, bool expected)
+    {
+        var assembly = Assembly.Load("MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost");
+        var method = assembly.GetType("MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.RoundedPopupScenario")!
+            .GetMethod("IsBorderLike", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var actual = Color.FromArgb((rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255);
+        var border = dark ? Color.FromArgb(73, 80, 87) : Color.FromArgb(222, 226, 230);
+        var surface = dark ? Color.FromArgb(43, 48, 53) : Color.White;
+        Assert.That(method.Invoke(null, new object[] { actual, border, surface }), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void DisplayedInputRowsKeepNativeHeightAndFlowContainmentAtActualDpi()
+    {
+        var outputDirectory = Path.Combine(Path.GetTempPath(), "WinFormsKit-input-row-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(outputDirectory);
+        try
+        {
+            RunCaptureHost(outputDirectory, "input-row");
+            Assert.That(Directory.GetFiles(outputDirectory, "*.png"), Has.Length.EqualTo(4));
+            var metadata = Directory.GetFiles(outputDirectory, "*.txt").SelectMany(File.ReadAllLines).ToArray();
+            Assert.That(metadata.Count(line => line == "oracle.native-dpi=pass"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.equal-height=pass"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.flow-containment=pass"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "oracle.stable-layout=pass"), Is.EqualTo(4));
+        }
+        finally { Directory.Delete(outputDirectory, true); }
+    }
+
     [Test]
     public void DisplayedSelectAndLookupPopupsProduceNonBlankOpaqueDesktopCaptures()
     {
@@ -38,6 +73,12 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
             var metadata = Directory.GetFiles(outputDirectory, "*.txt")
                 .SelectMany(File.ReadAllLines)
                 .ToArray();
+            foreach (var metadataPath in Directory.GetFiles(outputDirectory, "*.txt"))
+            {
+                var values = File.ReadAllLines(metadataPath).Select(line => line.Split(new[] { '=' }, 2)).ToDictionary(parts => parts[0], parts => parts[1]);
+                Assert.That(values["owner.dpi"], Is.EqualTo(values["owner.windowDpi"]), "Managed/native owner DPI must agree: " + metadataPath);
+                Assert.That(values["owner.dpi"], Is.EqualTo(values["popup.windowDpi"]), "Owner/popup DPI must agree: " + metadataPath);
+            }
             Assert.That(metadata.Count(line => line == "popup.visible=true"), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("owner.dpi=", StringComparison.Ordinal)), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("popup.windowDpi=", StringComparison.Ordinal)), Is.EqualTo(4));
@@ -68,13 +109,13 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
         }
     }
 
-    private static void RunCaptureHost(string outputDirectory)
+    private static void RunCaptureHost(string outputDirectory, string scenario = "rounded-popup")
     {
         var executable = Path.Combine(TestContext.CurrentContext.TestDirectory, "MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe");
         using var process = Process.Start(new ProcessStartInfo
         {
             FileName = executable,
-            Arguments = "--scenario rounded-popup \"" + outputDirectory + "\"",
+            Arguments = "--scenario " + scenario + " \"" + outputDirectory + "\"",
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardError = true
