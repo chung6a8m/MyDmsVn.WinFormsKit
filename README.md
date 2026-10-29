@@ -8,6 +8,8 @@ Scope [khắc phục ba ngoại lệ Business Compact](docs/plans/20261028-001-b
 
 Phạm vi, trạng thái bootstrap và phần kiểm chứng/consumer migration của A3 vẫn thuộc [plan A3](docs/plans/20261024-001-a3-winformskit.md), với [evidence A3](docs/verification/20261024-a3-bootstrap.md) giữ nguyên theo candidate.
 
+Candidate sau bốn findings PR #3 có [evidence sửa review](docs/verification/20261029-input-popup-rendering-review-fixes.md) riêng. Physical DPI, Owner visual decision và consumer acceptance tiếp tục để mở.
+
 ## Bắt đầu trên Windows
 
 Cần .NET SDK tương thích `global.json` (`8.0.400`, `latestFeature`), Windows với runtimes .NET Framework 4.8/.NET 8 Desktop và desktop tương tác để chạy native tests/galleries. Reference assemblies để build `net48` được restore qua NuGet. Dùng VS2022 với workload .NET desktop hoặc CLI phù hợp; xem [TESTING](docs/TESTING.md) để chọn đúng scope.

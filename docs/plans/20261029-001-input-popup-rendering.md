@@ -14,6 +14,8 @@
 
 ## Global Constraints
 
+Cập nhật sau review PR #3: [evidence review-fixes](../verification/20261029-input-popup-rendering-review-fixes.md) sở hữu candidate mới và bốn regressions. Kết quả native đã thay đổi chi tiết spike T03 Bước 4: `SetBoundsCore` chuyển nguyên height/BoundsSpecified của caller xuống base thay vì thay bằng target và OR Height, để giữ native requested height cho Simple; projected closed bounds trước handle chỉ dùng `UpdateBounds`. Contract outer-height/layout và handle-free vẫn giữ. Physical DPI, Owner visual decision và consumer acceptance tiếp tục còn mở.
+
 - Targets giữ `net48;net8.0-windows`; UI core không phụ thuộc SourceGrid/app/SQL; không thêm package hay đổi vendor pin.
 - `BootstrapComboBox : ComboBox` giữ public/native model; không thay bằng UserControl/BootstrapSelect, không thay binding/formatting/autocomplete/events để chữa hình học.
 - Constructor và Designer không tạo HWND; giữ caller-owned Font, Region, content ownership; dispose tài nguyên/GDI/events do toolkit tạo.

@@ -8,6 +8,8 @@ Khi làm bootstrap hoặc đánh giá điều kiện A3, [plan A3](docs/plans/20
 
 ## Chọn đúng owner
 
+Sửa bốn findings input/popup trong PR #3: đọc [evidence review-fixes](docs/verification/20261029-input-popup-rendering-review-fixes.md) cho candidate/tests mới nhất; evidence trước review là lịch sử. Physical DPI, Owner visual decision và consumer acceptance vẫn chưa hoàn tất.
+
 - Controls/theme/rendering/input: `src/MyDmsVn.Bootstrap5WinFormUI`, `tests/MyDmsVn.Bootstrap5WinFormUI.Tests`, [controls references](docs/components/controls/).
 - Grid/editor adapters: `src/MyDmsVn.BootstrapSourceGrid`, `tests/MyDmsVn.BootstrapSourceGrid.Tests`, [grid references](docs/components/grid/).
 - Engine: pinned `vendor/sourcegrid`; [provenance](docs/PROVENANCE.md) trước khi xem xét thay pin.
