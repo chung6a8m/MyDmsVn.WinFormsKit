@@ -1,5 +1,7 @@
 ﻿using System.Drawing;
 using System.Threading;
+using System.Windows.Forms;
+using MyDmsVn.Bootstrap5WinFormUI.Rendering;
 using NUnit.Framework;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
 using MyDmsVn.Bootstrap5WinFormUI.Theme;
@@ -21,6 +23,27 @@ public sealed class BootstrapBusyOverlayLayoutTests
             Assert.That(layout.Card.Width, Is.LessThanOrEqualTo(480 * dpi / 96));
             Assert.That(layout.Cancel.Height, Is.EqualTo(System.Math.Min(28 * dpi / 96, size.Height)));
             Assert.That(layout.Message.Height, Is.GreaterThanOrEqualTo(layout.Viewport.Height));
+        }
+    }
+    [TestCase(96), TestCase(120), TestCase(144), TestCase(192)]
+    public void CancelWidthShrinksSpacingBeforeClippingCaptionAtNarrowClientThresholds(int dpi)
+    {
+        using var font = new Font("Segoe UI", 20f * dpi / 96);
+        foreach (var caption in new[] { "Cancel", "Hủy tác vụ" })
+        {
+            var desiredWidth = System.Math.Max(DpiScaler.Scale(80, dpi), TextRenderer.MeasureText(caption, font).Width + DpiScaler.Scale(24, dpi));
+            var previous = 0;
+            foreach (var logicalWidth in new[] { 119, 120, 143, 144 })
+            {
+                var client = DpiScaler.Scale(new Size(logicalWidth, 220), dpi);
+                var layout = BootstrapBusyOverlayLayoutLogic.Calculate(client, font, "Busy", caption, true, dpi, BootstrapThemeMetrics.Default);
+                Assert.That(layout.Cancel.Width, Is.EqualTo(System.Math.Min(client.Width, desiredWidth)), $"dpi={dpi}; client={client}; caption={caption}; desired={desiredWidth}");
+                Assert.That(layout.Cancel.Width, Is.GreaterThanOrEqualTo(previous), "A wider client must not reduce caption capacity");
+                AssertInside(layout.Card, new Rectangle(Point.Empty, client));
+                AssertInside(layout.Cancel, new Rectangle(Point.Empty, layout.Card.Size));
+                Assert.That(layout.Card.Width, Is.LessThanOrEqualTo(DpiScaler.Scale(480, dpi)));
+                previous = layout.Cancel.Width;
+            }
         }
     }
     private static void AssertInside(Rectangle child, Rectangle parent)

@@ -15,13 +15,20 @@ internal static class BootstrapBusyOverlayLayoutLogic
     internal static BootstrapBusyOverlayLayout Calculate(Size client, Font font, string message, string cancelText, bool cancel, int dpi, BootstrapThemeMetrics metrics)
     {
         var cw = Math.Max(0, client.Width); var ch = Math.Max(0, client.Height);
+        var desiredButtonWidth = cancel ? Math.Max(DpiScaler.Scale(80, dpi), TextRenderer.MeasureText(cancelText, font).Width + DpiScaler.Scale(24, dpi)) : 0;
         var margin = DpiScaler.Scale(metrics.SpacingLG, dpi);
         var padding = margin; var gap = DpiScaler.Scale(metrics.SpacingSM, dpi);
         var buttonHeight = cancel ? DpiScaler.Scale(metrics.ControlHeightSmall, dpi) : 0;
         if (ch < buttonHeight + 2 * margin + 2 * padding + gap) { margin = 0; padding = 0; gap = 0; }
-        if (cw < DpiScaler.Scale(120, dpi)) { margin = 0; padding = 0; }
-        var width = Math.Max(0, Math.Min(DpiScaler.Scale(480, dpi), cw - 2 * margin));
-        var innerWidth = Math.Max(0, width - 2 * padding);
+        if (!cancel && cw < DpiScaler.Scale(120, dpi)) { margin = 0; padding = 0; }
+        var maximumWidth = DpiScaler.Scale(480, dpi);
+        var requiredButtonWidth = Math.Min(cw, Math.Min(maximumWidth, desiredButtonWidth));
+        // Horizontal spacing yields before the caption is clipped. Keep vertical
+        // padding independent so a narrow host still reserves its Cancel row.
+        var horizontalMargin = Math.Min(margin, Math.Max(0, (cw - requiredButtonWidth) / 2));
+        var width = Math.Max(0, Math.Min(maximumWidth, cw - 2 * horizontalMargin));
+        var horizontalPadding = Math.Min(padding, Math.Max(0, (width - requiredButtonWidth) / 2));
+        var innerWidth = Math.Max(0, width - 2 * horizontalPadding);
         var text = innerWidth == 0 ? Size.Empty : TextRenderer.MeasureText(message, font, new Size(innerWidth, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.TextBoxControl);
         var spinner = DpiScaler.Scale(24, dpi);
         var available = Math.Max(0, ch - 2 * margin);
@@ -33,11 +40,11 @@ internal static class BootstrapBusyOverlayLayoutLogic
         var by = Math.Max(0, height - padding - bh);
         var viewportHeight = Math.Max(0, (cancel ? by - gap : height - padding) - top);
         top = Math.Min(top, Math.Max(0, cancel ? by : height));
-        var buttonWidth = Math.Min(innerWidth, Math.Max(DpiScaler.Scale(80, dpi), TextRenderer.MeasureText(cancelText, font).Width + DpiScaler.Scale(24, dpi)));
+        var buttonWidth = Math.Min(innerWidth, desiredButtonWidth);
         var card = new Rectangle((cw - width) / 2, (ch - height) / 2, width, height);
         return new BootstrapBusyOverlayLayout(card,
             new Rectangle(Math.Max(0, (width - spinner) / 2), Math.Min(padding, height), Math.Min(spinner, width), Math.Min(spinner, Math.Max(0, height - padding))),
-            new Rectangle(Math.Min(padding, width), top, innerWidth, viewportHeight),
+            new Rectangle(Math.Min(horizontalPadding, width), top, innerWidth, viewportHeight),
             new Rectangle(Math.Max(0, (width - buttonWidth) / 2), by, buttonWidth, bh), new Size(innerWidth, Math.Max(text.Height, viewportHeight)));
     }
 }

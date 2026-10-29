@@ -120,7 +120,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 - [x] Chạy native live/fallback scenarios bằng exact EXEs và lưu evidence mới từ implementation thật; kiểm Content WM_PRINT count vẫn không tăng và background thay đổi dưới cùng overlay HWND.
 - [x] Commit `feat: render live busy backdrop with native child opacity`.
 
-Candidate BUS-03: implementation production và regression đã có; native proof 96 DPI trên hai targets/x86 được ghi riêng tại [evidence production](../verification/20261030-live-busy-overlay-production.md). BUS-04/05/06 và acceptance đầy đủ vẫn mở; không chuyển historical BUS-01 PASS thành nghiệm thu toàn feature.
+Candidate BUS-03: implementation production và regression đã có; review Important về minimum Cancel width đã có regression tại119/120/143/144 logical pixels và sửa spacing ngang theo caption, evidence candidate sửa nằm ở cuối report production; native proof 96 DPI trên hai targets/x86 được ghi riêng tại [evidence production](../verification/20261030-live-busy-overlay-production.md). BUS-04/05/06 và acceptance đầy đủ vẫn mở; không chuyển historical BUS-01 PASS thành nghiệm thu toàn feature.
 
 ### BUS-04 — Mouse, focus và vòng đời cửa sổ
 

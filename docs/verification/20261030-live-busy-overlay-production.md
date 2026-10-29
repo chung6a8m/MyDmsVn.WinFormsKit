@@ -1,6 +1,8 @@
 # BUS-03 — Production live child-layer backdrop
 
-Ngày thực thi: **30/10/2026**. Candidate: `14ed7cced62270c8bba879d94919933efcc053ae` cộng commit chứa report này; runtime marker `14ed7cc+BUS03-final-v4`. [BUS-01](20261029-live-busy-overlay.md) giữ lịch sử probe riêng. Evidence này chạy production `BootstrapBusyOverlayHost`, không dùng backdrop/filter probe.
+Candidate hiện hành sau review minimum Cancel width được ghi tại mục **Sửa Important sau review BUS-03** bên dưới. Các bảng baseline52/52/22 và native8 runs ở phần đầu thuộc commit `ed9da03ae6da9c4757beacc5b590fd42edde189c`, không tự chuyển thành PASS của candidate sửa layout.
+
+Ngày thực thi baseline: **30/10/2026**. Candidate native baseline: `ed9da03ae6da9c4757beacc5b590fd42edde189c`, dựa trên `14ed7cced62270c8bba879d94919933efcc053ae`; runtime marker `14ed7cc+BUS03-final-v4`. [BUS-01](20261029-live-busy-overlay.md) giữ lịch sử probe riêng. Evidence này chạy production `BootstrapBusyOverlayHost`, không dùng backdrop/filter probe.
 
 ## Kết quả và phạm vi
 
@@ -77,7 +79,7 @@ Một attempt trước final dùng relative manifest khiến dependency DLL buil
 
 ## Candidate source và artifacts
 
-SHA-256 working source UTF-8 BOM/CRLF được build/chạy; Markdown UTF-8 không BOM. Commit chứa report xác định candidate Git.
+SHA-256 working source UTF-8 BOM/CRLF được build/chạy; Markdown UTF-8 không BOM. Commit ed9da03 xác định baseline native; mục sửa review phía dưới xác định candidate layout mới.
 
 | Source | SHA-256 |
 |---|---|
@@ -115,3 +117,53 @@ Căn cứ: [QueryActCtxW](https://learn.microsoft.com/en-us/windows/win32/api/wi
 | negative-net8 | 656C5C603CBA5C039B98C24CF68D58B9C56F41AD31ABAF60C01B348AB986AF00 |
 
 Managed helper DLL net8 SHA-256: positive `231FB850043304F07B675F04D6C865952E5ECBD4B2B3AA2B6EFA28B5FF821839`, negative `EC590EAAEFE22FB9B8DA7DF54586D26DF586B8D481BD763B9F3A249CBA3C9A35`. Final native v4 rebuild sau theme regression và Controls rebuild đều exit0; zero helper processes sau execution.
+
+## Sửa Important sau review BUS-03
+
+Ngày30/10/2026. Candidate sửa: base `ed9da03ae6da9c4757beacc5b590fd42edde189c` cộng commit chứa mục này, marker executable `ed9da03+BUS03-layout-review-fix`. Chỉ production layout logic và layout tests đổi; host/controller/capability/backdrop/filter/helper không đổi. SHA-256 layout mới `30AC227B835E1ABB8B90068F48463EC88E157FA92651576FC980E6AC4F8C39F1`; layout tests `2785AA1124899FC7BA3F3AEB714466FC2081FD1A585897501D5AB8E3EADA9D33` (UTF-8 BOM/CRLF).
+
+Review phát hiện spacing cố định làm Cancel width56 trong client120×220/96 DPI dù client đủ caption120 tại custom font20pt. Sửa đo desired width trước, rồi giảm horizontal margin/padding theo phần client còn lại; vertical padding/Cancel row độc lập. Cancel giữ min(client width, desired width) khi nằm trong cap480 scaled; caption lớn hơn chính cap vẫn clip theo cap. Card luôn nằm trong client, không negative bounds. Không đổi BUS-04/05/06.
+
+RED: thêm `CancelWidthShrinksSpacingBeforeClippingCaptionAtNarrowClientThresholds`, chạy net8 trước sửa: discovered4/executed4/pass0/fail4/skip0, exit1. Fail đầu tiên từng DPI ở client120 logical pixels:96 DPI expected120/actual56;120 DPI expected149/actual70;144 DPI expected176/actual84;192 DPI expected235/actual112. Width119 trước đó đi qua assertion; fail tại120 dừng phần còn lại của từng RED case.
+
+GREEN focused layout net8: discovered8/executed8/pass8/fail0/skip0, exit0, 1.8975giây. Regression mới kiểm toàn bộ119/120/143/144 tại96/120/144/192 DPI, hai caption Cancel/Hủy tác vụ, custom font20pt có scaling, tổng32 tổ hợp; width phải bằng min(client, desired), không giảm khi client rộng hơn, card/button containment và cap480 vẫn đúng. Bốn long-message/font/zero/tiny/Light/Dark cases cũ vẫn PASS.
+
+Final affected suites: `FullyQualifiedName~BootstrapBusy`, net48 x64 discovered56/executed56/pass56/fail0/skip0, exit0,4.1054giây; net8 x64 discovered56/executed56/pass56/fail0/skip0, exit0. Gồm7 regressions host cũ/target. Không tái dùng52-case PASS trước sửa. Các native unit tests log process bits64. X86 focused NUnit suite không chạy lại ở patch geometry này; x86 executable production bên dưới đã build/chạy lại.
+
+Commands RED/GREEN/final, tất cả giữ hang diagnostics5m:
+
+```powershell
+# RED, trước source fix:
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter FullyQualifiedName~CancelWidthShrinksSpacingBeforeClippingCaptionAtNarrowClientThresholds --blame-hang --blame-hang-timeout 5m --logger "console;verbosity=normal"
+# GREEN focused:
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter FullyQualifiedName~BootstrapBusyOverlayLayoutTests --blame-hang --blame-hang-timeout 5m --logger "console;verbosity=normal"
+# Final: lặp net48 và net8.0-windows:
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f <tfm> --filter "FullyQualifiedName~BootstrapBusy" --blame-hang --blame-hang-timeout 5m --logger "console;verbosity=normal"
+.\build.ps1 -Configuration Release -Scope Controls
+```
+
+Đã build/chạy lại5 normal helper EXEs theo recipe baseline ở trên nhưng output build là `artifacts/bus03/reviewfix-bin/<kind>`, scenario output `artifacts/bus03/reviewfix-<kind>`. Positive net48 x64/x86 và net8 dùng busy-overlay-live; hai negative manifests dùng busy-overlay-fallback, absolute manifest path, x86 PlatformTarget=x86, outer watchdog45000ms. Toàn bộ tuần tự trên desktop exclusive. Cả5 builds và final Controls build exit0/0 warnings/errors. Final wrapper exit0; zero remaining helper processes.
+
+| Output result.txt dưới artifacts/bus03 | Runtime/bitness | Mode | Exit | Cleanup ms |
+|---|---|---|---:|---:|
+| reviewfix-positive-net48 | net48 x64 | NativeLayered | 0 | 13287 |
+| reviewfix-positive-net8 | net8 x64 | NativeLayered | 0 | 16201 |
+| reviewfix-positive-net48-x86 | net48 x86 | NativeLayered | 0 | 16209 |
+| reviewfix-negative-net48 | net48 x64 | OpaqueFallback | 0 | 7707 |
+| reviewfix-negative-net8 | net8 x64 | OpaqueFallback | 0 | 7725 |
+
+Final native enumeration5 selected/discovered/5 executed/5 PASS/0 FAIL/0 skip. Actual96 DPI, alpha0/89/255 ContentClicks0/Cancel1-2-3/Outside1-2-3, same HWND live updates, opaque foreground/clipping/modal và cleanup đều PASS; live print total13/fallback6, alpha-only print delta0. Bảng này là exact-candidate proof mới. **Helper giữ host width650px nên không trực tiếp chứng minh caption ở119/120/143/144; các ngưỡng đó được kiểm bằng regression geometry.** Timeout injections3 runs chỉ là evidence baseline ed9da03, NOT RUN lại trên patch; helper path không đổi. Không tính chúng vào5 PASS hiện hành.
+
+Môi trường/giới hạn giữ như baseline: Windows10.0.26300.0, SDK8.0.427, .NET Framework4.8.10008.0/.NET8.0.33, một monitor96 DPI. Native Dark/physical125/150/200/mixed-DPI, durable upload/Owner approval và BUS-04/05/06 tiếp tục mở. Raw reviewfix artifacts local/ignored, retention theo worktree; không có durable URL mới.
+
+### Binary manifest của candidate sửa layout
+
+| Output dưới artifacts/bus03/reviewfix-bin | EXE SHA-256 | Core DLL SHA-256 |
+|---|---|---|
+| positive-net48 | 834CEBE968894639DE5E1222D0F889FA81DACB77F0C6567577F27AA49A0FD9DF | 16962C1A470981AF9420479C09745CC903C05DA9496E5E841FF428FBD479F2B7 |
+| positive-net8 | C07DA3B6FE0EE07F89454C4ACF20AFC2266781E338FF5991D7713AB20EAA5E26 | C3CB1A0A53D872FF773F86A026871B39A8A5699C275308E7BC1DC57B63BC954F |
+| positive-net48-x86 | 4368B1D57C21559463D9AA1F822D81402979F3C13DCEBD109120434CAF4147AE | 16962C1A470981AF9420479C09745CC903C05DA9496E5E841FF428FBD479F2B7 |
+| negative-net48 | 6232796DDEAACD8A195D8F5F5B947DA7B6EBADBBCCB893F8401356E704F1090D | A4B1108BAB21B781D965DF6CB3B47504A6DF670839CB9D67093A38C197F6EFE7 |
+| negative-net8 | AC42472A3AEA63E2940EE5400378CC0CE0544E532CE5ED7B0FE2FDAF70A702A2 | E62889D328699E379FC54C8A00739757FF0D518475F0A8AEB6BE1905A8FDDC0A |
+
+Managed helper DLL net8: positive F594D22F21A25C5137E5C803984F68A921A4D3D20E55B16840C829213A855353, negative 52D5D801FB821AF650553CEA7D13BF2ED0981212AB5AC7CA90208AE28E765466.
