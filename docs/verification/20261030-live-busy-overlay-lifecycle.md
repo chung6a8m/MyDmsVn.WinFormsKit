@@ -155,3 +155,76 @@ Trên cả5 EXEs, block live/fallback scenarios trước soak PASS: alpha/input/
 Managed helper DLL positive-net8: B4150A7188309CC0FA95410ECB9766846F777E59A6DB21868DC132DA256F95E7.
 
 Managed helper DLL negative-net8: FB19B22E3E2F2018E7E7FE162E76A87DE2E483DEF028A6CD2220CC43A83F36FD.
+
+## BUS-04/05: cleanup harness và đối chứng USER+1 sau review toàn nhánh
+
+Candidate: `bf3946b` + thay đổi harness trong commit chứa mục này; marker `bf3946b+BUS45-cleanup-resource-diagnostic`. Không đổi production, BootstrapBusyHost cũ, BUS-05 behavior hoặc BUS-06. `CaptureNow` chuyển ownership bitmap cho caller khi thành công; nếu Graphics/CopyFromScreen lỗi thì dispose trước rethrow. Demo test dùng `using var` cùng explicit Dispose để vẫn kiểm hậu điều kiện, đồng thời cleanup khi assertion/pumping lỗi. Đây là hai sửa ownership hiển nhiên; không tạo regression giả hoặc gọi tests PASS cũ là RED mới.
+
+### Đối chứng trong process riêng
+
+Opt-in `BUS_RESOURCE_PROOF`: `isolated` chạy overlay soak ngay sau Form.Show; `control` thay mỗi host bằng Panel + TextBox + Timer150ms, recreate/dispose; `no-uia` giữ full capture/input/modal nhưng bỏ hai external UIA Invoke; `uia-only` gọi cùng external client vào hai Button native thường rồi overlay soak; `uia-control` gọi UIA tương tự rồi plain control soak, **không tạo BootstrapBusyOverlayHost nào**. `full` chỉ thêm counts mỗi cycle vào full scenario. Normal matrix cuối không đặt biến này. Các mode chẩn đoán không phải acceptance scenario đầy đủ; string mode trong control log chỉ mô tả manifest configuration, không khẳng định control dùng overlay.
+
+Tất cả dùng đúng EXE architecture/manifest, STA tuần tự, 10 warm cycles + 100 cycles, delay150ms, settle ít nhất250ms/stable100ms/max1500ms tại cùng checkpoints. Không GC, tăng tolerance, chọn minimum hoặc đổi warm-up. Per-cycle before/after là raw counts, không thêm settle mỗi cycle. Cycle index gồm warm10; batch25/50/75/100 loại warm10. Control không mô phỏng toàn bộ card/spinner hierarchy, nên đây là đối chứng tối thiểu, không phải chứng minh hai workload tương đương hoàn toàn. UIA/capture prefixes có thời gian chuẩn bị khác nhau; final soak giữ cùng timing/pumping.
+
+| Process/configuration | Prefix / soak | USER warm10 → batch25/50/75/100 | GDI | Kết quả |
+|---|---|---|---|---|
+| net48 x86 live | isolated overlay | 23 → 23/23/23/23 | 30 | PASS |
+| net48 x86 live | plain control | 23 → 23/23/23/23 | 25 | PASS |
+| net48 x64 fallback | isolated overlay | 23 → 23/23/23/23 | 30 | PASS |
+| net48 x64 fallback | plain control | 23 → 23/23/23/23 | 25 | PASS |
+| net48 x86 live | full + cycle logging | 48 → 49/49/49/49 | 45 | FAIL resource |
+| net48 x64 fallback | full + cycle logging | 47 → 48/48/48/48 | 43 | FAIL resource |
+| net48 x86 live | full bỏ UIA | 46 → 46/46/46/46 | 45 | PASS reduced scenario |
+| net48 x64 fallback | full bỏ UIA | 46 → 46/46/46/46 | 45 | PASS reduced scenario |
+| net48 x86 live | UIA native Buttons + overlay | 27 → 27/28/28/28 | 30 | FAIL resource |
+| net48 x64 fallback | UIA native Buttons + overlay | 26 → 26/27/27/27 | 30 | FAIL resource |
+| net48 x86 live | UIA native Buttons + plain control | 26 → 26/26/26/26 | 28 | PASS |
+| net48 x64 fallback | UIA native Buttons + plain control | 26 → 26/26/26/27 | 28 | FAIL resource |
+
+Full diagnostic x86 tăng bền đầu tiên tại cycle14; transient tăng/giảm thêm tại20/21,33/34,57/58. UIA-only tăng bền tại cycle60 x86 và45 fallback. Counterexample không host fallback tăng tại cycle106; cycle1/2 còn có transient26→27→26. Raw HWND/class/parent/owner/native-thread inventories không đổi tại warm10 so với các điểm tăng này (UIA-prefix cases có14 HWND). Log cycle ghi managed thread1; inventory ghi native thread IDs riêng. Không đồng nhất USER handles với HWND count.
+
+Bỏ UIA làm mất +1 ở hai full runs; UIA native Buttons trước soak đủ tái hiện +1 ở cả hai overlay configs và một plain-control process. Điều này chứng minh overlay host **không cần thiết** để có cùng biểu hiện, và loại capture/input/modal khỏi điều kiện cần trong counterexample. Không chứng minh mọi failure có cùng allocation, không xác định loại USER object/allocation stack, không gọi là cache vô hại và không loại trừ lỗi production khác. Không có allocation/destroy stack hoặc documented per-object USER attribution trong lượt này. Resource acceptance của full scenario vẫn **BLOCKED**, giữ nguyên strict failure và mọi limitations physical/mixed-DPI/Owner acceptance.
+
+Raw outputs local (không commit/không bảo đảm retention): `artifacts/bus04/diag-*`, `prefix-*-no-uia`, `uia-prefix-*`; scripts ad hoc chỉ ở artifacts, không thêm runner framework. Diagnostic wave1 net48/net8 full khác source revision của các opt-in bổ sung, không dùng làm final-source acceptance. Final-source normal matrix và hashes bên dưới là dữ liệu riêng.
+
+### Final candidate: normal matrix, không opt-in diagnostic
+
+Commands tuần tự:
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f <net48|net8.0-windows> --filter 'FullyQualifiedName~BootstrapBusy|FullyQualifiedName~BusyOverlayDemoFormTests' --blame-hang --blame-hang-timeout 5m --logger 'console;verbosity=normal'
+dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj -c Release -f <tfm> --no-restore -o artifacts/bus04/final45-bin/<kind> <architecture/manifest arguments>
+<actual EXE/apphost> --scenario <busy-overlay-live|busy-overlay-fallback> <absolute output directory>
+./build.ps1 -Configuration Release -Scope All
+```
+
+x86 thêm `-p:PlatformTarget=x86`; fallback thêm absolute `-p:ApplicationManifest=<repo>/tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/app.no-layered.manifest`. Embedded manifest/QueryActCtx và actual bitness được xác nhận trong từng result. Helper deadline60s, outer75s. `BUS_RESOURCE_PROOF` unset; không bỏ UIA, capture, mouse hoặc modal ở normal runs. Build All PASS,0 warnings/errors,3.43s. Final focused mỗi TFM discovered/executed97, PASS97, FAIL0, SKIP0 (95 Busy +2 demo), net48 13.5557s/net8 13.9752s. Không chạy toàn owner suite, x86 NUnit hoặc physical DPI mới.
+
+| Normal helper | USER warm10 →25/50/75/100 | GDI | Exit/result | Cleanup ms |
+|---|---|---|---|---|
+| positive-net48 | 49 → 49/49/49/49 | 43 | 0 / PASS | 38193 |
+| positive-net8 | 50 → 50/50/50/50 | 46 | 0 / PASS | 40414 |
+| positive-net48-x86 | 47 → 48/48/48/48 | 43 | 1 / FAIL resource | 38626 |
+| negative-net48 | 47 → 48/48/48/48 | 43 | 1 / FAIL resource | 30297 |
+| negative-net8 | 50 → 50/50/50/50 | 46 | 0 / PASS | 31001 |
+
+5 discovered/executed,3 PASS/2 FAIL resource,0 SKIP. Các scenario blocks trước soak đều PASS; cleanup5/5 PASS, windowsRemaining0/hooks7/7. `filters=0/0` trong helper là legacy probe counters không đăng ký filter production; không dùng chúng làm bằng chứng registration count. Raw=settled tại toàn bộ20 batch checkpoints và5 warm checkpoints của normal matrix. Raw outputs `artifacts/bus04/final45-*-normal/result.txt`; NUnit logs `final45-tests-<tfm>.log`. Script local ghi từng process ExitCode và tiếp tục để thu đủ matrix; script exit0 không thay thế hai helper exit1. Gate vẫn BLOCKED.
+
+SHA256 source và exact normal binaries (hash sau final runs; source không đổi giữa runs và commit):
+
+| File | SHA256 |
+|---|---|
+| `tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/BusyOverlayScenario.cs` | `786CA0C9497E2F8D2135E36E484662BF9F24A23D5D7E7848959EBE7EF66B221E` |
+| `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Demo/BusyOverlayDemoFormTests.cs` | `A562A68B8BE45645E709AEE9992F87A0474614071F53225678940320A31FC978` |
+| `artifacts/bus04/final45-bin/positive-net48/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `9F1B4B1CE93232B92590B5F78F38CFED4FFE9A3D4F85520504306FC4D8115D77` |
+| `artifacts/bus04/final45-bin/positive-net48/MyDmsVn.Bootstrap5WinFormUI.dll` | `AB7EA1DEE9AB10809E239BBD4A2A8B93940C9443F9E77B87544BCA7375D25155` |
+| `artifacts/bus04/final45-bin/positive-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `31FC0B2DA754B812BAC21C543CB35A86CD00FD1FD94A894994BD0133EC7BA443` |
+| `artifacts/bus04/final45-bin/positive-net8/MyDmsVn.Bootstrap5WinFormUI.dll` | `37DCA1759EC73A1B99D74F69B6AA36E401AF0C6B5DE1A8E1E71CEF383E4F7AE9` |
+| `artifacts/bus04/final45-bin/positive-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.dll` | `49AAFB98342B5673CEB98B0D8837CA64B0607F9E691A2F48D3249CD6DCE65DC9` |
+| `artifacts/bus04/final45-bin/positive-net48-x86/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `B041D96BF8EAC25669EE1FEE9763D0AFCE8AC4376ABDB3ACC45933A467D0AF7D` |
+| `artifacts/bus04/final45-bin/positive-net48-x86/MyDmsVn.Bootstrap5WinFormUI.dll` | `AB7EA1DEE9AB10809E239BBD4A2A8B93940C9443F9E77B87544BCA7375D25155` |
+| `artifacts/bus04/final45-bin/negative-net48/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `D0AB52EC5755C2CDA09F188AF970F3385E119D9F8E7A652AE8FE4AA64F43FE64` |
+| `artifacts/bus04/final45-bin/negative-net48/MyDmsVn.Bootstrap5WinFormUI.dll` | `65784E9F3535C740339F4C59AF1228136ED448A5DAE944EB5D4220E02CA2FFAF` |
+| `artifacts/bus04/final45-bin/negative-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe` | `D1DAE16C49EB2CA25EB123C045141C3EE02E9E1392F01184FE6ED9846C00617A` |
+| `artifacts/bus04/final45-bin/negative-net8/MyDmsVn.Bootstrap5WinFormUI.dll` | `087AEB6E4931C483E86272106B3655D46EFCA73EB559045FB1C5FDFA0F10A876` |
+| `artifacts/bus04/final45-bin/negative-net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.dll` | `F92AFDED35E4EC2DE76A4DA92EB8ADA3C529BBD5292385C0B6FD00BC422FB087` |

@@ -42,6 +42,27 @@ internal static class BusyOverlayScenario
                 return RunFocusExceptionProof(log, focusExceptionProof);
             using var form = new Form { Text = "BUS-01 native child-layer proof", StartPosition = FormStartPosition.Manual, Location = new Point(80, 80), ClientSize = new Size(940, 680) };
             deadline.Track(form);
+            var resourceProof = Environment.GetEnvironmentVariable("BUS_RESOURCE_PROOF");
+            if (resourceProof == "isolated" || resourceProof == "control" || resourceProof == "uia-only" || resourceProof == "uia-control")
+            {
+                form.Show(); form.Activate();
+                Wait(() => form.Visible && GetForegroundWindow() == form.Handle, "resource foreground");
+                log.WriteLine("DIAGNOSTIC resource=" + resourceProof);
+                if (resourceProof == "uia-only" || resourceProof == "uia-control")
+                {
+                    using var first = new Button { Text = "First native button", Bounds = new Rectangle(20, 20, 180, 40) };
+                    using var second = new Button { Text = "Second native button", Bounds = new Rectangle(220, 20, 180, 40) };
+                    form.Controls.AddRange(new Control[] { first, second });
+                    var clicks = 0;
+                    first.Click += (_, _) => clicks++;
+                    second.Click += (_, _) => clicks++;
+                    InvokeUia(first, log); InvokeUia(second, log);
+                    Wait(() => clicks == 2, "isolated native UIA callbacks");
+                    ResourceSoak(form, fallback, log, resourceProof == "uia-control");
+                }
+                else ResourceSoak(form, fallback, log, resourceProof == "control");
+                return 0;
+            }
             using var tabs = new TabControl { Bounds = new Rectangle(10, 10, 760, 620) };
             var page = new TabPage("Probe");
             tabs.TabPages.Add(page);
@@ -129,9 +150,13 @@ internal static class BusyOverlayScenario
                         Require(contentClicks == 0 && cancelClicks == Array.IndexOf(new byte[] { 0, 89, 255 }, alpha) + 1 && outsideClicks == cancelClicks, "Queued input routing failed.");
                         log.WriteLine($"PASS alpha={alpha}; ContentClicks={contentClicks}; CancelClicks={cancelClicks}; OutsideClicks={outsideClicks}; selection={selection}/{selectedLength}; scroll={scrollbar.Value}; ProductionFilterOnly=true");
                     }
-                    InvokeUia(cancel, log); Wait(() => cancelClicks == 4, "UIA Cancel callback");
-                    InvokeUia(outside, log); Wait(() => outsideClicks == 4, "UIA ordinary Button callback");
-                    log.WriteLine("PASS UIA Invoke Cancel and ordinary outside Button");
+                    if (Environment.GetEnvironmentVariable("BUS_RESOURCE_PROOF") != "no-uia")
+                    {
+                        InvokeUia(cancel, log); Wait(() => cancelClicks == 4, "UIA Cancel callback");
+                        InvokeUia(outside, log); Wait(() => outsideClicks == 4, "UIA ordinary Button callback");
+                        log.WriteLine("PASS UIA Invoke Cancel and ordinary outside Button");
+                    }
+                    else log.WriteLine("DIAGNOSTIC skipped external UIA client and Invoke assertions");
                     host.BackdropOpacity = .35;
                     Bitmap? previousLive = null;
                     try
@@ -274,24 +299,54 @@ internal static class BusyOverlayScenario
         finally { Application.ThreadException -= handler; }
     }
 
-    private static void ResourceSoak(Form form, bool fallback, TextWriter log)
+    private static void ResourceSoak(Form form, bool fallback, TextWriter log, bool controlOnly = false)
     {
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        using var counts = Process.GetCurrentProcess();
+        var diagnostic = Environment.GetEnvironmentVariable("BUS_RESOURCE_PROOF") != null;
+        var cycleNumber = 0;
         Action cycle = () =>
         {
-            using var host = new BootstrapBusyOverlayHost(new TextBox()) { Bounds = new Rectangle(780, 200, 150, 100) };
-            form.Controls.Add(host);
-            using var token = host.Begin(new BusyPresentation("soak", () => { }));
-            Wait(() => host.RenderMode != BootstrapBusyOverlayRenderMode.None, "soak delay");
-            Require(host.RenderMode == (fallback ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.NativeLayered), "Soak actual mode");
-            var handles = Owned(host).Where(c => c.IsHandleCreated).Select(c => c.Handle).ToArray();
-            typeof(Control).GetMethod("RecreateHandle", flags)!.Invoke(host, null);
-            Require(host.RenderMode == BootstrapBusyOverlayRenderMode.None, "Recreate must cancel presentation");
-            token.Dispose(); host.Dispose();
-            Require(!handles.Any(IsWindow), "Soak stale owned HWND");
-            Require(!(bool)typeof(BootstrapBusyOverlayHost).GetProperty("InputFilterInstalled", flags)!.GetValue(host)!, "Soak stale filter");
-            Require(typeof(BootstrapBusyOverlayHost).GetField("_owner", flags)!.GetValue(host) is null, "Soak stale owner subscription");
-            Application.DoEvents();
+            cycleNumber++;
+            var beforeUser = GetGuiResources(counts.Handle, 1);
+            var beforeGdi = GetGuiResources(counts.Handle, 0);
+            if (controlOnly)
+            {
+                using var panel = new Panel { Bounds = new Rectangle(780, 200, 150, 100) };
+                using var editor = new TextBox { Dock = DockStyle.Fill };
+                panel.Controls.Add(editor); form.Controls.Add(panel);
+                using var timer = new System.Windows.Forms.Timer { Interval = 150 };
+                var fired = false;
+                timer.Tick += (_, _) => { timer.Stop(); fired = true; };
+                timer.Start(); Wait(() => fired, "control delay");
+                var windows = Owned(panel).Where(c => c.IsHandleCreated).Select(c => c.Handle).ToArray();
+                typeof(Control).GetMethod("RecreateHandle", flags)!.Invoke(panel, null);
+                panel.Dispose(); timer.Dispose();
+                Require(!windows.Any(IsWindow), "Control stale HWND");
+                Application.DoEvents();
+            }
+            else
+            {
+                using var host = new BootstrapBusyOverlayHost(new TextBox()) { Bounds = new Rectangle(780, 200, 150, 100) };
+                form.Controls.Add(host);
+                using var token = host.Begin(new BusyPresentation("soak", () => { }));
+                Wait(() => host.RenderMode != BootstrapBusyOverlayRenderMode.None, "soak delay");
+                Require(host.RenderMode == (fallback ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.NativeLayered), "Soak actual mode");
+                var handles = Owned(host).Where(c => c.IsHandleCreated).Select(c => c.Handle).ToArray();
+                typeof(Control).GetMethod("RecreateHandle", flags)!.Invoke(host, null);
+                Require(host.RenderMode == BootstrapBusyOverlayRenderMode.None, "Recreate must cancel presentation");
+                token.Dispose(); host.Dispose();
+                Require(!handles.Any(IsWindow), "Soak stale owned HWND");
+                Require(!(bool)typeof(BootstrapBusyOverlayHost).GetProperty("InputFilterInstalled", flags)!.GetValue(host)!, "Soak stale filter");
+                Require(typeof(BootstrapBusyOverlayHost).GetField("_owner", flags)!.GetValue(host) is null, "Soak stale owner subscription");
+                Application.DoEvents();
+            }
+            if (diagnostic)
+            {
+                var afterUser = GetGuiResources(counts.Handle, 1); var afterGdi = GetGuiResources(counts.Handle, 0);
+                log.WriteLine($"CYCLE {cycleNumber}; USER={beforeUser}->{afterUser}; GDI={beforeGdi}->{afterGdi}; thread={System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                if (afterUser != beforeUser) LogOwnedWindows(counts, log);
+            }
         };
         for (var i = 0; i < 10; i++) cycle();
         using var process = Process.GetCurrentProcess();
@@ -439,9 +494,13 @@ internal static class BusyOverlayScenario
     {
         currentDeadline?.Check();
         var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
-        using var graphics = Graphics.FromImage(bitmap);
-        graphics.CopyFromScreen(form.PointToScreen(Point.Empty), Point.Empty, bitmap.Size, CopyPixelOperation.SourceCopy);
-        return bitmap;
+        try
+        {
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.CopyFromScreen(form.PointToScreen(Point.Empty), Point.Empty, bitmap.Size, CopyPixelOperation.SourceCopy);
+            return bitmap;
+        }
+        catch { bitmap.Dispose(); throw; }
     }
     private static Color Blend(Color color, byte alpha) => Color.FromArgb((color.R * (255 - alpha) + Tint.R * alpha + 127) / 255, (color.G * (255 - alpha) + Tint.G * alpha + 127) / 255, (color.B * (255 - alpha) + Tint.B * alpha + 127) / 255);
     private static int Changes(Bitmap first, Bitmap second, Form form, Control control)

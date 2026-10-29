@@ -16,7 +16,7 @@ public sealed class BusyOverlayDemoFormTests
     [Test]
     public void LiveTimerNestedCompletionCancelHideShowAndDispose()
     {
-        var form = new BusyOverlayDemoForm();
+        using var form = new BusyOverlayDemoForm();
         form.Show();
         var host = All(form).OfType<BootstrapBusyOverlayHost>().Single();
         var buttons = All(form).OfType<Button>().Where(b => b.AccessibleName?.StartsWith("Busy ") == true).ToDictionary(b => b.AccessibleName!);

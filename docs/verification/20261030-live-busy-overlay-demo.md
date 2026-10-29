@@ -41,3 +41,9 @@ Bước nghiệm thu tiếp theo trong consumer/test host có adapter ProjectRef
 ## Giới hạn/trạng thái
 
 BUS-05 có source/tests và runtime prerequisite proof physical100; physical125 regression, SourceGrid acceptance, visual demo/clip và Owner acceptance còn mở. BUS-04 vẫn BLOCKED: strict USER+1 ở net48 x86 live/net48 x64 fallback; physical mixed-DPI chưa chạy. BUS-06 chưa thực hiện. Không tuyên bố full BUS acceptance hoặc resource PASS.
+
+## Cleanup harness sau review toàn nhánh
+
+Candidate `bf3946b` + commit cleanup/diagnostic kế tiếp: `LiveTimerNestedCompletionCancelHideShowAndDispose` dùng `using var form`, vẫn explicit Dispose trước hậu điều kiện. Assertion/pumping lỗi nay cũng dispose form/timer/theme subscription. Không đổi production demo hoặc behavior BUS-05. Final focused filter `FullyQualifiedName~BootstrapBusy|FullyQualifiedName~BusyOverlayDemoFormTests`: mỗi TFM discovered/executed97, PASS97, FAIL0, SKIP0; net48 13.5557s, net8 13.9752s. STA tuần tự, hang diagnostics5m. Đây là95 Busy regressions +2 demo cases, không phải rerun toàn bộ59-case BUS-05 representative suite. Actual gallery visual proof không chạy lại vì diff chỉ harness; evidence gallery cũ giữ candidate cũ, không nâng thành proof mới.
+
+Resource counterfactual và normal final helper matrix nằm trong [BUS lifecycle evidence](20261030-live-busy-overlay-lifecycle.md#bus-0405-cleanup-harness-và-đối-chứng-user1-sau-review-toàn-nhánh). UIA-prefix/plain-control fallback process có USER+1 dù không tạo overlay host; chưa xác định native object/allocation stack. Không đổi resource gate hoặc trạng thái provisional BUS-05; physical125/SourceGrid/Owner acceptance vẫn mở.
