@@ -19,7 +19,7 @@ internal static class RoundedPopupScenario
 {
     private const int CaptureMargin = 12;
 
-    internal static int Run(string outputDirectory, bool inputRowsOnly = false)
+    internal static int Run(string outputDirectory, bool inputRowsOnly = false, bool themePalette = false)
     {
         if (string.IsNullOrWhiteSpace(outputDirectory))
         {
@@ -43,7 +43,7 @@ internal static class RoundedPopupScenario
                 foreach (var mode in new[] { BootstrapThemeMode.Light, BootstrapThemeMode.Dark })
                 {
                     if (inputRowsOnly) CaptureInputRows(outputDirectory, mode);
-                    else CaptureMode(outputDirectory, mode);
+                    else CaptureMode(outputDirectory, mode, themePalette);
                 }
             }
             catch (Exception exception)
@@ -64,7 +64,7 @@ internal static class RoundedPopupScenario
         return 0;
     }
 
-    private static void CaptureMode(string outputDirectory, BootstrapThemeMode mode)
+    private static void CaptureMode(string outputDirectory, BootstrapThemeMode mode, bool themePalette)
     {
         BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(mode);
         using var form = new PatternForm
@@ -105,7 +105,7 @@ internal static class RoundedPopupScenario
                 new PopupRow(4, "Lookup four")
             }
         };
-        lookup.ResultsGrid.BackgroundColor = Color.Fuchsia;
+        if (!themePalette) lookup.ResultsGrid.BackgroundColor = Color.Fuchsia;
         form.Controls.Add(select);
         form.Controls.Add(lookup);
         form.Show();
@@ -124,7 +124,8 @@ internal static class RoundedPopupScenario
             selectDropDown,
             ScreenBounds(selectContent),
             Rectangle.Empty,
-            expectFuchsiaContent: false);
+            expectFuchsiaContent: false,
+            themePalette: themePalette);
         InvokeInternal(select, "CloseDropDownInternal", true);
         PumpMessages();
 
@@ -142,7 +143,8 @@ internal static class RoundedPopupScenario
             lookupDropDown,
             ScreenBounds(lookup.ResultsGrid),
             ScreenBounds(footer),
-            expectFuchsiaContent: true);
+            expectFuchsiaContent: !themePalette,
+            themePalette: themePalette);
         lookup.CloseDropDown();
         PumpMessages();
     }
@@ -155,7 +157,8 @@ internal static class RoundedPopupScenario
         ToolStripDropDown popup,
         Rectangle contentBounds,
         Rectangle footerBounds,
-        bool expectFuchsiaContent)
+        bool expectFuchsiaContent,
+        bool themePalette)
     {
         var popupBounds = popup.Bounds;
         if (popupBounds.Width <= 0 || popupBounds.Height <= 0)
@@ -203,6 +206,9 @@ internal static class RoundedPopupScenario
             "content.bounds=" + Format(contentBounds),
             "footer.bounds=" + (footerBounds.IsEmpty ? "none" : Format(footerBounds)),
             "screen=" + Screen.FromControl(owner).DeviceName,
+            "capture.palette=" + (themePalette ? "theme-default" : "fuchsia-stress"),
+            "content.background=" + (controlName == "lookup" ? ColorTranslator.ToHtml(((BootstrapLookupBox)owner).ResultsGrid.BackgroundColor) : "n/a"),
+            "theme.surface=" + ColorTranslator.ToHtml(theme.Colors.Surface),
             "fuchsia.pixels=" + CountNear(bitmap, Color.Fuchsia, 8)
         });
         Require(owner.DeviceDpi == GetDpiForWindow(owner.Handle), controlName + ": managed/native owner DPI differ.");
