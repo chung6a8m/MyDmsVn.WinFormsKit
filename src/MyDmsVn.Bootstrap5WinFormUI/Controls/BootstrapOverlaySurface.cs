@@ -187,9 +187,18 @@ internal sealed class BootstrapOverlaySurface : Panel
             return candidate;
         }
 
+        // At this extent neither requested radius nor border is normalized/clamped, so the
+        // actual insets are the conservative insets and stay constant if the box grows.
+        var referenceExtent = GetConservativeReferenceExtent();
+        var fallback = new Size(
+            Math.Max(referenceExtent, conservativeCandidate.Width),
+            Math.Max(referenceExtent, conservativeCandidate.Height));
+        var fallbackInsets = GetEffectiveContentInsets(fallback);
+        var fallbackContent = MeasureContent(proposedSize, fallbackInsets);
+        // Charge the measured content against these final, stable insets, not old candidates.
         return new Size(
-            Math.Max(candidate.Width, conservativeCandidate.Width),
-            Math.Max(candidate.Height, conservativeCandidate.Height));
+            Math.Max(fallback.Width, SaturateSize((long)fallbackContent.Width + fallbackInsets.Horizontal)),
+            Math.Max(fallback.Height, SaturateSize((long)fallbackContent.Height + fallbackInsets.Vertical)));
     }
 
     protected override void OnLayout(LayoutEventArgs levent)
@@ -331,7 +340,7 @@ internal sealed class BootstrapOverlaySurface : Panel
 
     private Padding GetConservativeContentInsets()
     {
-        var extent = Math.Max(1, SaturateCeiling(Math.Max(1f, _radius * 2f)));
+        var extent = GetConservativeReferenceExtent();
         var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
             new RectangleF(0f, 0f, extent, extent),
             new CornerRadius(_radius),
@@ -339,6 +348,12 @@ internal sealed class BootstrapOverlaySurface : Panel
         return AddPadding(
             geometry.GetDecorationInsets(AntiAliasClipAllowance),
             DpiScaler.Scale(_logicalContentPadding, _dpi));
+    }
+
+    private int GetConservativeReferenceExtent()
+    {
+        // Include border and raster guard even for radius zero and very narrow content.
+        return SaturateCeiling((2f * Math.Max(_radius, _borderWidth + AntiAliasClipAllowance)) + 2f);
     }
 
     private Size MeasureCandidate(Size proposedSize, Padding insets)

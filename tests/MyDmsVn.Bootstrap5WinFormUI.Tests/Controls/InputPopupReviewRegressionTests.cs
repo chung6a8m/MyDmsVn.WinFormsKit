@@ -65,13 +65,21 @@ public sealed class InputPopupReviewRegressionTests
         BootstrapRoundedSurfacePainter.Paint(graphics, geometry, Color.White, Color.Black);
 
         // Analytic circle coverage, independent of paths/Regions produced by the implementation.
-        for (var y = 0; y < 4; y++)
-        for (var x = 0; x < 4; x++)
+        var corners = new[] { radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft };
+        for (var corner = 0; corner < corners.Length; corner++)
         {
-            var dx = 4 - (x + 0.5d);
-            var dy = 4 - (y + 0.5d);
-            if (Math.Sqrt((dx * dx) + (dy * dy)) > 4.75d)
-                Assert.That(bitmap.GetPixel(x, y).A, Is.Zero, $"Outside rounded contour ({x},{y}), border={borderWidth}");
+            var radius = corners[corner];
+            for (var y = 0; y < radius; y++)
+            for (var x = 0; x < radius; x++)
+            {
+                var dx = radius - (x + 0.5d);
+                var dy = radius - (y + 0.5d);
+                var pixelX = corner == 0 || corner == 3 ? x : bitmap.Width - 1 - x;
+                var pixelY = corner < 2 ? y : bitmap.Height - 1 - y;
+                if (Math.Sqrt((dx * dx) + (dy * dy)) > radius + 0.75d)
+                    Assert.That(bitmap.GetPixel(pixelX, pixelY).A, Is.Zero,
+                        $"Outside rounded corner {corner} ({x},{y}), border={borderWidth}");
+            }
         }
         if (mixedCorners) Assert.That(bitmap.GetPixel(139, 0).A, Is.EqualTo(255), "Square corner stays square.");
     }
@@ -104,6 +112,36 @@ public sealed class InputPopupReviewRegressionTests
             Assert.That(content.Height, Is.GreaterThanOrEqualTo(height));
             Assert.That(surface.GetPreferredSize(Size.Empty), Is.EqualTo(preferred));
         }));
+
+        var previousTheme = BootstrapThemeManager.CurrentTheme;
+        try
+        {
+            BootstrapThemeManager.CurrentTheme = new BootstrapTheme(BootstrapThemeMode.Light,
+                BootstrapThemeColors.CreateDefault(BootstrapThemeMode.Light), metrics, BootstrapThemeTypography.Default);
+            using var form = new Form { ClientSize = new Size(600, 400), ShowInTaskbar = false };
+            using var target = new Button { Bounds = new Rectangle(20, 20, 100, 30) };
+            using var popoverContent = new FixedPreferredControl(new Size(width, height));
+            using var popover = new BootstrapPopover
+            {
+                Target = target, Content = popoverContent, BorderRadius = 0, ContentPadding = Padding.Empty,
+                Trigger = BootstrapPopoverTrigger.Manual
+            };
+            form.Controls.Add(target);
+            form.Show();
+            popover.Show();
+            Application.DoEvents();
+            Assert.Multiple((Action)(() =>
+            {
+                Assert.That(popover.IsOpen, Is.True);
+                Assert.That(popoverContent.Width, Is.GreaterThanOrEqualTo(width));
+                Assert.That(popoverContent.Height, Is.GreaterThanOrEqualTo(height));
+            }));
+            popover.Hide();
+        }
+        finally
+        {
+            BootstrapThemeManager.CurrentTheme = previousTheme;
+        }
     }
 
     [TestCase(false)]
