@@ -58,12 +58,12 @@ internal static class Program
     private static int RunScenario(string[] args)
     {
         if (args.Length != 3 || !string.Equals(args[0], "--scenario", StringComparison.Ordinal) ||
-            !string.Equals(args[1], "rounded-popup", StringComparison.Ordinal))
+            (args[1] != "rounded-popup" && args[1] != "input-row"))
         {
-            throw new ArgumentException("Expected --scenario rounded-popup <output-directory>.");
+            throw new ArgumentException("Expected --scenario rounded-popup|input-row <output-directory>.");
         }
 
-        return RoundedPopupScenario.Run(args[2]);
+        return RoundedPopupScenario.Run(args[2], inputRowsOnly: args[1] == "input-row");
     }
 
     private static void Verify(BootstrapListView list, BootstrapThemeMode mode)

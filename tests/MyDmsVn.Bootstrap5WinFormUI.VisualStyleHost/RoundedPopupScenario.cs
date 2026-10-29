@@ -19,7 +19,7 @@ internal static class RoundedPopupScenario
 {
     private const int CaptureMargin = 12;
 
-    internal static int Run(string outputDirectory)
+    internal static int Run(string outputDirectory, bool inputRowsOnly = false)
     {
         if (string.IsNullOrWhiteSpace(outputDirectory))
         {
@@ -42,7 +42,8 @@ internal static class RoundedPopupScenario
             {
                 foreach (var mode in new[] { BootstrapThemeMode.Light, BootstrapThemeMode.Dark })
                 {
-                    CaptureMode(outputDirectory, mode);
+                    if (inputRowsOnly) CaptureInputRows(outputDirectory, mode);
+                    else CaptureMode(outputDirectory, mode);
                 }
             }
             catch (Exception exception)
@@ -184,9 +185,6 @@ internal static class RoundedPopupScenario
         var radius = Math.Max(0f, logicalRadius < 0
             ? theme.Metrics.Radius * owner.DeviceDpi / 96f
             : logicalRadius * owner.DeviceDpi / 96f);
-        RequireEdgeContinuity(bitmap, popupInCapture, theme.Colors.Border, radius, controlName);
-        RequireCornerSymmetry(bitmap, popupInCapture, theme.Colors.Border, theme.Colors.Surface, radius, controlName);
-        RequireCleanShellBand(bitmap, popupInCapture, contentInCapture, radius, expectFuchsiaContent, controlName);
         File.WriteAllLines(Path.Combine(outputDirectory, prefix + ".txt"), new[]
         {
             "mode=" + mode,
@@ -205,12 +203,93 @@ internal static class RoundedPopupScenario
             "content.bounds=" + Format(contentBounds),
             "footer.bounds=" + (footerBounds.IsEmpty ? "none" : Format(footerBounds)),
             "screen=" + Screen.FromControl(owner).DeviceName,
-            "fuchsia.pixels=" + CountNear(bitmap, Color.Fuchsia, 8),
+            "fuchsia.pixels=" + CountNear(bitmap, Color.Fuchsia, 8)
+        });
+        Require(owner.DeviceDpi == GetDpiForWindow(owner.Handle), controlName + ": managed/native owner DPI differ.");
+        Require(owner.DeviceDpi == GetDpiForWindow(popup.Handle), controlName + ": owner/popup DPI differ.");
+        Require(FormatAwarenessContext(GetWindowDpiAwarenessContext(popup.Handle)) == "PerMonitorV2", controlName + ": popup must be PerMonitorV2.");
+        RequireEdgeContinuity(bitmap, popupInCapture, theme.Colors.Border, radius, controlName);
+        RequireCornerSymmetry(bitmap, popupInCapture, theme.Colors.Border, theme.Colors.Surface, radius, controlName);
+        RequireCleanShellBand(bitmap, popupInCapture, contentInCapture, radius, expectFuchsiaContent, controlName);
+        File.AppendAllLines(Path.Combine(outputDirectory, prefix + ".txt"), new[]
+        {
             "oracle.edge-continuity=pass",
             "oracle.corner-symmetry=pass",
             "oracle.shell-band=pass",
             "oracle.content-containment=pass"
         });
+    }
+
+    private static void CaptureInputRows(string outputDirectory, BootstrapThemeMode mode)
+    {
+        BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(mode);
+        foreach (var availableWidth in new[] { 600, 430 })
+        {
+            using var form = new PatternForm
+            {
+                AutoScaleMode = AutoScaleMode.None,
+                ClientSize = new Size(720, 240), TopMost = true, ShowInTaskbar = false,
+                StartPosition = FormStartPosition.Manual, Location = ResolveLocation(new Size(720, 240)),
+                Text = "Input row physical DPI capture"
+            };
+            using var flow = new FlowLayoutPanel
+            {
+                AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true,
+                MaximumSize = new Size(availableWidth, 0), Location = new Point(24, 24),
+                Padding = new Padding(8), BackColor = BootstrapThemeManager.CurrentTheme.Colors.Surface
+            };
+            using var text = new BootstrapTextBox { Width = 210, Text = "TextBox", Margin = new Padding(3) };
+            using var combo = new BootstrapComboBox { Width = 140, DropDownStyle = ComboBoxStyle.DropDownList, Margin = new Padding(3) };
+            combo.Items.AddRange(new object[] { "ComboBox", "Native item two" });
+            combo.SelectedIndex = 0;
+            using var button = new BootstrapButton { Width = 110, Text = "Refresh", Margin = new Padding(3) };
+            flow.Controls.Add(text);
+            flow.Controls.Add(combo);
+            flow.Controls.Add(button);
+            form.Controls.Add(flow);
+            flow.PerformLayout();
+            form.Show();
+            PumpMessages();
+            flow.PerformLayout();
+            PumpMessages();
+            var settledHeight = flow.Height;
+            flow.PerformLayout();
+            PumpMessages();
+            var dpi = GetDpiForWindow(form.Handle);
+            var prefix = mode.ToString().ToLowerInvariant() + "-input-row-" + availableWidth;
+            var captureBounds = Rectangle.Inflate(ScreenBounds(flow), CaptureMargin, CaptureMargin);
+            using var bitmap = new Bitmap(captureBounds.Width, captureBounds.Height, PixelFormat.Format32bppArgb);
+            using (var graphics = Graphics.FromImage(bitmap))
+                graphics.CopyFromScreen(captureBounds.Location, Point.Empty, captureBounds.Size, CopyPixelOperation.SourceCopy);
+            bitmap.Save(Path.Combine(outputDirectory, prefix + ".png"), ImageFormat.Png);
+            Require(GetWindowRect(combo.Handle, out var nativeBounds), "Cannot measure native ComboBox bounds.");
+            File.WriteAllLines(Path.Combine(outputDirectory, prefix + ".txt"), new[]
+            {
+                "mode=" + mode, "available.width=" + availableWidth, "window.dpi=" + dpi,
+                "form.dpi=" + form.DeviceDpi, "text.dpi=" + text.DeviceDpi, "combo.dpi=" + combo.DeviceDpi,
+                "thread.awareness=" + FormatAwarenessContext(GetThreadDpiAwarenessContext()),
+                "window.awareness=" + FormatAwarenessContext(GetWindowDpiAwarenessContext(form.Handle)),
+                "awareness.source=" + AwarenessSource, "screen=" + Screen.FromControl(form).DeviceName,
+                "text.bounds=" + Format(text.Bounds), "combo.bounds=" + Format(combo.Bounds),
+                "button.bounds=" + Format(button.Bounds), "flow.display=" + Format(flow.DisplayRectangle),
+                "combo.native.height=" + (nativeBounds.Bottom - nativeBounds.Top),
+                "combo.selection.height=" + SendMessage(combo.Handle, 0x0154, new IntPtr(-1), IntPtr.Zero),
+                "combo.font.height=" + combo.Font.Height, "capture.bounds=" + Format(captureBounds)
+            });
+            Require(form.DeviceDpi == dpi && text.DeviceDpi == dpi && combo.DeviceDpi == dpi &&
+                GetDpiForWindow(text.Handle) == dpi && GetDpiForWindow(combo.Handle) == dpi, "Input row managed/native DPI differ.");
+            Require(FormatAwarenessContext(GetWindowDpiAwarenessContext(form.Handle)) == "PerMonitorV2", "Input row must be PerMonitorV2.");
+            Require(text.Height == combo.Height && text.Top == combo.Top &&
+                nativeBounds.Bottom - nativeBounds.Top == combo.Height, "TextBox/ComboBox native outer heights differ.");
+            foreach (Control child in flow.Controls)
+                Require(child.Bottom + child.Margin.Bottom <= flow.DisplayRectangle.Bottom, "Input row clips " + child.GetType().Name);
+            Require(flow.Height == settledHeight, "Repeated input layout grows.");
+            Require(availableWidth == 600 ? button.Top == combo.Top : button.Top > combo.Top, "Expected single/wrapped input row.");
+            File.AppendAllLines(Path.Combine(outputDirectory, prefix + ".txt"), new[]
+            {
+                "oracle.native-dpi=pass", "oracle.equal-height=pass", "oracle.flow-containment=pass", "oracle.stable-layout=pass"
+            });
+        }
     }
 
     private static void RequireEdgeContinuity(
@@ -471,7 +550,10 @@ internal static class RoundedPopupScenario
 
     private static bool IsBorderLike(Color actual, Color border, Color surface)
     {
-        if (!IsNear(actual, border, 8))
+        // Fractional strokes can cover only 75% of the outermost pixel at 120 DPI.
+        // Retain the edge oracle's RGB tolerance and nearest-color tests so surface,
+        // black and patterned backdrop cannot become a valid border intercept.
+        if (!IsNear(actual, border, 24))
         {
             return false;
         }
@@ -497,7 +579,7 @@ internal static class RoundedPopupScenario
 #if NET8_0_OR_GREATER
             return "Application.SetHighDpiMode(PerMonitorV2)";
 #else
-            return "app.net48.manifest:PerMonitorV2;App.config:System.Windows.Forms.DpiAwareness=PerMonitorV2";
+            return "app.net48.manifest:Windows10Compatibility;App.config:System.Windows.Forms.DpiAwareness=PerMonitorV2";
 #endif
         }
     }
@@ -562,6 +644,19 @@ internal static class RoundedPopupScenario
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr window, out NativeRect rectangle);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left, Top, Right, Bottom;
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetThreadDpiAwarenessContext();

@@ -14,6 +14,15 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 [NonParallelizable]
 public sealed class BootstrapOverlayNativeVisualRegressionTests
 {
+    [Test]
+    public void CaptureColorOracleFindsContentBetweenCoarseGridPoints()
+    {
+        using var bitmap = new Bitmap(120, 120);
+        using (var graphics = Graphics.FromImage(bitmap)) graphics.Clear(Color.White);
+        for (var index = 1; index <= 8; index++) bitmap.SetPixel(1, index, Color.FromArgb(index * 20, 0, 0));
+        Assert.That(CountDistinctColors(bitmap), Is.EqualTo(9), "Sparse sampling must not misclassify real pixels between sample points as a blank capture.");
+    }
+
     [TestCase(0xE7EAED, false, true)]
     [TestCase(0x41484E, true, true)]
     [TestCase(0xFFFFFF, false, false)]
@@ -38,7 +47,14 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
         try
         {
             RunCaptureHost(outputDirectory, "input-row");
-            Assert.That(Directory.GetFiles(outputDirectory, "*.png"), Has.Length.EqualTo(4));
+            var captures = Directory.GetFiles(outputDirectory, "*.png");
+            Assert.That(captures, Has.Length.EqualTo(4));
+            foreach (var capture in captures)
+            {
+                using var bitmap = new Bitmap(capture);
+                Assert.That(CountTransparentPixels(bitmap), Is.Zero, capture);
+                Assert.That(CountDistinctColors(bitmap), Is.GreaterThan(8), capture + " is blank or occluded.");
+            }
             var metadata = Directory.GetFiles(outputDirectory, "*.txt").SelectMany(File.ReadAllLines).ToArray();
             Assert.That(metadata.Count(line => line == "oracle.native-dpi=pass"), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line == "oracle.equal-height=pass"), Is.EqualTo(4));
@@ -66,7 +82,7 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
                     Assert.That(bitmap.Width, Is.GreaterThan(80), capture);
                     Assert.That(bitmap.Height, Is.GreaterThan(40), capture);
                     Assert.That(CountTransparentPixels(bitmap), Is.Zero, capture + " must be an opaque desktop capture.");
-                    Assert.That(CountDistinctSampledColors(bitmap), Is.GreaterThan(8), capture + " is blank or occluded.");
+                    Assert.That(CountDistinctColors(bitmap), Is.GreaterThan(8), capture + " is blank or occluded.");
                 }));
             }
 
@@ -139,12 +155,15 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
         return count;
     }
 
-    private static int CountDistinctSampledColors(Bitmap bitmap)
+    private static int CountDistinctColors(Bitmap bitmap)
     {
         var colors = new System.Collections.Generic.HashSet<int>();
-        for (var y = 0; y < bitmap.Height; y += Math.Max(1, bitmap.Height / 24))
-        for (var x = 0; x < bitmap.Width; x += Math.Max(1, bitmap.Width / 24))
+        for (var y = 0; y < bitmap.Height; y++)
+        for (var x = 0; x < bitmap.Width; x++)
+        {
             colors.Add(bitmap.GetPixel(x, y).ToArgb());
+            if (colors.Count > 8) return colors.Count;
+        }
         return colors.Count;
     }
 }
