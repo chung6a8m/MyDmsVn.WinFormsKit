@@ -115,7 +115,9 @@ internal static class BootstrapRoundedSurfacePainter
         var data = layer.LockBits(new Rectangle(Point.Empty, layer.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppPArgb);
         try { Marshal.Copy(combined, 0, data.Scan0, combined.Length); }
         finally { layer.UnlockBits(data); }
-        graphics.DrawImageUnscaled(layer, pixels.Location);
+        // Geometry and masks already use destination coordinates. Explicit source pixels
+        // avoid the physical-size scaling of DrawImageUnscaled when Graphics DPI differs.
+        graphics.DrawImage(layer, pixels, 0, 0, layer.Width, layer.Height, GraphicsUnit.Pixel);
     }
 
     private static Bitmap CreateCoverageMask(Rectangle bounds, GraphicsPath path)
