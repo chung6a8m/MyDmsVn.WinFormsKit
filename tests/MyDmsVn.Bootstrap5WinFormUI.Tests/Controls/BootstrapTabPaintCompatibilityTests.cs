@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -14,6 +14,14 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 [NonParallelizable]
 public sealed class BootstrapTabPaintCompatibilityTests
 {
+    private BootstrapTheme? _originalTheme;
+
+    [SetUp]
+    public void SaveTheme() => _originalTheme = BootstrapThemeManager.CurrentTheme;
+
+    [TearDown]
+    public void RestoreTheme() => BootstrapThemeManager.CurrentTheme = _originalTheme!;
+
     [Test]
     public void DerivedOnDrawItem_AndUserHandlers_PreserveOrderingGraphicsAndOutput()
     {
@@ -153,11 +161,13 @@ public sealed class BootstrapTabPaintCompatibilityTests
         Assert.That(palette.Accent, Is.EqualTo(expectedAccent));
     }
 
-    [Test]
-    public void ClosableCaption_IsCenteredInRemainingContent()
+    [TestCase(BootstrapThemeMode.Light)]
+    [TestCase(BootstrapThemeMode.Dark)]
+    public void ClosableCaption_IsCenteredInRemainingContent(BootstrapThemeMode mode)
     {
+        BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(mode);
         using var host = new Form { ClientSize = new Size(360, 180) };
-        using var tabs = new DrawProbeTabs { Bounds = new Rectangle(0, 0, 320, 150), Fill = true, TabStyle = BootstrapTabStyle.Underline };
+        using var tabs = new CaptionDrawTabs { Bounds = new Rectangle(0, 0, 320, 150), Fill = true, TabStyle = BootstrapTabStyle.Underline };
         tabs.TabPages.Add(new TabPage("X"));
         tabs.TabPages.Add(new TabPage("Other"));
         tabs.SetTabClosable(tabs.TabPages[0], true);
@@ -171,40 +181,52 @@ public sealed class BootstrapTabPaintCompatibilityTests
 
         tabs.DrawForTest(new DrawItemEventArgs(graphics, tabs.Font, header, 0, DrawItemState.Selected));
 
-        var ink = BootstrapThemeManager.CurrentTheme.Colors.Primary;
+        var background = BootstrapThemeManager.CurrentTheme.Colors.Surface;
+        var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(BootstrapThemeManager.CurrentTheme.Metrics, tabs.DeviceDpi, -1);
+        var content = BootstrapTabControlRenderLogic.CalculateLayout(header, tabs.TabStyle, metrics, 0, Size.Empty, false, close).ContentBounds;
         var minX = bitmap.Width;
         var maxX = -1;
         for (var y = header.Top + 3; y < header.Bottom - 5; y++)
-        for (var x = header.Left + 8; x < close.Left - 4; x++)
+        for (var x = content.Left; x < content.Right; x++)
         {
             var pixel = bitmap.GetPixel(x, y);
-            if (Math.Abs(pixel.R - ink.R) > 32 || Math.Abs(pixel.G - ink.G) > 32 || Math.Abs(pixel.B - ink.B) > 32) continue;
+            // ClearType may produce only subpixel coverage for a thin glyph on Dark.
+            // Detect painted pixels against the known surface, rather than requiring solid foreground.
+            if (pixel.ToArgb() == background.ToArgb()) continue;
             minX = Math.Min(minX, x);
             maxX = Math.Max(maxX, x);
         }
 
         Assert.That(maxX, Is.GreaterThan(minX), "Caption pixels must be visible.");
-        var expectedCenter = (header.Left + 12 + close.Left - 4) / 2d;
+        var expectedCenter = (content.Left + content.Right) / 2d;
         Assert.That((minX + maxX) / 2d, Is.EqualTo(expectedCenter).Within(2),
             $"header={header}, close={close}, ink={minX}..{maxX}");
     }
 
-    [Test]
-    public void ItalicCaption_PreservesOverhangingInkWithinHeader()
+    [TestCase(BootstrapThemeMode.Light, false)]
+    [TestCase(BootstrapThemeMode.Light, true)]
+    [TestCase(BootstrapThemeMode.Dark, false)]
+    [TestCase(BootstrapThemeMode.Dark, true)]
+    public void ItalicCaption_PreservesOverhangingInkWithinHeader(BootstrapThemeMode mode, bool selected)
     {
+        BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(mode);
         using var font = new Font("Times New Roman", 16f, FontStyle.Italic);
         using var tabs = new CaptionDrawTabs { Font = font, TabStyle = BootstrapTabStyle.Underline };
         const string caption = "f";
         const TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
-            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding;
+            TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
         tabs.TabPages.Add(new TabPage(caption));
+        tabs.SelectedIndex = selected ? 0 : -1;
         var bounds = new Rectangle(0, 0, 120, 40);
         var metrics = BootstrapTabControlRenderLogic.ResolveMetrics(BootstrapThemeMetrics.Default, 96, -1);
         var layout = BootstrapTabControlRenderLogic.CalculateLayout(bounds, BootstrapTabStyle.Underline,
             metrics, 0, Size.Empty, false);
         var theme = BootstrapThemeManager.CurrentTheme;
-        var background = theme.Colors.Surface;
-        var foreground = theme.Colors.Primary;
+        var palette = BootstrapTabControlRenderLogic.ResolvePalette(theme.Colors, tabs.Variant, tabs.TabStyle,
+            selected, enabled: true, hovered: false);
+        var background = palette.Background;
+        var foreground = palette.Foreground;
+        Assert.That(tabs.SelectedIndex, Is.EqualTo(selected ? 0 : -1));
 
         using var actual = new Bitmap(bounds.Width, bounds.Height);
         using (var graphics = Graphics.FromImage(actual))
@@ -222,7 +244,8 @@ public sealed class BootstrapTabPaintCompatibilityTests
 
         var actualInk = CountForegroundPixels(actual, layout.ContentBounds, foreground, background);
         var referenceInk = CountForegroundPixels(reference, layout.ContentBounds, foreground, background);
-        TestContext.WriteLine($"actual={actualInk}, reference={referenceInk}, content={layout.ContentBounds}");
+        TestContext.WriteLine($"actual={actualInk}, reference={referenceInk}, content={layout.ContentBounds}, selected={selected}, theme={theme.Mode}");
+        Assert.That(referenceInk, Is.GreaterThan(0), "The reference must contain observable caption ink.");
         Assert.That(actualInk, Is.GreaterThanOrEqualTo(referenceInk - 1),
             "The native tab painter cropped italic caption ink compared with a generously bounded rendering.");
     }
@@ -267,6 +290,7 @@ public sealed class BootstrapTabPaintCompatibilityTests
     private sealed class CaptionDrawTabs : BootstrapTabControl
     {
         internal void DrawForTest(DrawItemEventArgs args) => OnDrawItem(args);
+        internal Rectangle CloseBounds(int index) => GetTabCloseButtonBounds(index);
     }
 
     private sealed class DrawProbeTabs : BootstrapTabControl
