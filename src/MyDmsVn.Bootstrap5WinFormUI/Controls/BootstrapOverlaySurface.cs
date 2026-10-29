@@ -77,6 +77,7 @@ internal sealed class BootstrapOverlaySurface : Panel
 
             _logicalBorderRadius = value;
             ResolveMetrics();
+            PerformLayout();
             ReplaceRegion();
             ReplaceContentHostRegion();
             Invalidate();

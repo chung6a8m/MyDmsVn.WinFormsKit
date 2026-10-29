@@ -251,4 +251,9 @@ public partial class BootstrapSelect
             _dropDownController.Reposition();
         }
     }
+
+    private void RefreshDropDownGeometryAndLayout()
+    {
+        _dropDownController?.RefreshGeometryAndLayout();
+    }
 }

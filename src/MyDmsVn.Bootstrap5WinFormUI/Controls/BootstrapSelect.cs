@@ -416,6 +416,7 @@ public partial class BootstrapSelect : UserControl, IBootstrapConnectedControl
             }
 
             _borderRadius = value;
+            RefreshDropDownGeometryAndLayout();
             Invalidate();
         }
     }

@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
 using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
+using MyDmsVn.Bootstrap5WinFormUI.Rendering;
 using MyDmsVn.Bootstrap5WinFormUI.Theme;
 using NUnit.Framework;
 
@@ -17,6 +18,123 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 [NonParallelizable]
 public sealed class BootstrapLookupPopupTests
 {
+    [Test]
+    public void LookupEmbeddedGridStaysBorderlessAcrossThemeAndReopen()
+    {
+        var originalTheme = BootstrapThemeManager.CurrentTheme;
+        try
+        {
+            using var standalone = new BootstrapDataGridView();
+            using var host = new Form();
+            using var lookup = CreateLookup();
+            host.Controls.Add(lookup);
+            host.Show();
+
+            lookup.OpenDropDown();
+            Application.DoEvents();
+            lookup.CloseDropDown();
+            BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Dark);
+            lookup.OpenDropDown();
+            Application.DoEvents();
+
+            Assert.Multiple((Action)(() =>
+            {
+                Assert.That(standalone.BorderStyle, Is.EqualTo(BorderStyle.FixedSingle));
+                Assert.That(lookup.ResultsGrid.BorderStyle, Is.EqualTo(BorderStyle.None));
+            }));
+        }
+        finally
+        {
+            BootstrapThemeManager.CurrentTheme = originalTheme;
+        }
+    }
+
+    [Test]
+    public void OwnedPopupMetricsFollowControllerDpiWithoutNativeDpiAssumptions()
+    {
+        using var host = new Form { Size = new Size(700, 600) };
+        using var lookup = CreateLookup();
+        host.Controls.Add(lookup);
+        host.Show();
+        lookup.OpenDropDown();
+        var content = (BootstrapLookupDropDownContent)lookup.ResultsGrid.Parent!;
+        var footer = content.Controls.Cast<Control>().Single(control => !ReferenceEquals(control, lookup.ResultsGrid));
+        var controller = GetController(lookup);
+
+        foreach (var dpi in new[] { 96, 120, 144 })
+        {
+            controller.ApplyOwnerDpiChange(dpi);
+            Assert.That(footer.Height, Is.EqualTo(DpiScaler.Scale(32, dpi)), $"effective dpi {dpi}");
+        }
+    }
+
+    [Test]
+    public void OpenPopupRadiusChangesWithoutRecreatingHandleOrSelection()
+    {
+        var products = new BindingList<Product>();
+        for (var index = 1; index <= 30; index++)
+        {
+            products.Add(new Product(index, $"Item {index:00}"));
+        }
+
+        using var host = new Form { Size = new Size(800, 700), StartPosition = FormStartPosition.Manual, Location = new Point(80, 80) };
+        using var lookup = new CaretLookupBox
+        {
+            Width = 280,
+            MaxDropDownHeight = 180,
+            DisplayMember = "Name",
+            ValueMember = "Id",
+            DataSource = products,
+            SearchDebounceMilliseconds = 0
+        };
+        host.Controls.Add(lookup);
+        host.Show();
+        lookup.Text = "Item";
+        lookup.OpenDropDown();
+        Application.DoEvents();
+        Assert.That(lookup.ResultsGrid.Rows.Count, Is.GreaterThan(15));
+        lookup.ResultsGrid.FirstDisplayedScrollingRowIndex = 15;
+        lookup.SetCaret(2, 2);
+        var content = (BootstrapLookupDropDownContent)lookup.ResultsGrid.Parent!;
+        var surface = (BootstrapOverlaySurface)content.Parent!.Parent!;
+        var popup = (BootstrapOverlayDropDown)surface.TopLevelControl!;
+        var popupHandle = popup.Handle;
+        var highlighted = lookup.HighlightedItem;
+        var query = lookup.Text;
+        var selectedValue = lookup.SelectedValue;
+        var valueChanged = 0;
+        var committed = 0;
+        var gridSelectionChanged = 0;
+        lookup.SelectedValueChanged += (_, _) => valueChanged++;
+        lookup.SelectionCommitted += (_, _) => committed++;
+        lookup.ResultsGrid.SelectionChanged += (_, _) => gridSelectionChanged++;
+
+        lookup.BorderRadius = 0;
+        Application.DoEvents();
+        var squareCornerVisible = popup.Region!.IsVisible(1f, 1f);
+        lookup.BorderRadius = 12;
+        Application.DoEvents();
+        var roundedCornerVisible = popup.Region!.IsVisible(1f, 1f);
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(popup.Handle, Is.EqualTo(popupHandle));
+            Assert.That(lookup.IsDropDownOpen, Is.True);
+            Assert.That(squareCornerVisible, Is.True);
+            Assert.That(roundedCornerVisible, Is.False);
+            Assert.That(lookup.ResultsGrid.FirstDisplayedScrollingRowIndex, Is.EqualTo(15),
+                "A radius-only refresh must not scroll back to the highlighted row.");
+            Assert.That(lookup.ResultsGrid.CurrentCell?.RowIndex, Is.EqualTo(0));
+            Assert.That(lookup.HighlightedItem, Is.SameAs(highlighted));
+            Assert.That(lookup.SelectedValue, Is.EqualTo(selectedValue));
+            Assert.That(lookup.Text, Is.EqualTo(query));
+            Assert.That(lookup.Caret, Is.EqualTo((2, 2)));
+            Assert.That(valueChanged, Is.Zero);
+            Assert.That(committed, Is.Zero);
+            Assert.That(gridSelectionChanged, Is.Zero);
+        }));
+    }
+
     [Test]
     public void OpenPopupReappliesSurfaceAndContentWhenThemeChanges()
     {
@@ -358,6 +476,17 @@ public sealed class BootstrapLookupPopupTests
         internal Product(int id, string name) { Id = id; Name = name; }
         public int Id { get; }
         public string Name { get; }
+    }
+
+    private sealed class CaretLookupBox : BootstrapLookupBox
+    {
+        internal (int Start, int Length) Caret => (Editor.SelectionStart, Editor.SelectionLength);
+
+        internal void SetCaret(int start, int length)
+        {
+            Editor.SelectionStart = start;
+            Editor.SelectionLength = length;
+        }
     }
 
     [DllImport("gdi32.dll")]

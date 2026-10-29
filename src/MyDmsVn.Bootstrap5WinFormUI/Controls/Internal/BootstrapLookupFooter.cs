@@ -32,7 +32,7 @@ internal sealed class BootstrapLookupFooter : Panel
         Controls.Add(_addNew);
         BootstrapThemeManager.ThemeChanged += OnThemeChanged;
         ApplyTheme();
-        ApplyDpi();
+        ApplyMetrics(DeviceDpi > 0 ? DeviceDpi : DpiScaler.DefaultDpi);
     }
 
     internal event EventHandler? RefreshRequested;
@@ -52,7 +52,7 @@ internal sealed class BootstrapLookupFooter : Panel
     protected override void OnDpiChangedAfterParent(EventArgs e)
     {
         base.OnDpiChangedAfterParent(e);
-        ApplyDpi();
+        ApplyMetrics(DeviceDpi > 0 ? DeviceDpi : DpiScaler.DefaultDpi);
     }
 
     protected override void Dispose(bool disposing)
@@ -83,9 +83,9 @@ internal sealed class BootstrapLookupFooter : Panel
         _addNew.ForeColor = colors.Text;
     }
 
-    private void ApplyDpi()
+    internal void ApplyMetrics(int dpi)
     {
-        var dpi = DeviceDpi > 0 ? DeviceDpi : DpiScaler.DefaultDpi;
+        if (dpi <= 0) throw new ArgumentOutOfRangeException(nameof(dpi));
         Height = DpiScaler.Scale(32, dpi);
         Padding = new Padding(DpiScaler.Scale(4, dpi), 0, DpiScaler.Scale(4, dpi), 0);
     }

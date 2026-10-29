@@ -441,6 +441,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
             }
 
             _borderRadius = value;
+            OnFrameworkBorderRadiusChanged();
             Invalidate();
         }
     }
@@ -449,6 +450,10 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
     public void Clear()
     {
         _editor.Clear();
+    }
+
+    internal virtual void OnFrameworkBorderRadiusChanged()
+    {
     }
 
     /// <summary>Selects all text in the native editor.</summary>
