@@ -56,5 +56,5 @@ Bảng HTML cục bộ: `artifacts/verification/20261029-owner-visual/working/in
 
 Đây là canonical visual set. Chưa chụp radius 0/nhỏ/lớn, viền dày, resize/theme/reopen pairwise hoặc physical 150%/200%; các mục đó **NOT RUN**. Full suite **không chạy lại** sau thay đổi helper-only `5dcf8af`; PASS 5.442 case của [stability evidence](20261029-input-popup-rendering-stability.md) thuộc source candidate cũ, có cùng production source. Native/geometry oracle không thay quyết định thẩm mỹ của Owner.
 
-- **Owner visual decision: PENDING**, chưa ghi APPROVED/CLOSED; chờ Owner xem bảng và nêu quyết định/phạm vi/finding.
+- **Owner visual decision: APPROVED ngày 29/10/2026** cho đúng bảng đã trình: canonical physical 100%/125%, Light/Dark, input một/hai dòng và Select/Lookup đang mở trên `net48`/`net8.0-windows`, candidate chụp `5dcf8afbe3d586ffed492b48e8197d6358e80934`. Owner trả lời: “Owner visual decision: Tôi approve.” Quyết định này không chuyển các trường hợp pairwise hoặc 150%/200% chưa chạy thành PASS và không đóng plan khi consumer acceptance còn mở.
 - **Consumer MyDmsVn acceptance: NOT RUN**, giữ riêng dù Owner chấp nhận ảnh toolkit.

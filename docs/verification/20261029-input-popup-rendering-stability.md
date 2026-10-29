@@ -103,9 +103,9 @@ Logs cuối ở `artifacts/stability-final2-build.log`, `stability-final2-full.l
 
 ## Các mục tiếp tục chưa hoàn tất
 
-[Bộ ảnh mới để Owner duyệt](20261029-input-popup-rendering-owner-visual-review.md) bổ sung capture physical 100%/125% với Lookup dùng palette theme chuẩn trên hai TFM; chưa có Owner decision.
+[Bộ ảnh Owner đã duyệt](20261029-input-popup-rendering-owner-visual-review.md) bổ sung capture physical 100%/125% với Lookup dùng palette theme chuẩn trên hai TFM; Owner APPROVED đúng phạm vi canonical được trình ngày 29/10/2026.
 
-- Owner visual decision: **PENDING**, chưa APPROVED/CLOSED.
+- Owner visual decision: **APPROVED** cho bộ ảnh canonical 100%/125% theo [report riêng](20261029-input-popup-rendering-owner-visual-review.md); đây là cập nhật sau candidate stability, không thay kết quả của candidate cũ.
 - Consumer MyDmsVn acceptance: **NOT RUN**; pin exact candidate chứa report và kiểm SecurityPermissionCatalogView/catalog UI tests, Select/Lookup, filter một/hai dòng ở physical 100%/125%.
 - Additional physical 125 pairwise matrix và representative physical 150%/200%: **NOT RUN**; canonical capture không thay các mục này.
 - Screen-reader UX với sản phẩm/thiết bị hỗ trợ cụ thể chưa được nghiệm thu; native provider smoke không thay consumer accessibility acceptance.

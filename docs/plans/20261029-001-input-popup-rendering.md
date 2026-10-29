@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế, căn cứ source và lịch sử sửa](../design/20261029-input-popup-rendering.md). Đọc cả hai tài liệu trước khi code.
 
-**Trạng thái candidate 2026-10-29:** T01–T06 đã triển khai theo commit riêng; T07 đã build/test/capture trên Windows desktop 96 DPI và có [candidate evidence](../verification/20261029-input-popup-rendering.md). Kết quả trước đó giữ theo candidate lịch sử; full-suite candidate mới PASS theo [stability evidence](../verification/20261029-input-popup-rendering-stability.md); report physical125% giữ FAIL/ABORTED lịch sử. Lượt mới tại [evidence physical 125%](../verification/20261029-input-popup-rendering-physical125.md) ghi native gates 125% riêng cùng các lỗi full-suite quan sát được; physical 150%/200% `NOT RUN`. Owner visual decision `PENDING`; consumer MyDmsVn acceptance `NOT RUN`, vì vậy plan không ghi APPROVED/CLOSED.
+**Trạng thái candidate 2026-10-29:** T01–T06 đã triển khai theo commit riêng; T07 đã build/test/capture trên Windows desktop 96 DPI và có [candidate evidence](../verification/20261029-input-popup-rendering.md). Kết quả trước đó giữ theo candidate lịch sử; full-suite production source PASS theo [stability evidence](../verification/20261029-input-popup-rendering-stability.md); report physical125% giữ FAIL/ABORTED lịch sử. [Bộ ảnh canonical 100%/125% mới](../verification/20261029-input-popup-rendering-owner-visual-review.md) đã được Owner APPROVED đúng phạm vi trình ngày 29/10/2026; physical 150%/200% `NOT RUN`. Consumer MyDmsVn acceptance `NOT RUN`, vì vậy plan chưa ghi CLOSED.
 
 ## Global Constraints
 
