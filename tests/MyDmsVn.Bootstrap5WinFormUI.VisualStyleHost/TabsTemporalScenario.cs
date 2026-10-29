@@ -75,7 +75,9 @@ internal static class TabsTemporalScenario
                     var hit = target == handle;
                     passed &= hit;
                     trace.AppendLine(clock.ElapsedMilliseconds + "ms; cycle=" + cycle + "; index=" + index +
-                        "; target=" + target + "; expected=" + handle + "; hit=" + hit);
+                        "; target=" + target + "; expected=" + handle + "; hit=" + hit +
+                        (hit ? "" : "; targetRoot=" + GetAncestor(target, 2) +
+                            "; foreground=" + GetForegroundWindow()));
                 }
             }
             PumpFor(1000);
@@ -120,4 +122,10 @@ internal static class TabsTemporalScenario
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr window, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
 }
