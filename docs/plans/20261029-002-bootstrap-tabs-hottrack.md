@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–3 và 5](../design/20261029-tabs-hottrack-live-busy-overlay.md). Đọc cả design và plan trước khi code. [Luồng BUS](20261029-003-live-busy-overlay.md) độc lập; không đợi BUS để sửa HotTrack.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`; reference app `16c24738a4758ccdceb1f3509f4e37adb0d03464`. **Trạng thái:** PLANNED; tất cả implementation/native/Owner gates bên dưới PENDING, chưa có claim sửa xong.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`; reference app `16c24738a4758ccdceb1f3509f4e37adb0d03464`. **Trạng thái candidate TAB-01–03:** implementation và focused proof đã có trong worktree; [evidence](../verification/20261029-tabs-hottrack.md) giữ số liệu theo từng commit. Native paint gate TAB-01 và physical/Owner acceptance còn OPEN; TAB-04–06 chưa triển khai. Không lấy test PASS của TAB-02/03 để đóng TAB-01.
 
 ## Global Constraints
 
@@ -92,9 +92,9 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 
 | Task | Depends on | Trạng thái ban đầu |
 |---|---|---|
-| TAB-01 — native reproducer và paint proof | baseline | PENDING |
-| TAB-02 — common hover fix | TAB-01 trace | PENDING |
-| TAB-03 — painter/close extraction | TAB-02 | PENDING |
+| TAB-01 — native reproducer và paint proof | baseline | IN PROGRESS — probe hai TFM; gate OPEN |
+| TAB-02 — common hover fix | TAB-01 trace | IMPLEMENTED — focused tests hai TFM; native tooltip/focus oracle còn mở |
+| TAB-03 — painter/close extraction | TAB-02 | IMPLEMENTED — focused tests hai TFM; physical 125%/orientation còn mở |
 | TAB-04 — BootstrapTabs và composition | TAB-01 proof, TAB-03 | PENDING |
 | TAB-05 — demo | TAB-04 | PENDING |
 | TAB-06 — contracts, API, native acceptance | TAB-02–05 | PENDING |
