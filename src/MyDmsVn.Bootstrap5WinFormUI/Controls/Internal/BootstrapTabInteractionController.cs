@@ -23,6 +23,10 @@ internal sealed class BootstrapTabInteractionController : IDisposable
 
     internal int FilterNativeStyle(int nativeStyle) => _usesCustomHeaders() ? nativeStyle & ~TcsHotTrack : nativeStyle;
 
+    internal bool IsOverflowChild(IntPtr window) =>
+        window != IntPtr.Zero && _owner.IsHandleCreated &&
+        FindWindowEx(_owner.Handle, IntPtr.Zero, "msctls_updown32", null) == window;
+
     internal void MouseMoved(Point clientPoint)
     {
         if (_disposed) return;
@@ -102,4 +106,7 @@ internal sealed class BootstrapTabInteractionController : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool InvalidateRect(IntPtr window, ref NativeRectangle rectangle, [MarshalAs(UnmanagedType.Bool)] bool erase);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? windowName);
 }

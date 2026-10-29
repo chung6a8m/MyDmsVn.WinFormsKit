@@ -257,6 +257,10 @@ public class BootstrapTabControl : TabControl
             return;
         }
         base.WndProc(ref message);
+        if (message.Msg == 0x0114 && _interaction.IsOverflowChild(message.LParam))
+        {
+            _interaction.RefreshFromPointer();
+        }
     }
 
     /// <summary>Returns the DPI-scaled close hit target within a native header.</summary>

@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Threading;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
 using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
@@ -71,14 +72,13 @@ public sealed class BootstrapTabInteractionTests
         using var tabs = CreateTabs();
         form.Controls.Add(tabs);
         form.Show();
-        using var interaction = new BootstrapTabInteractionController(tabs, () => true);
         var header = tabs.GetTabRect(1);
-        interaction.MouseMoved(new Point(header.Left + 5, header.Top + 5));
+        SendMove(tabs, new Point(header.Left + 5, header.Top + 5));
         ValidateRect(tabs.Handle, IntPtr.Zero);
 
-        interaction.MouseMoved(new Point(header.Right - 5, header.Top + 5));
+        SendMove(tabs, new Point(header.Right - 5, header.Top + 5));
 
-        Assert.That(interaction.HoveredIndex, Is.EqualTo(1));
+        Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(1));
         Assert.That(GetUpdateRect(tabs.Handle, out _, false), Is.False);
     }
 
@@ -89,15 +89,14 @@ public sealed class BootstrapTabInteractionTests
         using var tabs = CreateTabs();
         form.Controls.Add(tabs);
         form.Show();
-        using var interaction = new BootstrapTabInteractionController(tabs, () => true);
         var oldHeader = tabs.GetTabRect(1);
         var nextHeader = tabs.GetTabRect(2);
-        interaction.MouseMoved(Center(oldHeader));
+        SendMove(tabs, Center(oldHeader));
         ValidateRect(tabs.Handle, IntPtr.Zero);
 
-        interaction.MouseMoved(Center(nextHeader));
+        SendMove(tabs, Center(nextHeader));
 
-        Assert.That(interaction.HoveredIndex, Is.EqualTo(2));
+        Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(2));
         Assert.That(GetUpdateRect(tabs.Handle, out var dirty, false), Is.True);
         var expected = Rectangle.Union(oldHeader, nextHeader);
         Assert.That(dirty.ToRectangle(), Is.EqualTo(expected));
@@ -175,7 +174,6 @@ public sealed class BootstrapTabInteractionTests
         tabs.TabPages.Add("Two");
         form.Controls.Add(tabs);
         form.Show();
-        using var interaction = new BootstrapTabInteractionController(tabs, () => true);
         ValidateRect(tabs.Handle, IntPtr.Zero);
         tabs.EraseCount = 0;
 
@@ -185,13 +183,43 @@ public sealed class BootstrapTabInteractionTests
 
         ValidateRect(tabs.Handle, IntPtr.Zero);
         tabs.EraseCount = 0;
-        interaction.MouseMoved(Center(tabs.GetTabRect(1)));
+        SendMove(tabs, Center(tabs.GetTabRect(1)));
         GetUpdateRect(tabs.Handle, out _, true);
         var noEraseRequested = tabs.EraseCount;
         TestContext.WriteLine($"erase=true WM_ERASEBKGND={eraseRequested}; header erase=false WM_ERASEBKGND={noEraseRequested}");
 
         Assert.That(eraseRequested, Is.GreaterThan(0));
         Assert.That(noEraseRequested, Is.Zero);
+    }
+
+    [Test]
+    public void OverflowChildScroll_RefreshesHoverUnderStationaryPointer()
+    {
+        using var form = new Form { ClientSize = new Size(340, 230) };
+        using var tabs = new MessageProbeTabs { Dock = DockStyle.Fill, HotTrack = true };
+        for (var index = 0; index < 12; index++) tabs.TabPages.Add($"Tab {index}");
+        form.Controls.Add(tabs);
+        form.Show();
+        Application.DoEvents();
+        var child = FindWindowEx(tabs.Handle, IntPtr.Zero, "msctls_updown32", null);
+        Assert.That(child, Is.Not.EqualTo(IntPtr.Zero), "Expected native overflow child HWND.");
+        var previousPointer = Cursor.Position;
+        try
+        {
+            Cursor.Position = tabs.PointToScreen(Center(tabs.GetTabRect(1)));
+            SendMove(tabs, tabs.PointToClient(Cursor.Position));
+            var before = tabs.GetTabRect(0);
+            tabs.Messages.Clear();
+            Assert.That(GetClientRect(child, out var childBounds), Is.True);
+            var click = (IntPtr)(((childBounds.Bottom / 2) << 16) | ((childBounds.Right * 3 / 4) & 0xffff));
+            SendMessage(child, 0x0201, (IntPtr)1, click);
+            SendMessage(child, 0x0202, IntPtr.Zero, click);
+            TestContext.WriteLine("Overflow parent messages: " + string.Join(",", tabs.Messages));
+            TestContext.WriteLine($"Overflow rect0: {before} -> {tabs.GetTabRect(0)}; hover={GetInteraction(tabs).HoveredIndex}; pointer={tabs.PointToClient(Cursor.Position)}");
+            Assert.That(tabs.GetTabRect(0), Is.Not.EqualTo(before), "Native child click did not scroll tabs.");
+            AssertHoveredMatchesPointer(tabs);
+        }
+        finally { Cursor.Position = previousPointer; }
     }
 
     private static void AssertHoveredMatchesPointer(BootstrapTabControl tabs)
@@ -204,10 +232,14 @@ public sealed class BootstrapTabInteractionTests
             expected = index;
             break;
         }
+        Assert.That(GetInteraction(tabs).HoveredIndex, Is.EqualTo(expected));
+    }
+
+    private static BootstrapTabInteractionController GetInteraction(BootstrapTabControl tabs)
+    {
         var field = typeof(BootstrapTabControl).GetField("_interaction", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(field, Is.Not.Null);
-        var interaction = (BootstrapTabInteractionController)field!.GetValue(tabs)!;
-        Assert.That(interaction.HoveredIndex, Is.EqualTo(expected));
+        return (BootstrapTabInteractionController)field!.GetValue(tabs)!;
     }
 
     private sealed class HandleProbeTabs : BootstrapTabControl
@@ -224,6 +256,35 @@ public sealed class BootstrapTabInteractionTests
             if (message.Msg == 0x0014) EraseCount++;
             base.WndProc(ref message);
         }
+    }
+
+    private sealed class MessageProbeTabs : BootstrapTabControl
+    {
+        internal List<string> Messages { get; } = new List<string>();
+
+        protected override void WndProc(ref Message message)
+        {
+            if (Messages != null && (message.Msg == 0x004E || message.Msg == 0x0114))
+            {
+                var code = message.Msg == 0x004E && message.LParam != IntPtr.Zero
+                    ? Marshal.PtrToStructure<NativeNotifyHeader>(message.LParam).Code
+                    : 0;
+                var before = TabCount > 0 && IsHandleCreated ? GetTabRect(0).X : 0;
+                base.WndProc(ref message);
+                var after = TabCount > 0 && IsHandleCreated ? GetTabRect(0).X : 0;
+                Messages.Add($"0x{message.Msg:X4} code={code} source={message.LParam} rect0={before}->{after}");
+                return;
+            }
+            base.WndProc(ref message);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeNotifyHeader
+    {
+        internal IntPtr WindowFrom;
+        internal UIntPtr IdFrom;
+        internal int Code;
     }
 
     private static BootstrapTabControl CreateTabs()
@@ -267,4 +328,11 @@ public sealed class BootstrapTabInteractionTests
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? windowName);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(IntPtr window, out NativeRectangle rectangle);
 }
