@@ -145,33 +145,67 @@ internal sealed class BootstrapOverlaySurface : Panel
         ResolveMetrics();
         PerformLayout();
         ReplaceRegion();
+        ReplaceContentHostRegion();
         Invalidate();
+    }
+
+    internal Padding GetEffectiveContentInsets(Size outerSize)
+    {
+        var callerPadding = DpiScaler.Scale(_logicalContentPadding, _dpi);
+        if (outerSize.Width <= 0 || outerSize.Height <= 0)
+        {
+            return callerPadding;
+        }
+
+        var geometry = CreateGeometry(outerSize);
+        return AddPadding(geometry.GetDecorationInsets(AntiAliasClipAllowance), callerPadding);
     }
 
     public override Size GetPreferredSize(Size proposedSize)
     {
-        var padding = DpiScaler.Scale(_logicalContentPadding, _dpi);
-        var chromeWidth = padding.Horizontal + (2 * _borderWidth);
-        var chromeHeight = padding.Vertical + (2 * _borderWidth);
-        var contentProposal = new Size(
-            proposedSize.Width > 0 ? Math.Max(0, proposedSize.Width - chromeWidth) : 0,
-            proposedSize.Height > 0 ? Math.Max(0, proposedSize.Height - chromeHeight) : 0);
-        var contentSize = HostedContent?.GetPreferredSize(contentProposal) ?? Size.Empty;
+        var conservativeInsets = GetConservativeContentInsets();
+        var candidate = MeasureCandidate(proposedSize, conservativeInsets);
+        var conservativeCandidate = candidate;
+        for (var pass = 0; pass < 4; pass++)
+        {
+            var insets = GetEffectiveContentInsets(candidate);
+            var next = MeasureCandidate(proposedSize, insets);
+            if (next == candidate)
+            {
+                return candidate;
+            }
+
+            candidate = next;
+        }
+
+        var finalInsets = GetEffectiveContentInsets(candidate);
+        var finalContent = MeasureContent(proposedSize, finalInsets);
+        if (candidate.Width - finalInsets.Horizontal >= finalContent.Width
+            && candidate.Height - finalInsets.Vertical >= finalContent.Height)
+        {
+            return candidate;
+        }
+
         return new Size(
-            SaturateSize((long)Math.Max(0, contentSize.Width) + chromeWidth),
-            SaturateSize((long)Math.Max(0, contentSize.Height) + chromeHeight));
+            Math.Max(candidate.Width, conservativeCandidate.Width),
+            Math.Max(candidate.Height, conservativeCandidate.Height));
     }
 
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
-        var padding = DpiScaler.Scale(_logicalContentPadding, _dpi);
-        var x = Math.Min(ClientSize.Width, _borderWidth);
-        var y = Math.Min(ClientSize.Height, _borderWidth);
-        var width = Math.Max(0, ClientSize.Width - x - _borderWidth);
-        var height = Math.Max(0, ClientSize.Height - y - _borderWidth);
+        var insets = GetEffectiveContentInsets(ClientSize);
+        var hostInset = Math.Max(0, _borderWidth);
+        var x = Math.Min(ClientSize.Width, hostInset);
+        var y = Math.Min(ClientSize.Height, hostInset);
+        var width = Math.Max(0, ClientSize.Width - x - hostInset);
+        var height = Math.Max(0, ClientSize.Height - y - hostInset);
         _contentHost.Bounds = new Rectangle(x, y, width, height);
-        _contentHost.Padding = padding;
+        _contentHost.Padding = new Padding(
+            Math.Max(0, insets.Left - x),
+            Math.Max(0, insets.Top - y),
+            Math.Max(0, insets.Right - hostInset),
+            Math.Max(0, insets.Bottom - hostInset));
         ReplaceContentHostRegion();
     }
 
@@ -183,7 +217,8 @@ internal sealed class BootstrapOverlaySurface : Panel
 
     protected override void OnPaintBackground(PaintEventArgs e)
     {
-        e.Graphics.Clear(Color.Transparent);
+        using var background = new SolidBrush(_theme.Colors.Surface);
+        e.Graphics.FillRectangle(background, e.ClipRectangle);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -193,23 +228,11 @@ internal sealed class BootstrapOverlaySurface : Panel
             return;
         }
 
-        var previous = e.Graphics.SmoothingMode;
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        try
-        {
-            using var path = CreatePaintPath();
-            using var background = new SolidBrush(_theme.Colors.Surface);
-            e.Graphics.FillPath(background, path);
-            if (_borderWidth > 0)
-            {
-                using var border = new Pen(_theme.Colors.Border, _borderWidth);
-                e.Graphics.DrawPath(border, path);
-            }
-        }
-        finally
-        {
-            e.Graphics.SmoothingMode = previous;
-        }
+        BootstrapRoundedSurfacePainter.Paint(
+            e.Graphics,
+            CreateGeometry(ClientSize),
+            _theme.Colors.Surface,
+            _theme.Colors.Border);
     }
 
     protected override void Dispose(bool disposing)
@@ -239,17 +262,14 @@ internal sealed class BootstrapOverlaySurface : Panel
         Region? next = null;
         if (ClientSize.Width > 0 && ClientSize.Height > 0)
         {
-            using var paintPath = CreatePaintPath();
-            using var clipEnvelope = (GraphicsPath)paintPath.Clone();
-            using var envelopePen = new Pen(
-                Color.Black,
-                _borderWidth + (2f * AntiAliasClipAllowance))
-            {
-                LineJoin = LineJoin.Round
-            };
-            clipEnvelope.Widen(envelopePen);
+            var geometry = CreateGeometry(ClientSize);
+            using var paintPath = geometry.CreateOuterPath();
+            using var envelopePath = geometry.CreateOuterEnvelopePath(AntiAliasClipAllowance);
             next = new Region(paintPath);
-            next.Union(clipEnvelope);
+            if (envelopePath.PointCount > 0)
+            {
+                next.Union(envelopePath);
+            }
             next.Intersect(ClientRectangle);
         }
 
@@ -259,15 +279,12 @@ internal sealed class BootstrapOverlaySurface : Panel
         previous?.Dispose();
     }
 
-    private GraphicsPath CreatePaintPath()
+    private BootstrapRoundedSurfaceGeometry CreateGeometry(Size size)
     {
-        var borderInset = _borderWidth / 2f;
-        var bounds = new RectangleF(
-            borderInset,
-            borderInset,
-            Math.Max(0f, ClientSize.Width - _borderWidth),
-            Math.Max(0f, ClientSize.Height - _borderWidth));
-        return RoundedPath.Create(bounds, new CornerRadius(_radius));
+        return BootstrapRoundedSurfaceGeometry.Resolve(
+            new RectangleF(0f, 0f, Math.Max(0, size.Width), Math.Max(0, size.Height)),
+            new CornerRadius(_radius),
+            _borderWidth);
     }
 
     private void ReplaceContentHostRegion()
@@ -275,11 +292,19 @@ internal sealed class BootstrapOverlaySurface : Panel
         Region? next = null;
         if (_contentHost.ClientSize.Width > 0 && _contentHost.ClientSize.Height > 0)
         {
-            var innerRadius = Math.Max(0, _radius - _borderWidth);
-            using var path = RoundedPath.Create(
-                new RectangleF(0, 0, _contentHost.ClientSize.Width, _contentHost.ClientSize.Height),
-                new CornerRadius(innerRadius));
-            next = new Region(path);
+            var geometry = CreateGeometry(ClientSize);
+            using var path = geometry.CreateInnerPath();
+            if (path.PointCount > 0)
+            {
+                using var transform = new Matrix();
+                transform.Translate(-_contentHost.Left, -_contentHost.Top);
+                path.Transform(transform);
+                next = new Region(path);
+            }
+            else
+            {
+                next = new Region(Rectangle.Empty);
+            }
         }
 
         var previous = _ownedContentHostRegion;
@@ -291,6 +316,43 @@ internal sealed class BootstrapOverlaySurface : Panel
     private static int SaturateSize(long value)
     {
         return value >= int.MaxValue ? int.MaxValue : (int)Math.Max(0L, value);
+    }
+
+    private Padding GetConservativeContentInsets()
+    {
+        var extent = Math.Max(1, SaturateSize(Math.Max(1L, (long)_radius * 2L)));
+        var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
+            new RectangleF(0f, 0f, extent, extent),
+            new CornerRadius(_radius),
+            _borderWidth);
+        return AddPadding(
+            geometry.GetDecorationInsets(AntiAliasClipAllowance),
+            DpiScaler.Scale(_logicalContentPadding, _dpi));
+    }
+
+    private Size MeasureCandidate(Size proposedSize, Padding insets)
+    {
+        var content = MeasureContent(proposedSize, insets);
+        return new Size(
+            SaturateSize((long)Math.Max(0, content.Width) + insets.Horizontal),
+            SaturateSize((long)Math.Max(0, content.Height) + insets.Vertical));
+    }
+
+    private Size MeasureContent(Size proposedSize, Padding insets)
+    {
+        var contentProposal = new Size(
+            proposedSize.Width > 0 ? Math.Max(0, proposedSize.Width - insets.Horizontal) : 0,
+            proposedSize.Height > 0 ? Math.Max(0, proposedSize.Height - insets.Vertical) : 0);
+        return HostedContent?.GetPreferredSize(contentProposal) ?? Size.Empty;
+    }
+
+    private static Padding AddPadding(Padding left, Padding right)
+    {
+        return new Padding(
+            SaturateSize((long)left.Left + right.Left),
+            SaturateSize((long)left.Top + right.Top),
+            SaturateSize((long)left.Right + right.Right),
+            SaturateSize((long)left.Bottom + right.Bottom));
     }
 
     private static void ValidatePadding(Padding padding)

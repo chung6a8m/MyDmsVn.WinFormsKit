@@ -129,6 +129,23 @@ internal readonly struct BootstrapRoundedSurfaceGeometry
             : new GraphicsPath();
     }
 
+    internal GraphicsPath CreateOuterEnvelopePath(float allowance)
+    {
+        ValidateFiniteNonNegative(allowance, nameof(allowance));
+        if (!IsUsable(OuterBounds))
+        {
+            return new GraphicsPath();
+        }
+
+        var envelopeBounds = RectangleF.Inflate(OuterBounds, allowance, allowance);
+        var envelopeRadius = new CornerRadius(
+            OuterRadius.TopLeft + allowance,
+            OuterRadius.TopRight + allowance,
+            OuterRadius.BottomRight + allowance,
+            OuterRadius.BottomLeft + allowance);
+        return RoundedPath.Create(envelopeBounds, envelopeRadius);
+    }
+
     internal GraphicsPath CreateStrokePath()
     {
         return _hasUsableStroke

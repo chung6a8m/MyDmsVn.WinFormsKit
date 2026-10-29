@@ -112,6 +112,32 @@ public sealed class BootstrapOverlayDropDownTests
         }
     }
 
+    [Test]
+    public void ThemeChangeWithoutResizeRefreshesBackingAndRegionClone()
+    {
+        using var surface = new BootstrapOverlaySurface
+        {
+            Size = new Size(140, 80),
+            LogicalBorderRadius = 18
+        };
+        using var dropDown = new BootstrapOverlayDropDown(surface);
+        var light = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light);
+        var dark = BootstrapTheme.CreateDefault(BootstrapThemeMode.Dark);
+        surface.ApplyTheme(light, 96);
+        dropDown.MoveTo(new Rectangle(20, 20, 140, 80));
+        using var previousRegion = dropDown.Region!.Clone();
+
+        surface.LogicalBorderRadius = 4;
+        surface.ApplyTheme(dark, 96);
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(dropDown.BackColor, Is.EqualTo(dark.Colors.Surface));
+            Assert.That(dropDown.Region, Is.Not.Null);
+            Assert.That(dropDown.Region!.IsVisible(2f, 2f), Is.Not.EqualTo(previousRegion.IsVisible(2f, 2f)));
+        }));
+    }
+
     private static void AssertWindowClipPreservesRenderedAntiAliasCoverage(
         BootstrapOverlaySurface surface,
         BootstrapOverlayDropDown dropDown,
