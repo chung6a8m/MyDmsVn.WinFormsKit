@@ -112,3 +112,19 @@ dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.
 ```
 
 Final GUI lane độc quyền: discovered/executed `net48` **54/54 PASS**, fail 0, skip 0; sau đó `net8.0-windows` **54/54 PASS**, fail 0, skip 0. Helper `tabs-hover` sau test chạy tuần tự, exit 0/0. Các lượt chồng GUI trước đó bị loại khỏi evidence. `fullGate=OPEN`, physical 125%, focus clearance bằng capture màn hình thật, artifact URL và Owner visual review vẫn **PENDING**; không chuyển thành PASS từ bitmap/layout tests.
+
+## PR #4 — sửa hai findings P2 về overflow hover và glyph italic
+
+Review trên head `4316a293576f053ad42e9176f39fae821107c6a1` ghi [hai inline findings](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/pull/4). Candidate source sau sửa: `765949ac758172a89fe486ed6f5b5b576c65462b`; SourceGrid gitlink không đổi. Windows NT 10.0.26300.0, SDK `8.0.427`, Release, process x64, native DPI 96; restore warm. Không chạy GUI tests đồng thời.
+
+- Overflow: regression đặt desktop pointer thật trên HWND `msctls_updown32`, click arrow để native scroll và kiểm hover ngay sau `WM_HSCROLL`, rồi vào một header nhìn thấy và rời control qua native MouseMove/MouseLeave. Trước sửa, .NET 8 trả hovered index `6` khi pointer ở trên child, kỳ vọng `-1` (**RED**, 1/1 fail). Sau sửa, `RefreshFromPointer` loại overflow child/foreign HWND nhưng vẫn cho descendant transient của owner trong page mutation. Test và focused interaction suite **10/10 PASS** trên mỗi TFM; fail 0, skip 0.
+- Italic: regression vẽ bằng `BootstrapTabControl.OnDrawItem` thật với caller font Times New Roman 16 italic, caption `f`, so mực với `TextRenderer` tham chiếu trong content bounds rộng. Trước sửa, .NET 8 có 60 pixel mực so với 90 ở tham chiếu (**RED**); .NET Framework 4.8 đo 19px và không tái hiện defect. Bỏ `NoPadding` ở cả phép đo và vẽ để giữ glyph-overhang padding; sau sửa hai TFM đều có 90/90 pixel và focused paint tests **11/11 PASS** mỗi TFM. Test 125% dùng metrics DPI 120 để kiểm khoảng cách text/focus, **không phải physical 125% evidence**.
+
+Trên source commit trên, `.\build.ps1 -Configuration Release -Scope Controls` build 2/2 TFM, 0 warning/error. Hai lệnh sau chạy tuần tự sau build:
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --no-build --filter "FullyQualifiedName~BootstrapTab" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --filter "FullyQualifiedName~BootstrapTab" --blame-hang --blame-hang-timeout 5m
+```
+
+Discovery/execution: net48 **57/57 PASS**, net8 **57/57 PASS**, fail 0, skip 0 trên từng TFM. Bounded VisualStyleHost `--scenario tabs-hover` chạy tuần tự từ Release EXE bằng `Start-Process -WindowStyle Hidden`, `WaitForExit(30000)`: exit 0/0, metadata candidate đúng `765949ac758172a89fe486ed6f5b5b576c65462b`, elapsed 704/700ms, `PROBE PASS`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`. Raw output ở ignored `artifacts/verification/tabs/pr4-review-*`, không commit. API baseline không chạy lại trong scope hai findings vì exported surface không đổi; mismatch TAB-06 đã ghi ở lượt trước còn mở. Full compositor/print, physical DPI/Owner visual và artifact URL vẫn **PENDING**.
