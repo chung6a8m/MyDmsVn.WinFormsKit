@@ -148,3 +148,23 @@ dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.
 Controls build và All graph build PASS hai TFM, 0 warning/error. Filter discovery/execution **93/93 PASS, fail 0, skip 0** mỗi TFM; riêng `BootstrapTabs*` **17/17 PASS** mỗi TFM sau sửa review. Helper trên candidate commit chạy exit 0/0, `PROBE PASS` hai TFM, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; elapsed 1080/1088 ms. Production proof trên net48/net8 lần lượt có `screenPaint=4/4`, `screenDraw=14/14`, `hoverTargetHits=3/3`, `printClient=2/2`, `printDraw=10/10`, `printPixels=32560/32416`, `printOutside=0/0`, `drawToBitmapPixels=140250/140250`, `outsideDraw=0/0`; native overflow child hiện diện và vẫn click/scroll được. Prototype supplied-HDC dirty composition thay đổi 1876/1836 header pixels, còn selected/page/child/outside đều 0. `WM_PRINT` flags 0 không vẽ; flags 4/28 lồng đúng một `WM_PRINTCLIENT` và không recursion. Raw traces/PNG chỉ ở ignored `artifacts/verification/tabs/tab04-commit-net48` và `tab04-commit-net8`, không commit, chưa có artifact URL bền vững.
 
 Giới hạn: Light/Dark visual review trên gallery, physical 125%/150%/200%, mixed-DPI, focus clearance bằng capture màn hình thật, artifact URL và Owner decision **NOT RUN/PENDING**; không lấy synthetic metrics hay bitmap làm bằng chứng thay thế. Full no-flicker acceptance và TAB-01 native gate tiếp tục **OPEN** dù proof của candidate tại DPI96 PASS. API fingerprint và consumer migration thuộc TAB-06 chưa chốt; baseline mismatch đã ghi ở lượt trước vẫn mở. Không publish/merge.
+
+## PR #4 — sửa bốn findings P2 của review TAB-04/05
+
+Review trên head `bf3bf35a7228353dd654db17557058b203b7955b` nêu bốn lỗi: Fill còn dùng số page cũ trong `ControlRemoved`, `WM_PRINT` flags `PRF_CLIENT | PRF_CHECKVISIBLE` vẫn hoàn thiện chrome khi HWND ẩn, caption dọc Left đè icon và icon fallback LTR đè close ở header hẹp. Candidate source sau sửa `7cfc374643137dc5a633f2c6126a73348b3c32d3`; SourceGrid gitlink giữ `f4e457b43582bf01892f50bdc74aa480531e5944`. Windows NT 10.0.26300.0, SDK `8.0.427`, x64, Release, helper native DPI 96; restore warm. Không chạy native tests đồng thời.
+
+- Fill: regression xóa tab cuối không chọn trong `Fill=true`, client 600px, 3→2 trang: trước sửa net8 vẫn `ItemSize.Width=200`, kỳ vọng `300` (**RED**); sau sửa 1/1 PASS trên net48 và net8. Callback sizing và image-size cache loại page đang xóa nếu native collection còn giữ nó.
+- `PRF_CHECKVISIBLE`: test gửi `WM_PRINT` flags 5 tới cùng HWND sau `Hide()`, caller bitmap có sentinel. Trước sửa 12.632 pixel bị đổi trên mỗi TFM (**RED**); sau sửa 1/1 PASS mỗi TFM, target giữ nguyên. Positive control visible vẫn vẽ.
+- Fallback Left: caption dài với icon đổi 27 pixel ở vùng icon trước sửa (**RED**); sau sửa 0 pixel, focused test PASS hai TFM. Khoảng text được chuyển sang trục sau xoay và clip trong content thực.
+- Fallback LTR: ảnh lớn trên header hẹp làm đổi 235 pixel trong close target trước sửa ở cả enabled/disabled (**RED**); sau sửa 0 pixel, hai tests PASS trên mỗi TFM. Icon được clip khỏi close region; close hit-test không đổi.
+
+Sau sửa, các lệnh chính chạy tuần tự:
+
+```powershell
+.\build.ps1 -Configuration Release -Scope All
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemoApplicationTests" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemoApplicationTests" --blame-hang --blame-hang-timeout 5m
+# Release VisualStyleHost EXE --scenario tabs-hover: net48 rồi net8.0-windows, Start-Process -WindowStyle Hidden -Wait.
+```
+
+Build PASS hai TFM, 0 warning/error. Discovery/execution **98/98 PASS**, fail 0, skip 0 trên net48 và **98/98 PASS**, fail 0, skip 0 trên net8. Helper sau commit exit 0/0, metadata đúng SHA candidate, `PROBE PASS`, `productionProof=True`, `compositionProof=True`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; elapsed 1034/1092 ms. Raw trace/PNG ở ignored `artifacts/verification/tabs/pr4-review3-commit-net48` và `pr4-review3-commit-net8`, không commit. Physical DPI/Owner/artifact URL và API TAB-06 tiếp tục PENDING; không suy nghiệm thu no-flicker từ DPI96.

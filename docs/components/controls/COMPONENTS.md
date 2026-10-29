@@ -896,6 +896,8 @@ Manual verification: choose **Navigation / Tabs** in the integrated demo. Exerci
 
 Ở Top/Normal/single-line/LTR/OwnerDrawFixed, header và chrome gọn được hoàn thiện trong cùng native paint pass qua HDC do WinForms cung cấp; vùng page, item đã vẽ và native child như overflow được loại khỏi chrome fill. Print nhận HDC/clip của caller. Bottom/Left/Right, multiline, RTL, Buttons/FlatButtons và `DrawMode.Normal` đi theo native chrome fallback, giữ các property do caller đặt và native owner-draw events khi còn `OwnerDrawFixed`. Theme font do toolkit tạo được dispose; font, ImageList và menu của consumer giữ ownership của consumer.
 
+Khi xóa page, `Fill` tính lại width theo tập trang còn lại ngay cả khi WinForms phát `ControlRemoved` trước khi cập nhật `TabPages`. `WM_PRINT` với `PRF_CHECKVISIBLE` không vẽ vào HDC caller nếu HWND đang ẩn. Fallback căn caption Left theo trục sau xoay và giữ icon tách khỏi close target trong header hẹp.
+
 Gallery **Navigation / BootstrapTabs** so sánh control cũ/mới, có HotTrack toggle, style/variant/Fill, thêm/xóa/close, caption dài, icon, tooltip, empty state và native overflow. Physical DPI, flicker và Owner visual acceptance xem [evidence theo candidate](../../verification/20261029-tabs-hottrack.md); việc thêm control không tự đóng các gate này.
 
 ## BootstrapDropdown and BootstrapSplitButton
