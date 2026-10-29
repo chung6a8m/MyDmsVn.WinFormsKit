@@ -168,3 +168,5 @@ Renderer mặc định vẫn là handler `DrawItem` được đăng ký trong co
 API fingerprint, consumer migration recipe và nghiệm thu physical DPI/Owner thuộc TAB-06; [evidence hiện hành](../../verification/20261029-tabs-hottrack.md) chưa chứng minh no-flicker trên mọi cấu hình.
 
 Review tiếp theo của TAB-04 xác nhận `ControlRemoved` có thể phát trước khi `TabPages` bỏ page: `BootstrapTabs` tính `Fill`/uniform width theo tập trang sau removal ngay trong callback. `WM_PRINT` có `PRF_CHECKVISIBLE` không ghi vào HDC caller khi HWND ẩn; đường print không có cờ này giữ behavior cũ. Fallback Left đặt khoảng caption theo trục sau xoay để tránh icon; fallback LTR cắt ảnh khỏi close hit target ngay cả khi header hẹp. Các sửa này không đổi public API hoặc control cũ.
+
+Fallback ngang clip thao tác vẽ icon vào `imageBounds` và vùng trước close cho cả LTR/RTL, enabled/disabled. Điều này cần thiết vì `ControlPaint.DrawImageDisabled` dùng kích thước ảnh gốc thay vì kích thước `imageBounds` đã thu hẹp; close hit target và API không đổi.

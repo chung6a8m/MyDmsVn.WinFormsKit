@@ -168,3 +168,18 @@ dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.
 ```
 
 Build PASS hai TFM, 0 warning/error. Discovery/execution **98/98 PASS**, fail 0, skip 0 trên net48 và **98/98 PASS**, fail 0, skip 0 trên net8. Helper sau commit exit 0/0, metadata đúng SHA candidate, `PROBE PASS`, `productionProof=True`, `compositionProof=True`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; elapsed 1034/1092 ms. Raw trace/PNG ở ignored `artifacts/verification/tabs/pr4-review3-commit-net48` và `pr4-review3-commit-net8`, không commit. Physical DPI/Owner/artifact URL và API TAB-06 tiếp tục PENDING; không suy nghiệm thu no-flicker từ DPI96.
+
+## PR #4 — sửa finding RTL disabled icon/close của review vòng 4
+
+Review trên head `e57a010f8f36e7bb7d4d2f9fad8921aa7301f756` chỉ ra `ControlPaint.DrawImageDisabled` vẽ theo kích thước ảnh gốc dù `imageBounds` RTL đã thu hẹp. Candidate source sau sửa `c3e5a6aa551c177c5f87d5104d64d04fe5d3c253`; Windows NT 10.0.26300.0, SDK `8.0.427`, x64, Release, native DPI 96, restore warm, SourceGrid gitlink không đổi. Regression narrow header 60×32, icon 48×24, close ở mép phải được mở rộng thành LTR/RTL × enabled/disabled. Trước sửa, riêng RTL disabled làm đổi **148 pixel** trong close target trên cả net48/net8 (**RED**, 1 fail/3 pass mỗi TFM). Painter giờ clip thao tác vẽ vào `imageBounds` và vùng trước close cho cả hai hướng. Sau sửa, bốn case **4/4 PASS** mỗi TFM; icon vẫn còn pixel hiển thị và close target khớp reference không có icon.
+
+Các lệnh sau chạy tuần tự trên source candidate:
+
+```powershell
+.\build.ps1 -Configuration Release -Scope All
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemoApplicationTests" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemoApplicationTests" --blame-hang --blame-hang-timeout 5m
+# Release VisualStyleHost EXE --scenario tabs-hover: net48 rồi net8.0-windows, Start-Process -WindowStyle Hidden -Wait.
+```
+
+Build PASS hai TFM, 0 warning/error; discovery/execution **100/100 PASS**, fail 0, skip 0 trên mỗi TFM. Helper sau commit exit 0/0, metadata đúng SHA candidate, `PROBE PASS`, `productionProof=True`, `compositionProof=True`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; elapsed 1053/1085 ms. Raw trace/PNG ở ignored `artifacts/verification/tabs/pr4-review4-commit-net48` và `pr4-review4-commit-net8`, không commit. Physical DPI/Owner/artifact URL và API TAB-06 vẫn PENDING; không coi DPI96 là nghiệm thu full no-flicker.
