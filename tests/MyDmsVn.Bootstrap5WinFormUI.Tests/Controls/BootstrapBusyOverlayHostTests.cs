@@ -633,6 +633,52 @@ public sealed class BootstrapBusyOverlayHostTests
         var cancel = All(host).OfType<Button>().Single(); Assert.That(cancel.CanSelect, Is.True); cancel.PerformClick(); Assert.That(cancelled, Is.EqualTo(1));
     }
 
+    [TestCase(400), TestCase(320)]
+    public void Review_Round2_LongToFittingMessageClearsOldScrollbarAndMatchesFreshHost(int width)
+    {
+        using var font = new Font("Segoe UI", 9f);
+        using var form = new Form { ClientSize = new Size(width, 220), Font = font }; var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new Panel(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show();
+        var flags = TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.TextBoxControl;
+        string? fitting = null;
+        for (var count = 1; count < 100; count++)
+        {
+            var text = string.Join(" ", Enumerable.Repeat("i", count));
+            var metrics = BootstrapBusyOverlayLayoutLogic.Calculate(host.ClientSize, host.Font, text, "Cancel", true,
+                host.DeviceDpi, MyDmsVn.Bootstrap5WinFormUI.Theme.BootstrapThemeManager.CurrentTheme.Metrics);
+            var narrowHeight = TextRenderer.MeasureText(text, host.Font,
+                new Size(metrics.Viewport.Width - SystemInformation.VerticalScrollBarWidth, int.MaxValue), flags).Height;
+            if (metrics.Message.Height <= metrics.Viewport.Height && narrowHeight > metrics.Viewport.Height)
+            { fitting = text; break; }
+        }
+        Assert.That(fitting, Is.Not.Null, "message must fit at full width and wrap an extra line at stale scrollbar width");
+        using var freshForm = new Form { ClientSize = form.ClientSize, Font = font }; var freshDelay = new ManualDelay();
+        using var fresh = new BootstrapBusyOverlayHost(new Panel(), freshDelay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        freshForm.Controls.Add(fresh); freshForm.Show();
+        using var freshToken = fresh.Begin(new BusyPresentation(fitting!, () => { })); freshDelay.Fire();
+        var freshLabel = All(fresh).OfType<Label>().Single(); var freshViewport = (Panel)freshLabel.Parent!;
+        using var longToken = host.Begin(new BusyPresentation(string.Join(" ", Enumerable.Repeat("long message", 100)), () => { })); delay.Fire();
+        var label = All(host).OfType<Label>().Single(); var viewport = (Panel)label.Parent!;
+        Assert.That(viewport.VerticalScroll.Visible, Is.True);
+        viewport.AutoScrollPosition = new Point(0, label.Height);
+        using (host.Begin(new BusyPresentation(fitting!, () => { })))
+        {
+            for (var repeat = 0; repeat < 3; repeat++)
+            {
+                host.PerformLayout();
+                Assert.That(viewport.VerticalScroll.Visible, Is.False, "stale extent must not preserve vertical scroll");
+                Assert.That(viewport.HorizontalScroll.Visible, Is.False);
+                Assert.That(viewport.AutoScrollPosition, Is.EqualTo(Point.Empty));
+                Assert.That(label.Bounds, Is.EqualTo(freshLabel.Bounds));
+                Assert.That(viewport.Bounds, Is.EqualTo(freshViewport.Bounds));
+                Assert.That(All(host).OfType<Button>().Single().CanSelect, Is.True);
+            }
+        }
+        Assert.That(viewport.VerticalScroll.Visible, Is.True, "releasing newest token restores long presentation");
+        Assert.That(viewport.HorizontalScroll.Visible, Is.False);
+    }
+
     private sealed class ThrowingSelectControl : TextBox
     {
         internal Exception? Failure;
