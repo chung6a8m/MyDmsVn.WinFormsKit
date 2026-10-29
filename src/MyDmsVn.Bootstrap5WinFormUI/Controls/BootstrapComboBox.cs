@@ -187,7 +187,9 @@ public class BootstrapComboBox : ComboBox
         }
 
         var sizing = ResolveSizing(ResolveNativeChromeHeight());
-        base.SetBoundsCore(x, y, width, sizing.OuterHeight, specified | BoundsSpecified.Height);
+        // Native ComboBox remembers caller-requested Height for a later switch to Simple.
+        // Its closed HWND clamps independently; do not replace that native request with toolkit metrics.
+        base.SetBoundsCore(x, y, width, height, specified);
         if (!IsHandleCreated)
         {
             UpdateBounds(Left, Top, Width, sizing.OuterHeight);
@@ -456,7 +458,6 @@ public class BootstrapComboBox : ComboBox
             var sizing = ResolveSizing(nativeChromeHeight);
             if (!IsHandleCreated)
             {
-                base.SetBoundsCore(Left, Top, Width, sizing.OuterHeight, BoundsSpecified.Height);
                 UpdateBounds(Left, Top, Width, sizing.OuterHeight);
                 return;
             }
