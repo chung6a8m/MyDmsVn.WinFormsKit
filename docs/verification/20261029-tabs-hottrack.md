@@ -28,6 +28,19 @@ Build: 2/2 TFM thành công, 0 warning, 0 error. Helper bounded run: net48 exit 
 
 **TAB-01 chưa DONE; native paint gate OPEN.** Supplied-HDC dispatch, dirty header clip và overflow click của baseline probe hoạt động trên hai runtime ở physical 100%, đủ trace đầu vào cho TAB-02. Trước TAB-04 cần proof final compositor với child exclusion, print flags/nested print và không có đường native drawing ngoài buffer khi control mới hoàn thiện. Physical 125% và artifact URL/Owner visual decision chưa có; không suy ra no-flicker từ exit 0 hoặc một bitmap.
 
+## TAB-03 — painter và close extraction
+
+Candidate khi chạy: `e638d53` cộng diff TAB-03 chưa commit trong cùng worktree, Windows NT 10.0.26300.0, SDK `8.0.427`, Release, process test x64. Tests mới khóa thứ tự derived `OnDrawItem` → default renderer/user handler → marker sau base, cùng Graphics/index/bounds và pixel cuối; close pointer callback xóa page đồng bộ vẫn không đổi selection; disabled/unowned page bị từ chối và menu của consumer không bị dispose. Caption closable trước sửa có tâm pixel `80.5` thay vì `76` (RED ở net8), sau sửa PASS. Renderer đo và vẽ text với cùng `NoPadding`, căn nhóm icon/text trong phần content đã trừ close.
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --filter "FullyQualifiedName~BootstrapTabPaintCompatibilityTests|FullyQualifiedName~BootstrapTabControlTests|FullyQualifiedName~BootstrapTabControlRenderLogicTests|FullyQualifiedName~BootstrapTabInteractionTests" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter "FullyQualifiedName~BootstrapTabPaintCompatibilityTests|FullyQualifiedName~BootstrapTabControlTests|FullyQualifiedName~BootstrapTabControlRenderLogicTests|FullyQualifiedName~BootstrapTabInteractionTests" --blame-hang --blame-hang-timeout 5m
+```
+
+Discovery/execute trên candidate: `net48` 48/48 PASS, fail 0, skip 0; `net8.0-windows` 48/48 PASS, fail 0, skip 0. Hai lệnh được chạy **tuần tự**. Một lần chạy hai TFM song song trước đó bị loại khỏi evidence vì trái policy native GUI; không dùng kết quả đó để nghiệm thu. Helper `tabs-hover` chạy tuần tự, bounded 30 giây trên hai TFM, exit 0/0 tại DPI 96 sau extraction. Helper vẫn ghi `fullGate=OPEN` và `flicker=NOT REPRODUCED`.
+
+Giới hạn: chưa có physical 125% focus clearance, toàn bộ variant/style/orientation native matrix, Owner visual review hoặc artifact URL. `DrawCompactChrome` và fallback orientation thuộc composition của TAB-04, chưa được nhận là hoàn tất ở TAB-03. TAB-01 gate tiếp tục OPEN; TAB-03 không đóng native acceptance của BootstrapTabs.
+
 ## TAB-02 — candidate HotTrack dùng chung
 
 Ngày chạy: 29/10/2026. Candidate `0bbd82e03430f0e901ab1c1f287061259f81e7d3`; SourceGrid gitlink giữ `f4e457b43582bf01892f50bdc74aa480531e5944`. Windows NT 10.0.26300.0, process 64 bit, SDK `8.0.427`, desktop DPI 96 theo helper. Restore dùng cache hiện có; không ghi nhận clean restore. TAB-02 thay hover state bằng `BootstrapTabInteractionController`, lọc `TCS_HOTTRACK` cho custom owner-draw headers, và dùng `InvalidateRect` với `bErase=false` chỉ trên header cần đổi visual. `DrawMode.Normal` giữ native HotTrack.

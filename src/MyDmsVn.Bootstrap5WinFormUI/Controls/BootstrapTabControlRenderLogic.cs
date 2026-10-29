@@ -70,6 +70,7 @@ internal readonly struct BootstrapTabHeaderPalette
 internal readonly struct BootstrapTabHeaderLayout
 {
     public BootstrapTabHeaderLayout(
+        BootstrapTabStyle style,
         Rectangle surfaceBounds,
         Rectangle contentBounds,
         Rectangle imageBounds,
@@ -78,6 +79,7 @@ internal readonly struct BootstrapTabHeaderLayout
         Rectangle focusBounds,
         CornerRadius cornerRadius)
     {
+        Style = style;
         SurfaceBounds = surfaceBounds;
         ContentBounds = contentBounds;
         ImageBounds = imageBounds;
@@ -86,6 +88,8 @@ internal readonly struct BootstrapTabHeaderLayout
         FocusBounds = focusBounds;
         CornerRadius = cornerRadius;
     }
+
+    public BootstrapTabStyle Style { get; }
 
     public Rectangle SurfaceBounds { get; }
 
@@ -264,7 +268,8 @@ internal static class BootstrapTabControlRenderLogic
         BootstrapTabHeaderMetrics metrics,
         int preferredTextWidth,
         Size imageSize,
-        bool hasImage)
+        bool hasImage,
+        Rectangle closeBounds = default)
     {
         ValidateStyle(style);
 
@@ -278,6 +283,7 @@ internal static class BootstrapTabControlRenderLogic
         if (surface.Width <= 0 || surface.Height <= 0)
         {
             return new BootstrapTabHeaderLayout(
+                style,
                 surface,
                 new Rectangle(surface.X, surface.Y, 0, 0),
                 Rectangle.Empty,
@@ -288,6 +294,8 @@ internal static class BootstrapTabControlRenderLogic
         }
 
         var content = InsetHorizontally(surface, metrics.HorizontalPadding);
+        if (!closeBounds.IsEmpty)
+            content.Width = Math.Max(0, Math.Min(content.Right, closeBounds.Left - 4) - content.Left);
         var underline = Rectangle.Empty;
         if (style == BootstrapTabStyle.Underline && metrics.UnderlineHeight > 0)
         {
@@ -337,7 +345,7 @@ internal static class BootstrapTabControlRenderLogic
             text = new Rectangle(textLeft, content.Top, textWidth, content.Height);
         }
 
-        return new BootstrapTabHeaderLayout(surface, content, image, text, underline, focus, radius);
+        return new BootstrapTabHeaderLayout(style, surface, content, image, text, underline, focus, radius);
     }
 
     private static CornerRadius ResolveCornerRadius(BootstrapTabStyle style, int radius)
