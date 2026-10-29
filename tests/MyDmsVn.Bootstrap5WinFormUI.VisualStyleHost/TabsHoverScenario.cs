@@ -31,6 +31,9 @@ internal static class TabsHoverScenario
         var printClient = false;
         var drawOutsidePaint = 0;
         var invariant = false;
+        var dirtyClip = false;
+        var selectedPixels = false;
+        var overflowClickable = false;
         try
         {
             using var images = new ImageList { ImageSize = new Size(16, 16) };
@@ -109,12 +112,53 @@ internal static class TabsHoverScenario
                     RestoreDC(hdc, saved);
                 }
                 finally { graphics.ReleaseHdc(hdc); }
+                var selected = paintProbe.SelectedDrawBounds;
+                selected.Offset(17, 11);
+                selectedPixels = CountNotColor(surface, Color.Fuchsia, selected) > 12;
+                Write("selected-pixels", "bounds=" + selected + "; nativePixels=" + CountNotColor(surface, Color.Fuchsia, selected) + "; painted=" + selectedPixels);
+                using (var overlayGraphics = Graphics.FromImage(surface))
+                using (var brush = new SolidBrush(Color.Lime))
+                    overlayGraphics.FillRectangle(brush, 18, 45, 8, 3);
+                Write("completion-chrome", "pixel=" + surface.GetPixel(20, 46) + "; after native pass in same buffer");
                 surface.Save(Path.Combine(outputDirectory, "supplied-paint.png"));
+            }
+            using (var dirtySurface = new Bitmap(paintProbe.Width + 40, paintProbe.Height + 40, PixelFormat.Format32bppArgb))
+            using (var dirtyGraphics = Graphics.FromImage(dirtySurface))
+            {
+                dirtyGraphics.Clear(Color.Fuchsia);
+                var hdc = dirtyGraphics.GetHdc();
+                try
+                {
+                    var saved = SaveDC(hdc);
+                    SetViewportOrgEx(hdc, 17, 11, out _);
+                    var header = paintProbe.GetTabRect(0);
+                    IntersectClipRect(hdc, header.Left, header.Top, header.Right, header.Bottom);
+                    SendMessage(paintProbe.Handle, WmPaint, hdc, IntPtr.Zero);
+                    RestoreDC(hdc, saved);
+                }
+                finally { dirtyGraphics.ReleaseHdc(hdc); }
+                dirtyClip = CountNotColor(dirtySurface, Color.Fuchsia, new Rectangle(17, 11, paintProbe.GetTabRect(0).Width, paintProbe.GetTabRect(0).Height)) > 12 &&
+                            CountNotColor(dirtySurface, Color.Fuchsia, new Rectangle(120, 80, 40, 40)) == 0;
+                Write("dirty-clip", "headerPainted=" + (CountNotColor(dirtySurface, Color.Fuchsia, new Rectangle(17, 11, paintProbe.GetTabRect(0).Width, paintProbe.GetTabRect(0).Height)) > 12) + "; pageUntouched=" + (CountNotColor(dirtySurface, Color.Fuchsia, new Rectangle(120, 80, 40, 40)) == 0) + "; pass=" + dirtyClip);
+                dirtySurface.Save(Path.Combine(outputDirectory, "dirty-header.png"));
+            }
+            var upDown = FindWindowEx(paintProbe.Handle, IntPtr.Zero, "msctls_updown32", null);
+            if (upDown != IntPtr.Zero && GetWindowRect(upDown, out var upDownBounds))
+            {
+                var beforeScroll = paintProbe.GetTabRect(0);
+                Cursor.Position = new Point(upDownBounds.Right - 9, (upDownBounds.Top + upDownBounds.Bottom) / 2);
+                Pump();
+                MouseEvent(0x0002, 0, 0, 0, UIntPtr.Zero);
+                MouseEvent(0x0004, 0, 0, 0, UIntPtr.Zero);
+                Pump();
+                var afterScroll = paintProbe.GetTabRect(0);
+                overflowClickable = beforeScroll != afterScroll;
+                Write("overflow-click", "child=" + upDown + "; bounds=" + upDownBounds + "; before=" + beforeScroll + "; after=" + afterScroll + "; moved=" + overflowClickable);
             }
             drawOutsidePaint = paintProbe.OutsidePaintDrawCount;
             Capture(form, Path.Combine(outputDirectory, "final.png"));
-            result = suppliedPaint && printClient && drawOutsidePaint == 0 && invariant ? "PROBE PASS" : "PROBE BLOCKED";
-            Write("gate", "suppliedPaint=" + suppliedPaint + "; printClientDispatched=" + printClient + "; outsidePaintDraw=" + drawOutsidePaint + "; hoverInvariant=" + invariant);
+            result = suppliedPaint && printClient && drawOutsidePaint == 0 && invariant && dirtyClip && selectedPixels && overflowClickable ? "PROBE PASS" : "PROBE BLOCKED";
+            Write("gate", "suppliedPaint=" + suppliedPaint + "; printClientDispatched=" + printClient + "; outsidePaintDraw=" + drawOutsidePaint + "; hoverInvariant=" + invariant + "; dirtyClip=" + dirtyClip + "; selectedPixels=" + selectedPixels + "; overflowClickable=" + overflowClickable);
         }
         finally
         {
@@ -175,6 +219,15 @@ internal static class TabsHoverScenario
         graphics.CopyFromScreen(form.Location, Point.Empty, bitmap.Size);
         bitmap.Save(path, ImageFormat.Png);
     }
+    private static int CountNotColor(Bitmap bitmap, Color color, Rectangle area)
+    {
+        var count = 0;
+        var bounds = Rectangle.Intersect(new Rectangle(Point.Empty, bitmap.Size), area);
+        for (var y = bounds.Top; y < bounds.Bottom; y++)
+        for (var x = bounds.Left; x < bounds.Right; x++)
+            if (bitmap.GetPixel(x, y).ToArgb() != color.ToArgb()) count++;
+        return count;
+    }
 
     private sealed class ProbeTabControl : TabControl
     {
@@ -185,6 +238,7 @@ internal static class TabsHoverScenario
         internal int PrintDrawCount { get; private set; }
         internal int OutsidePaintDrawCount { get; private set; }
         internal int MaxPaintDepth { get; private set; }
+        internal Rectangle SelectedDrawBounds { get; private set; }
         internal void StartSuppliedPaint() { _supplied = true; SuppliedDrawCount = 0; }
         internal void EndSuppliedPaint() => _supplied = false;
         protected override void WndProc(ref Message m)
@@ -215,6 +269,7 @@ internal static class TabsHoverScenario
             // GetHdc must be balanced before the normal event pipeline continues.
             e.Graphics.ReleaseHdc();
             if (_supplied) SuppliedDrawCount++;
+            if (_supplied && e.Index == SelectedIndex) SelectedDrawBounds = e.Bounds;
             if (_printDepth > 0) PrintDrawCount++;
             if (_paintDepth == 0 && _printDepth == 0) OutsidePaintDrawCount++;
             using (var brush = new SolidBrush(Color.Navy)) e.Graphics.FillRectangle(brush, e.Bounds);
@@ -230,4 +285,11 @@ internal static class TabsHoverScenario
     [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetViewportOrgEx(IntPtr hdc, int x, int y, out Point previous);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr hWnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? windowName);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect bounds);
+    [DllImport("user32.dll", EntryPoint = "mouse_event")] private static extern void MouseEvent(uint flags, uint x, uint y, uint data, UIntPtr extraInfo);
+    [StructLayout(LayoutKind.Sequential)] private struct NativeRect
+    {
+        internal int Left, Top, Right, Bottom;
+        public override string ToString() => "{" + Left + "," + Top + "," + Right + "," + Bottom + "}";
+    }
 }
