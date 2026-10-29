@@ -30,7 +30,8 @@ internal sealed class BootstrapBusyOverlayController : IDisposable
         if (presentation is null) throw new ArgumentNullException(nameof(presentation));
         var token = new Token(this, presentation);
         _tokens.Add(token);
-        RefreshVisibility();
+        try { RefreshVisibility(); }
+        catch { _tokens.Remove(token); throw; }
         return token;
     }
 
@@ -45,7 +46,7 @@ internal sealed class BootstrapBusyOverlayController : IDisposable
         }
         if (_visible)
         {
-            _present(_tokens[_tokens.Count - 1].Presentation);
+            PresentCurrent();
             return;
         }
         if (_pending) return;
@@ -85,7 +86,19 @@ internal sealed class BootstrapBusyOverlayController : IDisposable
         _pending = false;
         if (_tokens.Count == 0 || !_canPresent()) { Hide(); return; }
         _visible = true; // Commit before calling code which may reenter Hide/Begin/Dispose.
-        _present(_tokens[_tokens.Count - 1].Presentation);
+        PresentCurrent();
+    }
+
+    private void PresentCurrent()
+    {
+        try { _present(_tokens[_tokens.Count - 1].Presentation); }
+        catch
+        {
+            // A consumer event can fail after physical show/filter installation.
+            // Retain operations, but leave no half-presented UI or queued delay.
+            Hide();
+            throw;
+        }
     }
 
     private void Hide()

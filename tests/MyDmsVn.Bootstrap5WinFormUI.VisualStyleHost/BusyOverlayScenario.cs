@@ -27,7 +27,8 @@ internal static class BusyOverlayScenario
         Directory.CreateDirectory(directory);
         using var log = new StreamWriter(Path.Combine(directory, "result.txt"), false, new UTF8Encoding(false)) { AutoFlush = true };
         var timeoutProof = Environment.GetEnvironmentVariable("BUS_TIMEOUT_PROOF") == "1";
-        using var deadline = new ScenarioDeadline(log, timeoutProof ? 3000 : 30000);
+        // Includes 110 real 150ms delay cycles in the resource soak.
+        using var deadline = new ScenarioDeadline(log, timeoutProof ? 3000 : 60000);
         currentDeadline = deadline;
         try
         {
@@ -48,7 +49,8 @@ internal static class BusyOverlayScenario
             using var progress = new ProgressBar { Bounds = new Rectangle(20, 315, 220, 24), Value = 10 };
             using var patch = new Panel { Bounds = new Rectangle(20, 365, 200, 70), BackColor = Patches[0] };
             using var action = new Button { Text = "Content action", Bounds = new Rectangle(350, 385, 180, 35) };
-            content.Controls.AddRange(new Control[] { edit, tree, progress, patch, action });
+            using var scrollbar = new VScrollBar { Bounds = new Rectangle(600, 20, 20, 150), Minimum = 0, Maximum = 100, Value = 40 };
+            content.Controls.AddRange(new Control[] { edit, tree, progress, patch, action, scrollbar });
             using var host = new BootstrapBusyOverlayHost(content) { Bounds = new Rectangle(20, 20, 650, 470) };
             var backdrop = host.Controls.Cast<Control>().Single(c => c.GetType().Name == "BootstrapBusyLayeredBackdrop");
             var card = host.Controls.Cast<Control>().Single(c => c != content && c != backdrop);
@@ -66,6 +68,8 @@ internal static class BusyOverlayScenario
             Paint(form);
             using (var settled = Capture(form, card)) settled.Save(Path.Combine(directory, "initial.png"), ImageFormat.Png);
             Click(action); Require(contentClicks == 1, "Uncovered Content action did not receive SendInput."); contentClicks = 0;
+            Click(scrollbar, new Point(10, 140)); Require(scrollbar.Value != 40, "Uncovered scrollbar did not receive SendInput."); scrollbar.Value = 40;
+            edit.Select(1, 2); Click(edit); Require(edit.SelectionLength != 2, "Uncovered editor did not receive SendInput.");
             var printHooks = new List<PrintHook>();
             try
             {
@@ -110,10 +114,19 @@ internal static class BusyOverlayScenario
                             AssertPoint(capture, form, card.PointToScreen(new Point(5, 5)), card.BackColor, "opaque card");
                         }
                         Require(PrintCount(printHooks) == printBefore, "Overlay alpha update invoked Content print.");
+                        edit.Select(1, 2);
+                        var editText = edit.Text; var selection = edit.SelectionStart; var selectedLength = edit.SelectionLength;
+                        var scrollValue = scrollbar.Value;
+                        Click(edit); Click(scrollbar, new Point(10, 140));
+                        MouseAt(scrollbar.PointToScreen(new Point(10, 140)), 0x800, unchecked((uint)-120));
+                        Require(edit.Text == editText && edit.SelectionStart == selection && edit.SelectionLength == selectedLength && scrollbar.Value == scrollValue, "Content selection/value/scroll changed under overlay.");
                         Click(action); Click(cancel); Click(outside);
                         Require(contentClicks == 0 && cancelClicks == Array.IndexOf(new byte[] { 0, 89, 255 }, alpha) + 1 && outsideClicks == cancelClicks, "Queued input routing failed.");
-                        log.WriteLine($"PASS alpha={alpha}; ContentClicks={contentClicks}; CancelClicks={cancelClicks}; OutsideClicks={outsideClicks}; ProductionFilterOnly=true");
+                        log.WriteLine($"PASS alpha={alpha}; ContentClicks={contentClicks}; CancelClicks={cancelClicks}; OutsideClicks={outsideClicks}; selection={selection}/{selectedLength}; scroll={scrollbar.Value}; ProductionFilterOnly=true");
                     }
+                    InvokeUia(cancel, log); Wait(() => cancelClicks == 4, "UIA Cancel callback");
+                    InvokeUia(outside, log); Wait(() => outsideClicks == 4, "UIA ordinary Button callback");
+                    log.WriteLine("PASS UIA Invoke Cancel and ordinary outside Button");
                     host.BackdropOpacity = .35;
                     Bitmap? previousLive = null;
                     try
@@ -172,11 +185,15 @@ internal static class BusyOverlayScenario
                     using (var timer = new Timer { Interval = 750 })
                     {
                         deadline.Track(modal);
+                        var modalClicks = 0;
+                        var modalAction = new Button { Text = "Action", Bounds = new Rectangle(5, 5, 80, 25) };
+                        modalAction.Click += (_, _) => modalClicks++;
+                        modal.Controls.Add(modalAction);
                         var closed = false; Exception? modalError = null;
                         timer.Tick += (_, _) =>
                         {
                             timer.Stop();
-                            try { using var capture = CaptureNow(form); AssertPoint(capture, form, modal.PointToScreen(new Point(100, 50)), Color.Coral, "owned modal above overlay"); capture.Save(Path.Combine(directory, "owned-modal.png")); }
+                            try { Click(modalAction); Require(modalClicks == 1, "Owned modal not usable"); using var capture = CaptureNow(form); AssertPoint(capture, form, modal.PointToScreen(new Point(100, 50)), Color.Coral, "owned modal above overlay"); capture.Save(Path.Combine(directory, "owned-modal.png")); }
                             catch (Exception error) { modalError = error; }
                             finally { closed = true; modal.Close(); }
                         };
@@ -185,7 +202,9 @@ internal static class BusyOverlayScenario
                     }
                     log.WriteLine("PASS owned modal with bounded auto-close");
                     form.WindowState = FormWindowState.Minimized; Wait(() => IsIconic(form.Handle), "minimize");
+                    Require(host.RenderMode == BootstrapBusyOverlayRenderMode.None && !backdrop.Visible, "Minimized host kept presentation.");
                     form.WindowState = FormWindowState.Normal; form.Activate(); Wait(() => !IsIconic(form.Handle) && GetForegroundWindow() == form.Handle, "restore");
+                    Wait(() => host.RenderMode != BootstrapBusyOverlayRenderMode.None, "restore delay");
                     Paint(form);
                     using (var capture = Capture(form, card)) AssertPatch(capture, form, patch, fallback ? Fallback : Blend(Patches[3], 89), "restore");
                     log.WriteLine("PASS minimize/restore composition");
@@ -206,6 +225,7 @@ internal static class BusyOverlayScenario
                 finally { busyToken?.Dispose(); }
             }
             finally { foreach (var hook in printHooks) hook.ReleaseHandle(); }
+            ResourceSoak(form, fallback, log);
             return 0;
         }
         catch (Exception error) { log.WriteLine("BLOCKED " + error); return 1; }
@@ -213,6 +233,84 @@ internal static class BusyOverlayScenario
         {
             try { deadline.VerifyCleanup(); }
             finally { currentDeadline = null; }
+        }
+    }
+
+    private static void ResourceSoak(Form form, bool fallback, TextWriter log)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        Action cycle = () =>
+        {
+            using var host = new BootstrapBusyOverlayHost(new TextBox()) { Bounds = new Rectangle(780, 200, 150, 100) };
+            form.Controls.Add(host);
+            using var token = host.Begin(new BusyPresentation("soak", () => { }));
+            Wait(() => host.RenderMode != BootstrapBusyOverlayRenderMode.None, "soak delay");
+            Require(host.RenderMode == (fallback ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.NativeLayered), "Soak actual mode");
+            var handles = Owned(host).Where(c => c.IsHandleCreated).Select(c => c.Handle).ToArray();
+            typeof(Control).GetMethod("RecreateHandle", flags)!.Invoke(host, null);
+            Require(host.RenderMode == BootstrapBusyOverlayRenderMode.None, "Recreate must cancel presentation");
+            token.Dispose(); host.Dispose();
+            Require(!handles.Any(IsWindow), "Soak stale owned HWND");
+            Require(!(bool)typeof(BootstrapBusyOverlayHost).GetProperty("InputFilterInstalled", flags)!.GetValue(host)!, "Soak stale filter");
+            Require(typeof(BootstrapBusyOverlayHost).GetField("_owner", flags)!.GetValue(host) is null, "Soak stale owner subscription");
+            Application.DoEvents();
+        };
+        for (var i = 0; i < 10; i++) cycle();
+        using var process = Process.GetCurrentProcess();
+        SettleResources(process, log, "warm10");
+        var user = GetGuiResources(process.Handle, 1); var gdi = GetGuiResources(process.Handle, 0);
+        log.WriteLine($"SOAK warm10 USER={user}; GDI={gdi}; mode={(fallback ? "OpaqueFallback" : "NativeLayered")}");
+        LogOwnedWindows(process, log);
+        var grew = false;
+        for (var batch = 1; batch <= 4; batch++)
+        {
+            for (var i = 0; i < 25; i++) cycle();
+            SettleResources(process, log, $"cycles={batch * 25}");
+            var nextUser = GetGuiResources(process.Handle, 1); var nextGdi = GetGuiResources(process.Handle, 0);
+            log.WriteLine($"SOAK cycles={batch * 25}; USER={nextUser}; GDI={nextGdi}");
+            LogOwnedWindows(process, log);
+            grew |= nextUser > user || nextGdi > gdi;
+        }
+        Require(!grew, "Resource growth after warmup");
+        log.WriteLine("PASS resource soak 100 show/hide/recreate/dispose cycles; zero tolerance after warm10");
+    }
+    private static IEnumerable<Control> Owned(Control root) => new[] { root }.Concat(root.Controls.Cast<Control>().SelectMany(Owned));
+    private static void SettleResources(Process process, TextWriter log, string checkpoint)
+    {
+        var user = GetGuiResources(process.Handle, 1); var gdi = GetGuiResources(process.Handle, 0);
+        log.WriteLine($"SOAK raw {checkpoint}; USER={user}; GDI={gdi}");
+        // Same bounded condition at every checkpoint; never choose the lowest count.
+        // Keep raw observations, and reject persistent increases after settling too.
+        var elapsed = Stopwatch.StartNew(); var stableSince = 0L;
+        while (elapsed.ElapsedMilliseconds < 1500)
+        {
+            currentDeadline?.Check(); Application.DoEvents(); System.Threading.Thread.Sleep(5);
+            var nextUser = GetGuiResources(process.Handle, 1); var nextGdi = GetGuiResources(process.Handle, 0);
+            if (nextUser != user || nextGdi != gdi) { user = nextUser; gdi = nextGdi; stableSince = elapsed.ElapsedMilliseconds; }
+            if (elapsed.ElapsedMilliseconds >= 250 && elapsed.ElapsedMilliseconds - stableSince >= 100)
+            {
+                log.WriteLine($"SOAK settled {checkpoint}; USER={user}; GDI={gdi}; elapsedMs={elapsed.ElapsedMilliseconds}");
+                return;
+            }
+        }
+        throw new TimeoutException("Resource counts did not stabilize within 1500ms");
+    }
+    private static void LogOwnedWindows(Process process, TextWriter log)
+    {
+        var windows = new HashSet<IntPtr>();
+        EnumWindowCallback collect = (window, _) => { windows.Add(window); EnumChildWindows(window, (child, unused) => { windows.Add(child); return true; }, IntPtr.Zero); return true; };
+        process.Refresh();
+        foreach (ProcessThread thread in process.Threads) EnumThreadWindows((uint)thread.Id, collect, IntPtr.Zero);
+        var message = IntPtr.Zero;
+        while ((message = FindWindowEx((IntPtr)(-3), message, null, null)) != IntPtr.Zero)
+        {
+            GetWindowThreadProcessId(message, out var id);
+            if (id == process.Id) windows.Add(message);
+        }
+        foreach (var window in windows)
+        {
+            var name = new StringBuilder(256); GetClassName(window, name, name.Capacity);
+            log.WriteLine($"SOAK HWND={window}; class={name}; parent={GetParent(window)}; owner={GetWindow(window, 4)}; thread={GetWindowThreadProcessId(window, out _)}");
         }
     }
 
@@ -328,18 +426,44 @@ internal static class BusyOverlayScenario
         var point = form.PointToClient(screen); var actual = image.GetPixel(point.X, point.Y);
         Require(Math.Abs(actual.R - expected.R) <= 3 && Math.Abs(actual.G - expected.G) <= 3 && Math.Abs(actual.B - expected.B) <= 3, $"{name}: pixel {point}: expected={expected}, actual={actual}");
     }
-    private static void Click(Control control)
+    private static void Click(Control control, Point? point = null)
     {
         var position = Cursor.Position;
         try
         {
-            Cursor.Position = control.PointToScreen(new Point(control.Width / 2, control.Height / 2));
+            Cursor.Position = control.PointToScreen(point ?? new Point(control.Width / 2, control.Height / 2));
             var input = new[] { new Input { Type = 0, Mouse = new MouseInput { Flags = 2 } }, new Input { Type = 0, Mouse = new MouseInput { Flags = 4 } } };
             Require(SendInput(2, input, Marshal.SizeOf<Input>()) == 2, $"SendInput error={Marshal.GetLastWin32Error()}");
             var watch = Stopwatch.StartNew();
             while (watch.ElapsedMilliseconds < 100) { currentDeadline?.Check(); Application.DoEvents(); currentDeadline?.Check(); System.Threading.Thread.Sleep(2); }
         }
         finally { Cursor.Position = position; }
+    }
+    private static void MouseAt(Point point, uint flags, uint data)
+    {
+        var position = Cursor.Position;
+        try
+        {
+            Cursor.Position = point;
+            var inputs = new[] { new Input { Mouse = new MouseInput { Flags = flags, Data = data } } };
+            Require(SendInput(1, inputs, Marshal.SizeOf<Input>()) == 1, "SendInput wheel failed");
+            var watch = Stopwatch.StartNew();
+            while (watch.ElapsedMilliseconds < 100) { currentDeadline?.Check(); Application.DoEvents(); System.Threading.Thread.Sleep(2); }
+        }
+        finally { Cursor.Position = position; }
+    }
+    private static void InvokeUia(Control control, TextWriter log)
+    {
+        var command = MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.BusyOverlayUiaClient.Command(control.Handle);
+        using var process = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -NonInteractive -EncodedCommand " + Convert.ToBase64String(Encoding.Unicode.GetBytes(command)))
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true })!;
+        try
+        {
+            Wait(() => process.HasExited, "UIA client");
+            log.WriteLine(process.StandardOutput.ReadToEnd());
+            Require(process.ExitCode == 0, process.StandardError.ReadToEnd());
+        }
+        finally { if (!process.HasExited) { process.Kill(); process.WaitForExit(5000); } }
     }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
     private sealed class ScenarioDeadline : IDisposable
@@ -442,6 +566,13 @@ internal static class BusyOverlayScenario
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
     [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr window);
+    [DllImport("user32.dll")] private static extern int GetGuiResources(IntPtr process, int flags);
+    private delegate bool EnumWindowCallback(IntPtr window, IntPtr parameter);
+    [DllImport("user32.dll")] private static extern bool EnumThreadWindows(uint thread, EnumWindowCallback callback, IntPtr parameter);
+    [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr window, EnumWindowCallback callback, IntPtr parameter);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? className, string? name);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int length);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out int process);
     [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW")] private static extern int GetWindowLong(IntPtr window, int index);

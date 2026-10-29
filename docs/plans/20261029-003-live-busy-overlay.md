@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–2, 4–5](../design/20261029-tabs-hottrack-live-busy-overlay.md). [Plan TAB](20261029-002-bootstrap-tabs-hottrack.md) có thể chạy song song; chỉ tích hợp shared files theo một integrator.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04–06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation nhưng resource gate BLOCKED; BUS-05–06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
 
 ## Global Constraints
 
@@ -72,7 +72,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 | BUS-01 — child-layer proof và negative manifest | baseline | Đã triển khai/review; gate96 DPI PASS net48 x64/x86 và net8 x64; [evidence proof](../verification/20261029-live-busy-overlay.md); mixed-DPI NOT RUN |
 | BUS-02 — host/controller/public contract | BUS-01 proof | Đã triển khai/review, regression host/controller PASS hai TFM; [evidence production](../verification/20261030-live-busy-overlay-production.md); API fingerprint acceptance thuộc BUS-06 |
 | BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | Đã triển khai; minimum Cancel width và zero-size recovery đã sửa sau review; focused tests + native96 DPI theo [candidate evidence](../verification/20261030-live-busy-overlay-production.md); acceptance ngoài96 DPI còn mở |
-| BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | PENDING |
+| BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai; 87/87 Busy tests mỗi TFM PASS; native helper3 PASS/2 FAIL ở strict USER-resource gate; resource gate BLOCKED, mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
 | BUS-05 — demo và manifest gallery | BUS-03/04 | PENDING |
 | BUS-06 — contract, API, evidence | BUS-01–05 | PENDING |
 
@@ -130,14 +130,16 @@ Candidate BUS-03: implementation production và regression đã có; zero↔posi
 
 **Interfaces:** filter scoped Content HWND + native descendants; install/remove theo physical show, independent opacity. Chỉ owning UI thread; không process hook hoặc filter keyboard/business messages.
 
-- [ ] Mở rộng regression `ZeroOpacity_BlocksQueuedContentMouseButAllowsCancelAndOutsideSibling` từ BUS-03: real SendInput ở alpha 0/0.35/1 vào TextBox/Button/scrollbar; verify click/value/selection/scroll không đổi trong Content, Cancel/outside control vẫn đúng. Mouse/nonclient/wheel messages có target ngoài subtree phải đi tiếp; thêm RED case cho defect phát hiện, không gọi baseline đang PASS là RED.
-- [ ] Audit IMessageFilter ở mọi failure/reentrant hide/dispose/handle-loss path; không đăng ký trùng, không giữ stale HWND. ReleaseCapture chỉ nếu capture của Content descendant; kiểm callback show giữa mouse-down/up không kích hoạt click phía dưới. Chạy lại full production live/fallback scenarios sau lifecycle hardening, không cài filter hỗ trợ từ helper.
-- [ ] `Show_PreservesExistingFocus`, `Cancel_IsKeyboardAndUiaInvokable`, `CancelDisappears_RestoresFocusOnlyFromOwnedForeground`: ghi focused descendant ngay trước show; khi card/cancel bị ẩn, trả focus có điều kiện như design. Khi người dùng đã chuyển focus ra ngoài card, không phục hồi. Callback cancel reenter/dispose vẫn cleanup đúng.
-- [ ] Caller keyboard/UIA admission test minh họa cả pending và visible; host không giả lập bảo vệ business command. Native popup đang mở phải được caller đóng trước busy; docs/demo thực hiện quy tắc đó, không dò tất cả windows trong process. Raw touch/pen không tự nhận support từ mouse test.
-- [ ] `HiddenMinimizedOrDestroyedHost_RemovesFilterAndStopsSpinner`: ancestor hide/tab switch, owner minimize/dispose, host handle recreate/reparent, content disposed, pending callback cũ. Re-show/restore còn token thì reschedule 150 ms; owner deactivate vẫn giữ child presentation, không activate window.
+- [x] Mở rộng regression `ZeroOpacity_BlocksQueuedContentMouseButAllowsCancelAndOutsideSibling` từ BUS-03: real SendInput ở alpha 0/0.35/1 vào TextBox/Button/scrollbar; verify click/value/selection/scroll không đổi trong Content, Cancel/outside control vẫn đúng. Mouse/nonclient/wheel messages có target ngoài subtree phải đi tiếp; thêm RED case cho defect phát hiện, không gọi baseline đang PASS là RED.
+- [x] Audit IMessageFilter ở mọi failure/reentrant hide/dispose/handle-loss path; không đăng ký trùng, không giữ stale HWND. ReleaseCapture chỉ nếu capture của Content descendant; kiểm callback show giữa mouse-down/up không kích hoạt click phía dưới. Chạy lại full production live/fallback scenarios sau lifecycle hardening, không cài filter hỗ trợ từ helper.
+- [x] `Show_PreservesExistingFocus`, `Cancel_IsKeyboardAndUiaInvokable`, `CancelDisappears_RestoresFocusOnlyFromOwnedForeground`: ghi focused descendant ngay trước show; khi card/cancel bị ẩn, trả focus có điều kiện như design. Khi người dùng đã chuyển focus ra ngoài card, không phục hồi. Callback cancel reenter/dispose vẫn cleanup đúng.
+- [x] Caller keyboard/UIA admission test minh họa cả pending và visible; host không giả lập bảo vệ business command. Native popup đang mở phải được caller đóng trước busy; docs/demo thực hiện quy tắc đó, không dò tất cả windows trong process. Raw touch/pen không tự nhận support từ mouse test.
+- [x] `HiddenMinimizedOrDestroyedHost_RemovesFilterAndStopsSpinner`: ancestor hide/tab switch, owner minimize/dispose, host handle recreate/reparent, content disposed, pending callback cũ. Re-show/restore còn token thì reschedule 150 ms; owner deactivate vẫn giữ child presentation, không activate window.
 - [ ] `ClippedHostAndHigherSibling_KeepNativeOcclusion`, `OwnedModal_RemainsAboveAndUsable`, `DpiChange_DoesNotResetOperationOrLeakHandles`: verify nested scroll, partially clipped host, independent busy hosts, modal, mixed-DPI và owner move. Đăng ký owner events cần thiết khi parent thay đổi, unsubscribe owner cũ.
 - [ ] Resource soak có warm-up rồi 100 show/hide/recreate cycles; assert owned HWND/filter/delay/subscriptions về trạng thái zero sau dispose và process USER/GDI không tăng theo batch. Ghi actual counts/caching, không nới tolerance để giấu leak.
-- [ ] Commit `fix: harden busy overlay input focus and native lifecycle`.
+- [x] Commit `fix: harden busy overlay input focus and native lifecycle`.
+
+BUS-04 chưa DONE: strict resource gate còn FAIL ở final net48 x86 live và net48 x64 fallback (USER +1 sau warm-up, GDI không tăng, không có HWND set delta); không nới tolerance. Physical/mixed-DPI NOT RUN/BLOCKED BY ENVIRONMENT. Caller admission/popup recipe đã có tests và component docs; demo cùng recipe thuộc BUS-05, chưa sửa demo trong task này. Chi tiết RED/GREEN, native matrix và raw/settled counts ở [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md).
 
 ### BUS-05 — Demo live overlay và executable prerequisites
 

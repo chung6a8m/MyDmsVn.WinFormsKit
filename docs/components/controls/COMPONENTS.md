@@ -1497,7 +1497,7 @@ Each call to `Begin` owns a separate idempotent token. The newest live token sup
 
 Skeleton and other unimplemented components are not part of the initial foundation contract.
 
-## BootstrapBusyOverlayHost — candidate BUS-03
+## BootstrapBusyOverlayHost — candidate BUS-03/04
 
 `BootstrapBusyOverlayHost : Panel` sở hữu một `Content` chưa có parent; constructor không tạo HWND. `Begin(BusyPresentation)` dùng delay 150 ms và token trên UI thread; token mới nhất còn sống cung cấp message/Cancel, Cancel không tự release. `BootstrapBusyHost` cũ giữ nguyên.
 
@@ -1505,6 +1505,12 @@ Backdrop và card là sibling của Content trong host. `BackdropOpacity` mặc 
 
 `RenderMode` là `None` khi chưa hiện, `NativeLayered` khi thiết lập child-layer thành công, hoặc `OpaqueFallback` khi thiếu capability/native alpha thất bại. Fallback dùng `SurfaceSecondary`, không chụp Content. `RenderModeChanged` phát sau khi commit mode; callback consumer không bị chuyển thành lỗi native. Khi đang hiện, filter UI-thread chặn queued mouse chỉ tới HWND Content và native descendants, kể cả opacity 0; Cancel/sibling ngoài host/keyboard không bị filter này chặn. Caller vẫn sở hữu keyboard/UIA/command admission và phải đóng popup transient trước Begin.
 
-BUS-03 đã kiểm production native ở physical 100%/96 DPI trên net48 x64/x86 và net8 x64; xem [evidence production](../../verification/20261030-live-busy-overlay-production.md). Focus/capture/lifecycle nâng cao thuộc BUS-04, demo thuộc BUS-05, fingerprint và acceptance đầy đủ thuộc BUS-06; các phạm vi đó còn mở.
+BUS-03 đã kiểm production native ở physical 100%/96 DPI trên net48 x64/x86 và net8 x64; xem [evidence production](../../verification/20261030-live-busy-overlay-production.md). BUS-04 bổ sung [input/focus/lifecycle evidence](../../verification/20261030-live-busy-overlay-lifecycle.md). Demo thuộc BUS-05, fingerprint và acceptance đầy đủ thuộc BUS-06; physical/mixed-DPI chưa được suy ra từ proof96.
 
-Khi ClientSize của host về zero ở một chiều, host hủy pending generation và dừng presentation/filter/spinner, vẫn giữ live tokens. Khi client dương trở lại, token còn sống được schedule lại150ms; resize giữa hai kích thước dương không reset delay. Callback resize/Begin lồng nhau không được làm presentation generation cũ hiện lại. Các subscriptions owner/ancestor nâng cao vẫn thuộc BUS-04.
+Khi ClientSize của host về zero ở một chiều, host hủy pending generation và dừng presentation/filter/spinner, vẫn giữ live tokens. Khi client dương trở lại, token còn sống được schedule lại150ms; resize giữa hai kích thước dương không reset delay. Callback resize/Begin lồng nhau không được làm presentation generation cũ hiện lại.
+
+BUS-04: show không lấy focus; chỉ release mouse capture đang thuộc Content/native descendants. Khi Cancel/card mất đi trong owner đang foreground, focus được trả về Content descendant đã ghi trước show nếu nó còn selectable/visible/enabled; nếu không thì dùng traversal của owner. Nếu người dùng đã chuyển focus khỏi card hoặc owner không còn foreground, host không chủ động lấy lại focus. Cancel vẫn là native Button hỗ trợ Tab/Shift+Tab, Space/Enter và UIA Invoke.
+
+Hide/tab switch/minimize/host hoặc Content handle loss/dispose gỡ filter và dừng spinner. Restore/recreate còn token thì schedule lại150ms; owner deactivate không kết thúc busy hoặc activate cửa sổ. Reparent ancestor cập nhật tracking owner và gỡ subscriptions cũ. Exception từ callback presentation làm cleanup physical presentation rồi tiếp tục phát exception, không chuyển thành fallback; Begin thất bại không để lại token mà caller không nhận được.
+
+Caller phải đóng native popup transient rồi chặn keyboard/UIA/business commands **trước Begin**, kể cả khoảng150ms pending. Overlay không đổi `Content.Enabled`, không chặn arbitrary SendMessage và chưa nhận hỗ trợ raw touch/pen. Demo thực hiện recipe này thuộc BUS-05; test BUS-04 minh họa admission đóng/mở và popup ComboBox do caller đóng.

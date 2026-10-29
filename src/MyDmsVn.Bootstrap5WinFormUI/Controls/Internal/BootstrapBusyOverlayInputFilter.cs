@@ -9,7 +9,18 @@ internal sealed class BootstrapBusyOverlayInputFilter : IMessageFilter, IDisposa
     internal int Blocked { get; private set; }
     internal bool Installed => _installed;
     internal BootstrapBusyOverlayInputFilter(Control content) => _content = content;
-    internal void Install() { if (_installed) return; Application.AddMessageFilter(this); _installed = true; }
+    internal void Install()
+    {
+        if (_installed) return;
+        Application.AddMessageFilter(this);
+        _installed = true;
+        // Capture loss may call consumer code and hide/dispose the host reentrantly.
+        // Register first so that cleanup can remove this exact registration.
+        if (!_content.IsHandleCreated || _content.IsDisposed) return;
+        var capture = GetCapture();
+        var root = _content.Handle;
+        if (capture == root || IsChild(root, capture)) ReleaseCapture();
+    }
     public void Dispose() { if (!_installed) return; Application.RemoveMessageFilter(this); _installed = false; }
     public bool PreFilterMessage(ref Message m)
     {
@@ -20,4 +31,6 @@ internal sealed class BootstrapBusyOverlayInputFilter : IMessageFilter, IDisposa
         Blocked++; return true;
     }
     [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr child);
+    [DllImport("user32.dll")] private static extern IntPtr GetCapture();
+    [DllImport("user32.dll")] private static extern bool ReleaseCapture();
 }

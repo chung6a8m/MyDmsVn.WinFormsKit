@@ -315,6 +315,190 @@ public sealed class BootstrapBusyOverlayHostTests
         if (regrow) { delay.Fire(); AssertPresentation(host, true); }
     }
 
+
+    [TestCase(false), TestCase(true)]
+    public void Lifecycle_ContentDisposal_RemovesPresentationAndPending(bool visible)
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show();
+        using var token = host.Begin(new BusyPresentation("busy")); var stale = delay.Pending!;
+        if (visible) delay.Fire();
+        host.Content.Dispose(); AssertPresentation(host, false);
+        Assert.That((object?)delay.Pending, Is.Null); stale(); AssertPresentation(host, false);
+    }
+
+    [Test]
+    public void Lifecycle_MinimizeAndAncestorReparent_TracksCurrentOwnerOnly()
+    {
+        using var first = new Form(); using var second = new Form();
+        using var ancestor = new Panel { Dock = DockStyle.Fill }; var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        ancestor.Controls.Add(host); first.Controls.Add(ancestor); first.Show(); second.Show();
+        using var token = host.Begin(new BusyPresentation("busy")); delay.Fire(); AssertPresentation(host, true);
+        first.WindowState = FormWindowState.Minimized; Application.DoEvents(); AssertPresentation(host, false);
+        first.WindowState = FormWindowState.Normal; Application.DoEvents();
+        Assert.That(delay.LastDelay, Is.EqualTo(TimeSpan.FromMilliseconds(150))); delay.Fire(); AssertPresentation(host, true);
+        second.Controls.Add(ancestor); Application.DoEvents(); delay.Fire(); AssertPresentation(host, true);
+        first.WindowState = FormWindowState.Minimized; Application.DoEvents(); AssertPresentation(host, true);
+        second.WindowState = FormWindowState.Minimized; Application.DoEvents(); AssertPresentation(host, false);
+    }
+
+    [TestCase(false), TestCase(true)]
+    public void Lifecycle_Show_ReleasesOnlyContentCapture(bool outsideCapture)
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Bounds = new Rectangle(0, 0, 200, 200) };
+        using var outside = new TextBox { Left = 210 }; form.Controls.AddRange(new Control[] { host, outside }); form.Show();
+        var captured = outsideCapture ? outside : host.Content; captured.Capture = true;
+        Assert.That(captured.Capture, Is.True);
+        using var token = host.Begin(new BusyPresentation("busy")); delay.Fire();
+        Assert.That(captured.Capture, Is.EqualTo(outsideCapture)); captured.Capture = false;
+    }
+
+    [TestCase(false), TestCase(true)]
+    public void Lifecycle_CancelDisappears_RestoresOriginalDescendantOnlyFromCard(bool moveOutside)
+    {
+        using var form = new Form { ClientSize = new Size(500, 300) }; var delay = new ManualDelay();
+        var content = new Panel(); var first = new TextBox { Top = 0 }; var remembered = new TextBox { Top = 30 };
+        content.Controls.AddRange(new Control[] { first, remembered });
+        using var host = new BootstrapBusyOverlayHost(content, delay, new UnsupportedNative()) { Bounds = new Rectangle(0, 0, 350, 280) };
+        using var outside = new TextBox { Left = 360 }; form.Controls.AddRange(new Control[] { host, outside }); form.Show(); form.Activate(); remembered.Focus();
+        using var token = host.Begin(new BusyPresentation("busy", () => { })); delay.Fire();
+        Assert.That(remembered.Focused, Is.True); var cancel = All(host).OfType<Button>().Single(); cancel.Focus();
+        Assert.That(cancel.Focused, Is.True); if (moveOutside) outside.Focus();
+        using var noCancel = host.Begin(new BusyPresentation("no cancel"));
+        Assert.That(moveOutside ? outside.Focused : remembered.Focused, Is.True);
+    }
+
+    [Test]
+    public void Lifecycle_ContentHandleLoss_CancelsUntilRecreation()
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show(); using var token = host.Begin(new BusyPresentation("busy")); delay.Fire();
+        typeof(Control).GetMethod("DestroyHandle", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(host.Content, null);
+        AssertPresentation(host, false);
+        Assert.That(host.Content.IsHandleCreated, Is.False);
+        _ = host.Content.Handle; Assert.That(delay.LastDelay, Is.EqualTo(TimeSpan.FromMilliseconds(150)));
+        delay.Fire(); AssertPresentation(host, true);
+    }
+
+    [Test]
+    public void Lifecycle_PresentationCallbackFailure_RemovesFilterAndSpinner()
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show(); using var token = host.Begin(new BusyPresentation("busy")); delay.Fire();
+        var expected = new InvalidOperationException("consumer TextChanged");
+        All(host).OfType<Label>().Single().TextChanged += (_, _) => throw expected;
+        Assert.That(Assert.Throws<InvalidOperationException>((Action)(() => host.Begin(new BusyPresentation("new")))), Is.SameAs(expected));
+        AssertPresentation(host, false);
+    }
+
+    [Test]
+    public void Lifecycle_CaptureLossCallbackCanDisposeWithoutStaleFilter()
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show(); host.Content.Capture = true;
+        host.Content.MouseCaptureChanged += (_, _) => { if (!host.Content.Capture) host.Dispose(); };
+        using var token = host.Begin(new BusyPresentation("busy")); delay.Fire();
+        Assert.That(host.IsDisposed, Is.True); Assert.That(host.InputFilterInstalled, Is.False);
+        Assert.That(delay.Disposals, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Lifecycle_DpiNotificationPreservesOperationAndDelay()
+    {
+        using var form = new Form(); var delay = new ManualDelay();
+        using var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); form.Show(); using var token = host.Begin(new BusyPresentation("busy")); delay.Fire();
+        var handle = host.Handle;
+        for (var i = 0; i < 10; i++)
+            typeof(Control).GetMethod("OnDpiChangedAfterParent", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(host, new object[] { EventArgs.Empty });
+        Assert.That(host.Handle, Is.EqualTo(handle)); Assert.That(delay.Schedules, Is.EqualTo(1)); AssertPresentation(host, true);
+        TestContext.WriteLine($"Synthetic DPI lifecycle only; actual={host.DeviceDpi}; physical mixed-DPI NOT RUN here");
+    }
+
+    [Test]
+    public void Lifecycle_ResourceSoak100Cycles_ReleasesOwnedWindowsFiltersDelaysAndSubscriptions()
+    {
+        using var form = new Form { ClientSize = new Size(500, 300) }; form.Show();
+        Action cycle = () =>
+        {
+            var delay = new ManualDelay(); var host = new BootstrapBusyOverlayHost(new TextBox(), delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+            form.Controls.Add(host); using var token = host.Begin(new BusyPresentation("busy", () => { })); delay.Fire(); AssertPresentation(host, true);
+            typeof(Control).GetMethod("RecreateHandle", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(host, null);
+            AssertPresentation(host, false); delay.Fire(); AssertPresentation(host, true);
+            var owned = All(host).ToArray(); var handles = owned.Where(c => c.IsHandleCreated).Select(c => c.Handle).ToArray();
+            token.Dispose(); AssertPresentation(host, false); host.Dispose();
+            Assert.That(host.InputFilterInstalled, Is.False); Assert.That(delay.Disposals, Is.EqualTo(1)); Assert.That((object?)delay.Pending, Is.Null);
+            Assert.That(owned.All(c => c.IsDisposed && !c.IsHandleCreated), Is.True); Assert.That(handles.Any(IsWindow), Is.False);
+            var ancestors = (System.Collections.ICollection)typeof(BootstrapBusyOverlayHost).GetField("_ancestors", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(host)!;
+            Assert.That(ancestors.Count, Is.Zero);
+            Assert.That(typeof(BootstrapBusyOverlayHost).GetField("_owner", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(host), Is.Null);
+            Application.DoEvents();
+        };
+        for (var i = 0; i < 10; i++) cycle();
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        var initialUser = GetGuiResources(process.Handle, 1); var initialGdi = GetGuiResources(process.Handle, 0);
+        TestContext.WriteLine($"warm10 USER={initialUser} GDI={initialGdi}");
+        for (var batch = 0; batch < 4; batch++)
+        {
+            for (var i = 0; i < 25; i++) cycle();
+            var user = GetGuiResources(process.Handle, 1); var gdi = GetGuiResources(process.Handle, 0);
+            TestContext.WriteLine($"cycle={(batch + 1) * 25} USER={user} GDI={gdi}");
+            Assert.That(user, Is.LessThanOrEqualTo(initialUser), "USER growth after warmup");
+            Assert.That(gdi, Is.LessThanOrEqualTo(initialGdi), "GDI growth after warmup");
+        }
+    }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int GetGuiResources(IntPtr process, int flags);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool IsWindow(IntPtr handle);
+
+    [Test]
+    public void Lifecycle_IndependentHostsAndOwnerDeactivation_PreserveTheirOperations()
+    {
+        using var form = new Form { ClientSize = new Size(600, 300) }; using var other = new Form();
+        var aDelay = new ManualDelay(); var bDelay = new ManualDelay();
+        using var a = new BootstrapBusyOverlayHost(new TextBox(), aDelay, new UnsupportedNative()) { Bounds = new Rectangle(0, 0, 290, 280) };
+        using var b = new BootstrapBusyOverlayHost(new TextBox(), bDelay, new UnsupportedNative()) { Bounds = new Rectangle(300, 0, 290, 280) };
+        form.Controls.AddRange(new Control[] { a, b }); form.Show();
+        using var aToken = a.Begin(new BusyPresentation("a")); using var bToken = b.Begin(new BusyPresentation("b")); aDelay.Fire(); bDelay.Fire();
+        other.Show(); other.Activate(); Application.DoEvents(); AssertPresentation(a, true); AssertPresentation(b, true);
+        aToken.Dispose(); AssertPresentation(a, false); AssertPresentation(b, true);
+        form.Dispose(); Assert.That(b.InputFilterInstalled, Is.False); Assert.That(bDelay.Disposals, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Lifecycle_LastTokenHidesFocusedCancel_WithoutTakingForegroundFromAnotherOwner()
+    {
+        using var form = new Form { ClientSize = new Size(500, 300) }; using var other = new Form(); var delay = new ManualDelay();
+        var content = new Panel(); var first = new TextBox(); var remembered = new TextBox { Top = 35 }; content.Controls.AddRange(new Control[] { first, remembered });
+        using var host = new BootstrapBusyOverlayHost(content, delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); BootstrapBusyOverlayNativeTests.Activate(form); remembered.Focus();
+        var token = host.Begin(new BusyPresentation("busy", () => { })); delay.Fire(); All(host).OfType<Button>().Single().Focus(); token.Dispose();
+        Assert.That(remembered.Focused, Is.True);
+        using var next = host.Begin(new BusyPresentation("again", () => { })); delay.Fire(); All(host).OfType<Button>().Single().Focus();
+        BootstrapBusyOverlayNativeTests.Activate(other); var foreground = GetForegroundWindow();
+        next.Dispose(); Assert.That(GetForegroundWindow(), Is.EqualTo(foreground)); AssertPresentation(host, false);
+    }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+
+    [Test]
+    public void Lifecycle_FocusRestorationReentrantShow_CannotHideTheNewPresentation()
+    {
+        using var form = new Form(); var delay = new ManualDelay(); var content = new TextBox();
+        using var host = new BootstrapBusyOverlayHost(content, delay, new UnsupportedNative()) { Dock = DockStyle.Fill };
+        form.Controls.Add(host); BootstrapBusyOverlayNativeTests.Activate(form); content.Focus();
+        var token = host.Begin(new BusyPresentation("old", () => { })); delay.Fire(); All(host).OfType<Button>().Single().Focus();
+        IDisposable? next = null;
+        content.Enter += (_, _) => { if (next is null) { next = host.Begin(new BusyPresentation("new")); delay.Fire(); } };
+        token.Dispose();
+        try { AssertPresentation(host, true); Assert.That(All(host).OfType<Label>().Single().Text, Is.EqualTo("new")); }
+        finally { next?.Dispose(); }
+    }
+
     private static void AssertPresentation(BootstrapBusyOverlayHost host, bool visible)
     {
         Assert.That(host.RenderMode, Is.EqualTo(visible ? BootstrapBusyOverlayRenderMode.OpaqueFallback : BootstrapBusyOverlayRenderMode.None));
