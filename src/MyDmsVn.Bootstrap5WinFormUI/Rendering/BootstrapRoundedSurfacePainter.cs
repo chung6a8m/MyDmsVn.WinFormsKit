@@ -35,6 +35,23 @@ internal static class BootstrapRoundedSurfacePainter
                 return;
             }
 
+            var radius = geometry.OuterRadius;
+            var halfBorder = geometry.BorderWidth / 2f;
+            if (CollapsesRoundedCorner(radius.TopLeft, halfBorder) ||
+                CollapsesRoundedCorner(radius.TopRight, halfBorder) ||
+                CollapsesRoundedCorner(radius.BottomLeft, halfBorder) ||
+                CollapsesRoundedCorner(radius.BottomRight, halfBorder))
+            {
+                // A rectangular centerline with a miter join would square a rounded outer corner.
+                // Paint the border from the actual outer contour, then its inset interior.
+                using var borderBrush = new SolidBrush(border);
+                graphics.FillPath(borderBrush, outerPath);
+                using var innerPath = geometry.CreateInnerPath();
+                using var innerBrush = new SolidBrush(surface);
+                graphics.FillPath(innerBrush, innerPath);
+                return;
+            }
+
             using (var surfaceBrush = new SolidBrush(surface))
             {
                 graphics.FillPath(surfaceBrush, outerPath);
@@ -61,4 +78,6 @@ internal static class BootstrapRoundedSurfacePainter
             graphics.Restore(state);
         }
     }
+
+    private static bool CollapsesRoundedCorner(float radius, float halfBorder) => radius > 0f && radius <= halfBorder;
 }
