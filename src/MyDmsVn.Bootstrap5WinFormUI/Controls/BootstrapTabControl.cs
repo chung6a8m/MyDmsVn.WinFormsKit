@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
 using MyDmsVn.Bootstrap5WinFormUI.Rendering;
 using MyDmsVn.Bootstrap5WinFormUI.Theme;
 
@@ -19,7 +20,7 @@ public class BootstrapTabControl : TabControl
     private BootstrapVariant _variant = BootstrapVariant.Primary;
     private bool _fill;
     private int _borderRadius = -1;
-    private int _hoveredIndex = -1;
+    private readonly BootstrapTabInteractionController _interaction;
     private bool _themeSubscribed;
     private bool _settingThemeFont;
     private bool _useThemeFont = true;
@@ -65,6 +66,7 @@ public class BootstrapTabControl : TabControl
     /// </summary>
     public BootstrapTabControl()
     {
+        _interaction = new BootstrapTabInteractionController(this, () => DrawMode == TabDrawMode.OwnerDrawFixed);
         DrawMode = TabDrawMode.OwnerDrawFixed;
         SizeMode = TabSizeMode.Fixed;
 
@@ -80,6 +82,8 @@ public class BootstrapTabControl : TabControl
         LostFocus += OnTabFocusChanged;
         EnabledChanged += OnTabEnabledChanged;
         SelectedIndexChanged += OnTabSelectedIndexChanged;
+        HandleCreated += OnTabHandleCreated;
+        HandleDestroyed += OnTabHandleDestroyed;
 
         BootstrapThemeManager.ThemeChanged += OnThemeChanged;
         _themeSubscribed = true;
@@ -150,6 +154,7 @@ public class BootstrapTabControl : TabControl
             _fill = value;
             ApplyHeaderItemSize();
             Invalidate();
+            _interaction.RefreshFromPointer();
         }
     }
 
@@ -202,6 +207,9 @@ public class BootstrapTabControl : TabControl
             LostFocus -= OnTabFocusChanged;
             EnabledChanged -= OnTabEnabledChanged;
             SelectedIndexChanged -= OnTabSelectedIndexChanged;
+            HandleCreated -= OnTabHandleCreated;
+            HandleDestroyed -= OnTabHandleDestroyed;
+            _interaction.Dispose();
 
             foreach (TabPage page in TabPages)
             {
@@ -217,6 +225,22 @@ public class BootstrapTabControl : TabControl
         }
 
         base.Dispose(disposing);
+    }
+
+    /// <inheritdoc />
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var parameters = base.CreateParams;
+            return _interaction is null ? parameters : FilterTabStyle(parameters);
+        }
+    }
+
+    private CreateParams FilterTabStyle(CreateParams parameters)
+    {
+        parameters.Style = _interaction.FilterNativeStyle(parameters.Style);
+        return parameters;
     }
 
     /// <inheritdoc />
@@ -302,7 +326,7 @@ public class BootstrapTabControl : TabControl
             _tabStyle,
             e.Index == SelectedIndex,
             enabled,
-            HotTrack && e.Index == _hoveredIndex);
+            HotTrack && e.Index == _interaction.HoveredIndex);
 
         DrawHeaderSurface(e.Graphics, layout, metrics, palette, e.Index == SelectedIndex);
 
@@ -448,6 +472,7 @@ public class BootstrapTabControl : TabControl
             AttachTabPage(page);
             ApplyHeaderItemSize();
             Invalidate();
+            _interaction.RefreshFromPointer();
         }
     }
 
@@ -459,7 +484,8 @@ public class BootstrapTabControl : TabControl
             _closablePages.Remove(page);
             if (ReferenceEquals(_closeMenuPage, page)) UpdateCloseMenuPage(SelectedTab);
             ApplyHeaderItemSize();
-            UpdateHoveredIndex(-1);
+            _interaction.Reset();
+            _interaction.RefreshFromPointer();
             Invalidate();
         }
     }
@@ -483,6 +509,7 @@ public class BootstrapTabControl : TabControl
         if (ReferenceEquals(sender, _closeMenuPage)) UpdateCloseMenuPage(_closeMenuPage);
         ApplyHeaderItemSize();
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     private void OnTabFontChanged(object? sender, EventArgs e)
@@ -495,6 +522,7 @@ public class BootstrapTabControl : TabControl
 
         ApplyHeaderItemSize();
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     private void OnTabSizeChanged(object? sender, EventArgs e)
@@ -505,22 +533,24 @@ public class BootstrapTabControl : TabControl
         }
 
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     private void OnTabDpiChangedAfterParent(object? sender, EventArgs e)
     {
         ApplyHeaderItemSize();
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     private void OnTabMouseMove(object? sender, MouseEventArgs e)
     {
-        UpdateHoveredIndex(HitTestTab(e.Location));
+        _interaction.MouseMoved(e.Location);
     }
 
     private void OnTabMouseLeave(object? sender, EventArgs e)
     {
-        UpdateHoveredIndex(-1);
+        _interaction.MouseLeft();
     }
 
     private void OnTabFocusChanged(object? sender, EventArgs e)
@@ -531,13 +561,19 @@ public class BootstrapTabControl : TabControl
     private void OnTabEnabledChanged(object? sender, EventArgs e)
     {
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     private void OnTabSelectedIndexChanged(object? sender, EventArgs e)
     {
         UpdateCloseMenuPage(SelectedTab);
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
+
+    private void OnTabHandleCreated(object? sender, EventArgs e) => _interaction.RefreshFromPointer();
+
+    private void OnTabHandleDestroyed(object? sender, EventArgs e) => _interaction.Reset();
 
     private void EnsureCloseMenu()
     {
@@ -590,6 +626,7 @@ public class BootstrapTabControl : TabControl
 
         ApplyHeaderItemSize();
         Invalidate();
+        _interaction.RefreshFromPointer();
     }
 
     private void ApplyHeaderItemSize()
@@ -717,19 +754,6 @@ public class BootstrapTabControl : TabControl
         }
 
         return -1;
-    }
-
-    private void UpdateHoveredIndex(int value)
-    {
-        if (_hoveredIndex == value)
-        {
-            return;
-        }
-
-        var previous = _hoveredIndex;
-        _hoveredIndex = value;
-        InvalidateHeader(previous);
-        InvalidateHeader(value);
     }
 
     private void InvalidateSelectedHeader()
