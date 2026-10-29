@@ -17,17 +17,22 @@ internal static class BusyOverlayScenario
     private static readonly Color Tint = Color.FromArgb(24, 32, 40);
     private static readonly Color[] Patches = { Color.Lime, Color.Red, Color.Blue, Color.Yellow };
     private static readonly Guid Windows10 = new("8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a");
+    [ThreadStatic] private static ScenarioDeadline? currentDeadline;
 
     internal static int Run(string directory, bool fallback)
     {
         Directory.CreateDirectory(directory);
         using var log = new StreamWriter(Path.Combine(directory, "result.txt"), false, new UTF8Encoding(false)) { AutoFlush = true };
+        var timeoutProof = Environment.GetEnvironmentVariable("BUS_TIMEOUT_PROOF") == "1";
+        using var deadline = new ScenarioDeadline(log, timeoutProof ? 3000 : 30000);
+        currentDeadline = deadline;
         try
         {
             log.WriteLine($"Candidate={Environment.GetEnvironmentVariable("BUS_CANDIDATE")}; Runtime={RuntimeInformation.FrameworkDescription}; Bitness={IntPtr.Size * 8}; OS={Environment.OSVersion}; Interactive={Environment.UserInteractive}");
             var capability = QueryExecutable(log);
             Require(capability != fallback, "Executable capability does not match requested scenario.");
             using var form = new Form { Text = "BUS-01 native child-layer proof", StartPosition = FormStartPosition.Manual, Location = new Point(80, 80), ClientSize = new Size(800, 580) };
+            deadline.Track(form);
             using var tabs = new TabControl { Bounds = new Rectangle(10, 10, 650, 500) };
             var page = new TabPage("Probe");
             tabs.TabPages.Add(page);
@@ -66,13 +71,23 @@ internal static class BusyOverlayScenario
             using (var settled = Capture(form, card)) settled.Save(Path.Combine(directory, "initial.png"), ImageFormat.Png);
             Click(action); Require(contentClicks == 1, "Uncovered Content action did not receive SendInput."); contentClicks = 0;
             var printHooks = new List<PrintHook>();
-            Hook(content, printHooks, log);
             try
             {
+                Hook(content, printHooks, log);
                 var filter = new MouseFilter(content);
                 Application.AddMessageFilter(filter);
+                deadline.FiltersInstalled++;
                 try
                 {
+                    if (timeoutProof)
+                    {
+                        using var stuckModal = new Form { Text = "Injected modal without auto-close", ClientSize = new Size(240, 100) };
+                        deadline.Track(stuckModal);
+                        log.WriteLine("INJECT modal without auto-close; filter/hooks installed");
+                        stuckModal.ShowDialog(form);
+                        deadline.Check();
+                        throw new InvalidOperationException("Timeout injection returned without a scenario deadline.");
+                    }
                     var showPrintBefore = PrintCount(printHooks);
                     if (!fallback) Require(SetLayeredWindowAttributes(backdrop.Handle, 0, 89, 2), "Initial alpha setup failed.");
                     backdrop.Visible = true; card.Visible = true;
@@ -162,6 +177,7 @@ internal static class BusyOverlayScenario
                     using (var modal = new Form { Text = "Bounded owned modal", StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(260, 100), BackColor = Color.Coral })
                     using (var timer = new Timer { Interval = 750 })
                     {
+                        deadline.Track(modal);
                         var closed = false; Exception? modalError = null;
                         timer.Tick += (_, _) =>
                         {
@@ -170,7 +186,7 @@ internal static class BusyOverlayScenario
                             catch (Exception error) { modalError = error; }
                             finally { closed = true; modal.Close(); }
                         };
-                        timer.Start(); modal.ShowDialog(form); timer.Stop(); Require(closed, "Modal auto-close did not execute.");
+                        timer.Start(); modal.ShowDialog(form); timer.Stop(); deadline.Check(); Require(closed, "Modal auto-close did not execute.");
                         if (modalError != null) throw modalError;
                     }
                     log.WriteLine("PASS owned modal with bounded auto-close");
@@ -190,14 +206,20 @@ internal static class BusyOverlayScenario
                     }
                     log.WriteLine(dpis.Count > 1 ? "PASS mixed-DPI move" : "NOT RUN mixed-DPI: no distinct physical monitor DPI available");
                     Require(UnexpectedPrintCount(printHooks) == 0, "Unexpected print path during lifecycle proof.");
+                    deadline.Check();
                     log.WriteLine($"PASS scenarios; WM_PRINT={PrintCount(printHooks)}; FilterBlocked={filter.Blocked}; NativeLiveGate={(fallback ? "NOT APPLICABLE" : "PASS")}");
                 }
-                finally { Application.RemoveMessageFilter(filter); }
+                finally { Application.RemoveMessageFilter(filter); deadline.FiltersRemoved++; }
             }
             finally { foreach (var hook in printHooks) hook.ReleaseHandle(); }
             return 0;
         }
         catch (Exception error) { log.WriteLine("BLOCKED " + error); return 1; }
+        finally
+        {
+            try { deadline.VerifyCleanup(); }
+            finally { currentDeadline = null; }
+        }
     }
 
     private static bool QueryExecutable(TextWriter log)
@@ -236,6 +258,7 @@ internal static class BusyOverlayScenario
     private static void Hook(Control control, List<PrintHook> hooks, TextWriter log)
     {
         var hook = new PrintHook(control.GetType().Name, log); hook.AssignHandle(control.Handle); hooks.Add(hook);
+        currentDeadline?.Hooks.Add(hook);
         foreach (Control child in control.Controls) Hook(child, hooks, log);
     }
     private static int PrintCount(List<PrintHook> hooks) { var count = 0; foreach (var hook in hooks) count += hook.Count; return count; }
@@ -245,11 +268,12 @@ internal static class BusyOverlayScenario
     private static uint ClassStyle(IntPtr window) => IntPtr.Size == 8 ? unchecked((uint)GetClassLongPtr(window, -26).ToUInt64()) : GetClassLong(window, -26);
     private static void Paint(Control control)
     {
+        currentDeadline?.Check();
         control.Update();
         var watch = Stopwatch.StartNew(); var stable = 0;
         while (watch.ElapsedMilliseconds < 2000)
         {
-            Application.DoEvents();
+            Application.DoEvents(); currentDeadline?.Check();
             Require(DwmFlush() == 0, "DwmFlush failed.");
             if (GetQueueStatus(0x20) == 0) { if (++stable >= 3) return; } else stable = 0;
         }
@@ -258,7 +282,7 @@ internal static class BusyOverlayScenario
     private static void Wait(Func<bool> condition, string name)
     {
         var watch = Stopwatch.StartNew();
-        while (watch.ElapsedMilliseconds < 3000) { Application.DoEvents(); if (condition()) return; System.Threading.Thread.Sleep(5); }
+        while (watch.ElapsedMilliseconds < 3000) { currentDeadline?.Check(); Application.DoEvents(); currentDeadline?.Check(); if (condition()) return; System.Threading.Thread.Sleep(5); }
         throw new TimeoutException(name);
     }
     private static Bitmap Capture(Form form, Control? animationMask = null)
@@ -268,7 +292,7 @@ internal static class BusyOverlayScenario
         var watch = Stopwatch.StartNew(); var previous = 0L; var stable = 0;
         while (watch.ElapsedMilliseconds < 3000)
         {
-            Application.DoEvents(); Require(DwmFlush() == 0, "Capture DwmFlush failed.");
+            currentDeadline?.Check(); Application.DoEvents(); currentDeadline?.Check(); Require(DwmFlush() == 0, "Capture DwmFlush failed.");
             using var sample = CaptureNow(form);
             var mask = animationMask == null ? Rectangle.Empty : new Rectangle(form.PointToClient(animationMask.PointToScreen(Point.Empty)), animationMask.Size);
             long hash = 17;
@@ -283,6 +307,7 @@ internal static class BusyOverlayScenario
     }
     private static Bitmap CaptureNow(Form form)
     {
+        currentDeadline?.Check();
         var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.CopyFromScreen(form.PointToScreen(Point.Empty), Point.Empty, bitmap.Size, CopyPixelOperation.SourceCopy);
@@ -318,11 +343,73 @@ internal static class BusyOverlayScenario
             var input = new[] { new Input { Type = 0, Mouse = new MouseInput { Flags = 2 } }, new Input { Type = 0, Mouse = new MouseInput { Flags = 4 } } };
             Require(SendInput(2, input, Marshal.SizeOf<Input>()) == 2, $"SendInput error={Marshal.GetLastWin32Error()}");
             var watch = Stopwatch.StartNew();
-            while (watch.ElapsedMilliseconds < 100) { Application.DoEvents(); System.Threading.Thread.Sleep(2); }
+            while (watch.ElapsedMilliseconds < 100) { currentDeadline?.Check(); Application.DoEvents(); currentDeadline?.Check(); System.Threading.Thread.Sleep(2); }
         }
         finally { Cursor.Position = position; }
     }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
+    private sealed class ScenarioDeadline : IDisposable
+    {
+        private readonly Stopwatch elapsed = Stopwatch.StartNew();
+        private readonly Timer timer = new() { Interval = 20 };
+        private readonly List<Form> windows = new();
+        private readonly List<IntPtr> nativeWindows = new();
+        private readonly TextWriter log;
+        private readonly int limitMilliseconds;
+        private bool expired;
+        internal readonly List<PrintHook> Hooks = new();
+        internal int FiltersInstalled;
+        internal int FiltersRemoved;
+
+        internal ScenarioDeadline(TextWriter log, int limitMilliseconds)
+        {
+            this.log = log; this.limitMilliseconds = limitMilliseconds;
+            log.WriteLine($"ScenarioDeadlineMs={limitMilliseconds}; outer watchdog remains required for a blocked UI thread");
+            timer.Tick += OnTick; timer.Start();
+        }
+
+        internal void Track(Form window)
+        {
+            windows.Add(window);
+            window.HandleCreated += (_, _) => nativeWindows.Add(window.Handle);
+        }
+
+        private void OnTick(object? sender, EventArgs e)
+        {
+            if (elapsed.ElapsedMilliseconds >= limitMilliseconds) Expire();
+        }
+
+        private void Expire()
+        {
+            if (expired) return;
+            expired = true; timer.Stop();
+            log.WriteLine($"TIMEOUT scenario deadline; elapsedMs={elapsed.ElapsedMilliseconds}; closing owned modal/root windows");
+            // Runs on the owning UI thread, including inside ShowDialog's nested loop.
+            // Do not throw from a Timer callback: close windows, then unwind at Check.
+            for (var i = windows.Count - 1; i >= 0; i--)
+                if (!windows[i].IsDisposed) windows[i].Close();
+        }
+
+        internal void Check()
+        {
+            if (elapsed.ElapsedMilliseconds >= limitMilliseconds) Expire();
+            if (expired) throw new TimeoutException($"Scenario exceeded {limitMilliseconds}ms total deadline.");
+        }
+
+        internal void VerifyCleanup()
+        {
+            timer.Stop();
+            var remainingWindows = 0; var releasedHooks = 0;
+            foreach (var window in windows) if (!window.IsDisposed) remainingWindows++;
+            foreach (var handle in nativeWindows) if (IsWindow(handle)) remainingWindows++;
+            foreach (var hook in Hooks) if (hook.Handle == IntPtr.Zero) releasedHooks++;
+            var pass = remainingWindows == 0 && FiltersInstalled == FiltersRemoved && releasedHooks == Hooks.Count;
+            log.WriteLine($"{(pass ? "PASS" : "FAIL")} cleanup; elapsedMs={elapsed.ElapsedMilliseconds}; expired={expired}; windowsRemaining={remainingWindows}; filters={FiltersRemoved}/{FiltersInstalled}; hooks={releasedHooks}/{Hooks.Count}");
+            Require(pass, "Scenario did not release every owned window/filter/hook.");
+        }
+
+        public void Dispose() { timer.Stop(); timer.Tick -= OnTick; timer.Dispose(); }
+    }
     private sealed class Backdrop : Control
     {
         private readonly bool layered;
@@ -378,6 +465,7 @@ internal static class BusyOverlayScenario
     [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr child);
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
