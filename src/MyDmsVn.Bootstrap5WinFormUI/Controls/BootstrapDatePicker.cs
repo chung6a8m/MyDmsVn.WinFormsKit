@@ -272,33 +272,15 @@ public class BootstrapDatePicker : UserControl
             ContainsFocus,
             Enabled);
         var borderWidth = Math.Max(1f, ContainsFocus ? metrics.FocusBorderWidth : metrics.BorderWidth);
-        var inset = borderWidth / 2f;
-        var bounds = new RectangleF(
-            inset,
-            inset,
-            Math.Max(0f, ClientSize.Width - borderWidth),
-            Math.Max(0f, ClientSize.Height - borderWidth));
-
-        if (bounds.Width <= 0f || bounds.Height <= 0f)
-        {
-            return;
-        }
-
-        var graphics = e.Graphics;
-        var previousSmoothing = graphics.SmoothingMode;
-        graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        try
-        {
-            using var path = RoundedPath.Create(bounds, new CornerRadius(metrics.Radius));
-            using var surfaceBrush = new SolidBrush(palette.Surface);
-            using var borderPen = new Pen(palette.Border, borderWidth);
-            graphics.FillPath(surfaceBrush, path);
-            graphics.DrawPath(borderPen, path);
-        }
-        finally
-        {
-            graphics.SmoothingMode = previousSmoothing;
-        }
+        var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
+            new RectangleF(0f, 0f, ClientSize.Width, ClientSize.Height),
+            new CornerRadius(metrics.Radius),
+            borderWidth);
+        BootstrapRoundedSurfacePainter.Paint(
+            e.Graphics,
+            geometry,
+            palette.Surface,
+            palette.Border);
     }
 
     /// <inheritdoc />

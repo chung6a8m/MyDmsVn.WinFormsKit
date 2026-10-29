@@ -43,7 +43,8 @@ public partial class BootstrapSelect : UserControl, IBootstrapConnectedControl
     /// <summary>Initializes a designer-safe BootstrapSelect.</summary>
     public BootstrapSelect()
     {
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor | ControlStyles.Selectable, true);
+        BackColor = Color.Transparent;
         TabStop = true;
         Size = new Size(220, 32);
         MinimumSize = new Size(60, 24);
@@ -720,32 +721,22 @@ public partial class BootstrapSelect : UserControl, IBootstrapConnectedControl
             _borderRadius,
             containsFocus);
 
-        var graphics = e.Graphics;
-        var previousSmoothing = graphics.SmoothingMode;
-        graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        try
-        {
-            var radius = _connectedCornerRadius.HasValue
-                ? ScaleCornerRadius(_connectedCornerRadius.Value, dpi)
-                : new CornerRadius(metrics.Radius);
-            using var path = RoundedPath.Create(metrics.BorderBounds, radius);
-            using var background = new SolidBrush(
-                Enabled ? theme.Colors.Surface : theme.Colors.SurfaceSecondary);
-            using var pen = new Pen(
-                BootstrapTextBoxRenderLogic.ResolveBorderColor(
-                    theme.Colors,
-                    _validationState,
-                    containsFocus,
-                    Enabled),
-                metrics.BorderWidth);
-
-            graphics.FillPath(background, path);
-            graphics.DrawPath(pen, path);
-        }
-        finally
-        {
-            graphics.SmoothingMode = previousSmoothing;
-        }
+        var radius = _connectedCornerRadius.HasValue
+            ? ScaleCornerRadius(_connectedCornerRadius.Value, dpi)
+            : new CornerRadius(metrics.Radius);
+        var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
+            new RectangleF(0f, 0f, ClientSize.Width, ClientSize.Height),
+            radius,
+            metrics.BorderWidth);
+        BootstrapRoundedSurfacePainter.Paint(
+            e.Graphics,
+            geometry,
+            Enabled ? theme.Colors.Surface : theme.Colors.SurfaceSecondary,
+            BootstrapTextBoxRenderLogic.ResolveBorderColor(
+                theme.Colors,
+                _validationState,
+                containsFocus,
+                Enabled));
 
         var layout = CreateSelectionLayout();
         if (_selectionMode == BootstrapSelectMode.Multiple)
