@@ -4,6 +4,7 @@
     <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(TargetFramework)' == 'net48'">app.net48.manifest</ApplicationManifest>
     <RootNamespace>MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost</RootNamespace>
   </PropertyGroup>
 

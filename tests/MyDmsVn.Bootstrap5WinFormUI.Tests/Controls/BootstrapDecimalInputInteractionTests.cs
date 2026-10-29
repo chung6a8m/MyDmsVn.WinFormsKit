@@ -16,6 +16,50 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 [NonParallelizable]
 public sealed class BootstrapDecimalInputInteractionTests
 {
+    [Test]
+    public void ClipboardObservationWaitsForDelayedRepublishingWithoutRepeatingCopy()
+    {
+        using var host = CreateHost(out var input);
+        input.BeginEditSession(1234m);
+        WithClipboardText("initial", () =>
+        {
+            input.NativeEditor.SelectAll();
+            SendMessage(input.NativeEditor.Handle, WmCopy, IntPtr.Zero, IntPtr.Zero);
+            var copiedText = AssertClipboardText("1234");
+            using var opened = new ManualResetEventSlim();
+            using var observedEmpty = new ManualResetEventSlim();
+            Exception? workerError = null;
+            var worker = new Thread(() =>
+            {
+                try
+                {
+                    if (!OpenClipboard(IntPtr.Zero)) throw new InvalidOperationException("Cannot open clipboard for controlled republishing.");
+                    try { if (!EmptyClipboard()) throw new InvalidOperationException("Cannot establish the empty native clipboard interval."); }
+                    finally { CloseClipboard(); }
+                    opened.Set();
+                    if (!observedEmpty.Wait(1000)) throw new TimeoutException("The observer did not inspect the empty clipboard interval.");
+                    Thread.Sleep(30);
+                    Clipboard.SetText(copiedText);
+                }
+                catch (Exception error) { workerError = error; opened.Set(); }
+            });
+            worker.SetApartmentState(ApartmentState.STA);
+            worker.Start();
+            try
+            {
+                Assert.That(opened.Wait(2000), Is.True);
+                if (workerError is not null) throw workerError;
+                AssertClipboardText("1234", () => observedEmpty.Set());
+                Assert.That(observedEmpty.IsSet, Is.True);
+            }
+            finally
+            {
+                Assert.That(worker.Join(2000), Is.True, "Clipboard republishing worker must stop before the next GUI test.");
+                if (workerError is not null) throw new InvalidOperationException("Clipboard republishing worker failed.", workerError);
+            }
+        });
+    }
+
     private const int WmChar = 0x0102;
     private const int WmKeyDown = 0x0100;
     private const int WmPaste = 0x0302;
@@ -120,16 +164,16 @@ public sealed class BootstrapDecimalInputInteractionTests
         {
             input.NativeEditor.SelectAll();
             SendMessage(input.NativeEditor.Handle, WmCopy, IntPtr.Zero, IntPtr.Zero);
-            Assert.That(Clipboard.GetText(), Is.EqualTo("1234"));
+            AssertClipboardText("1234");
             input.NativeEditor.SelectAll();
             SendMessage(input.NativeEditor.Handle, WmCut, IntPtr.Zero, IntPtr.Zero);
-            Assert.That(Clipboard.GetText(), Is.EqualTo("1234"));
+            AssertClipboardText("1234");
             Assert.That(input.PendingText, Is.Empty);
 
             input.NativeEditor.SelectedText = "12x4";
             input.NativeEditor.SelectAll();
             SendMessage(input.NativeEditor.Handle, WmCopy, IntPtr.Zero, IntPtr.Zero);
-            Assert.That(Clipboard.GetText(), Is.EqualTo("12x4"));
+            AssertClipboardText("12x4");
             SendMessage(input.NativeEditor.Handle, WmCut, IntPtr.Zero, IntPtr.Zero);
             Assert.That(input.PendingText, Is.Empty);
             Assert.That(input.Value, Is.EqualTo(1234m));
@@ -250,6 +294,30 @@ public sealed class BootstrapDecimalInputInteractionTests
             else Clipboard.Clear();
         }
     }
+
+    private static string AssertClipboardText(string expected, Action? onEmpty = null)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var actual = Clipboard.GetText();
+        // The OS clipboard is shared. A native client can empty it while republishing
+        // formats; observe that bounded empty interval without repeating copy/cut writes.
+        while (actual.Length == 0 && watch.ElapsedMilliseconds < 1000)
+        {
+            onEmpty?.Invoke();
+            Application.DoEvents();
+            Thread.Sleep(5);
+            actual = Clipboard.GetText();
+        }
+        Assert.That(actual, Is.EqualTo(expected),
+            $"Clipboard sequence={GetClipboardSequenceNumber()}, owner={GetClipboardOwner()}, observed for {watch.ElapsedMilliseconds}ms.");
+        return actual;
+    }
+
+    [DllImport("user32.dll")] private static extern uint GetClipboardSequenceNumber();
+    [DllImport("user32.dll")] private static extern IntPtr GetClipboardOwner();
+    [DllImport("user32.dll")] private static extern bool OpenClipboard(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool CloseClipboard();
+    [DllImport("user32.dll")] private static extern bool EmptyClipboard();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr SendMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);

@@ -12,7 +12,8 @@ internal readonly struct BootstrapComboBoxMetrics
         int verticalPadding,
         int iconSize,
         int iconGap,
-        int itemHeight,
+        int outerHeight,
+        int minimumFieldHeight,
         float borderWidth,
         float focusBorderWidth,
         float radius)
@@ -21,7 +22,8 @@ internal readonly struct BootstrapComboBoxMetrics
         VerticalPadding = verticalPadding;
         IconSize = iconSize;
         IconGap = iconGap;
-        ItemHeight = itemHeight;
+        OuterHeight = outerHeight;
+        MinimumFieldHeight = minimumFieldHeight;
         BorderWidth = borderWidth;
         FocusBorderWidth = focusBorderWidth;
         Radius = radius;
@@ -35,7 +37,9 @@ internal readonly struct BootstrapComboBoxMetrics
 
     public int IconGap { get; }
 
-    public int ItemHeight { get; }
+    public int OuterHeight { get; }
+
+    public int MinimumFieldHeight { get; }
 
     public float BorderWidth { get; }
 
@@ -117,7 +121,7 @@ internal static class BootstrapComboBoxRenderLogic
         var iconSize = DpiScaler.Scale(metrics.SpacingLG, dpi);
         var iconGap = DpiScaler.Scale(metrics.SpacingXS, dpi);
         var controlHeight = DpiScaler.Scale(metrics.ControlHeight, dpi);
-        var itemHeight = Math.Max(controlHeight, fontHeight + (verticalPadding * 2));
+        var minimumFieldHeight = fontHeight + (verticalPadding * 2);
         var logicalRadius = borderRadius >= 0 ? borderRadius : metrics.Radius;
 
         return new BootstrapComboBoxMetrics(
@@ -125,7 +129,8 @@ internal static class BootstrapComboBoxRenderLogic
             verticalPadding,
             iconSize,
             iconGap,
-            itemHeight,
+            controlHeight,
+            minimumFieldHeight,
             DpiScaler.Scale((float)metrics.BorderWidth, dpi),
             DpiScaler.Scale((float)metrics.FocusBorderWidth, dpi),
             DpiScaler.Scale((float)logicalRadius, dpi));

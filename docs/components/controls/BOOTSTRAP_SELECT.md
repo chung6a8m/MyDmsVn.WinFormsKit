@@ -294,9 +294,13 @@ Searchable popups inset the themed search field from the rounded overlay edge us
 
 Selection geometry and result metrics are DPI-scaled. Each popup refresh uses one controller-owned effective DPI for search metrics, result rows, render contexts, surface metrics, and placement. Moving an open popup between DPI contexts reapplies presentation before placement. Changing `ResultRowHeight` while open reapplies presentation and repositions the existing popup without recreating it.
 
+Đổi `BorderRadius` khi popup đang mở chỉ refresh geometry, safe content layout, owned Regions và placement trên cùng popup HWND. Luồng radius-only không rebuild result set, không reconcile selection và không gọi đường bảo đảm highlighted row đang visible; query, native search caret, selection/highlight và scroll offset hiện tại phải được giữ nguyên.
+
+Offset được giữ qua các layout trung gian khi radius thay đổi rồi restore/clamp theo viewport cuối, kể cả lúc đã cuộn sát cuối danh sách. Việc giảm radius không được làm mất phần cuối chỉ vì viewport tạm thời rộng hơn trước khi popup nhận bounds cuối.
+
 Normal mouse-wheel increments are row-based. At the scroll boundary, the final clamped `ScrollOffset` may be a partial-row offset because the exact maximum is `totalHeight - viewportHeight`.
 
-The implementation is validated by automated geometry/rendering tests at 96/120/144/192 DPI (100/125/150/200%). Synthetic popup-content DPI tests cover only the search host's theme-derived inset and allocated height; the nested `BootstrapTextBox` follows its normal primitive contract and paints using its real `DeviceDpi` and `BootstrapThemeManager.CurrentTheme`. `RightToLeft.Yes` mirrors major horizontal selection-surface affordances. Real-monitor DPI/multi-monitor behavior remains part of the manual desktop matrix.
+The implementation is validated by automated geometry/rendering tests at 96/120/144/168/192 DPI (100/125/150/175/200%). Synthetic popup-content DPI tests cover only the search host's theme-derived inset and allocated height; the nested `BootstrapTextBox` follows its normal primitive contract and paints using its real `DeviceDpi` and `BootstrapThemeManager.CurrentTheme`. `RightToLeft.Yes` mirrors major horizontal selection-surface affordances. Real-monitor DPI/multi-monitor behavior remains part of the manual desktop matrix; xem [candidate evidence](../../verification/20261029-input-popup-rendering.md) để biết scale vật lý nào đã thực sự chạy.
 
 ## Ownership and disposal
 

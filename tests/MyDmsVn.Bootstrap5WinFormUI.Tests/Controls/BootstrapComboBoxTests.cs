@@ -138,6 +138,7 @@ public sealed class BootstrapComboBoxTests
         {
             ".ctor",
             "BorderRadius",
+            "GetPreferredSize",
             "IconRenderer",
             "LeadingIcon",
             "ValidationState"

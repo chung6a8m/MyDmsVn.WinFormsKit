@@ -153,14 +153,14 @@ internal sealed class BootstrapSelectResultsView : Control
         return MoveHighlight(direction >= 0 ? pageRows : -pageRows);
     }
 
-    internal void SetScrollOffset(int offset)
+    internal void SetScrollOffset(int offset, bool notifyNearEnd = true)
     {
         if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
         var layout = BootstrapSelectResultLayout.Create(_results.Rows.Count, RowHeight, ClientSize.Height, offset);
         if (_scrollOffset == layout.ScrollOffset) return;
         _scrollOffset = layout.ScrollOffset;
         Invalidate();
-        CheckNearEnd();
+        if (notifyNearEnd) CheckNearEnd();
     }
 
     internal void ScrollByWheelDelta(int delta, int scrollLines)

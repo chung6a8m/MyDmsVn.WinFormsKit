@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
@@ -15,6 +16,132 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Controls;
 public sealed class BootstrapOverlaySurfaceTests
 {
     private static readonly Color OpaqueContentColor = Color.Fuchsia;
+
+    [Test]
+    public void FractionalDpiKeepsOverlayPaintMetricsAsFloats()
+    {
+        using var surface = new BootstrapOverlaySurface();
+
+        surface.ApplyTheme(BootstrapTheme.CreateDefault(BootstrapThemeMode.Light), 120);
+
+        var borderWidth = typeof(BootstrapOverlaySurface)
+            .GetField("_borderWidth", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(surface);
+        var radius = typeof(BootstrapOverlaySurface)
+            .GetField("_radius", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(surface);
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(borderWidth, Is.TypeOf<float>());
+            Assert.That((float)borderWidth!, Is.EqualTo(1.25f).Within(0.001f));
+            Assert.That(radius, Is.TypeOf<float>());
+            Assert.That((float)radius!, Is.EqualTo(7.5f).Within(0.001f));
+        }));
+    }
+
+    [Test]
+    public void OpaqueBackingHasNoTransparentOrBlackFringeInStrokeBand()
+    {
+        using var surface = new BootstrapOverlaySurface
+        {
+            Size = new Size(140, 80),
+            LogicalBorderRadius = 24
+        };
+        var theme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Dark);
+        surface.ApplyTheme(theme, 96);
+        surface.CreateControl();
+
+        using var bitmap = new Bitmap(surface.Width, surface.Height, PixelFormat.Format32bppArgb);
+        surface.DrawToBitmap(bitmap, surface.ClientRectangle);
+
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                Assert.That(bitmap.GetPixel(x, y).A, Is.EqualTo(255), $"Backing pixel ({x},{y}) must be opaque.");
+            }
+        }
+    }
+
+    [Test]
+    public void DecorativeInsetsAreChargedOnceInPreferredSizeAndLayout()
+    {
+        using var surface = new BootstrapOverlaySurface
+        {
+            Size = new Size(140, 80),
+            LogicalContentPadding = new Padding(3, 4, 5, 6),
+            LogicalBorderRadius = 16
+        };
+        using var content = new PreferredSizeControl(new Size(100, 40));
+        surface.AttachContent(content);
+        surface.ApplyTheme(CreateThickBorderTheme(), 96);
+        surface.CreateControl();
+        content.CreateControl();
+        surface.PerformLayout();
+
+        var insets = surface.GetEffectiveContentInsets(surface.ClientSize);
+        var preferred = surface.GetPreferredSize(Size.Empty);
+        var contentBounds = surface.RectangleToClient(content.RectangleToScreen(content.ClientRectangle));
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(preferred, Is.EqualTo(new Size(
+                100 + insets.Horizontal,
+                40 + insets.Vertical)));
+            Assert.That(contentBounds.Left, Is.EqualTo(insets.Left));
+            Assert.That(contentBounds.Top, Is.EqualTo(insets.Top));
+            Assert.That(surface.ClientSize.Width - contentBounds.Right, Is.EqualTo(insets.Right));
+            Assert.That(surface.ClientSize.Height - contentBounds.Bottom, Is.EqualTo(insets.Bottom));
+        }));
+    }
+
+    [Test]
+    public void VeryLargeRadiusMeasurementRemainsFiniteAndLeavesRequestedContentViewport()
+    {
+        using var surface = new BootstrapOverlaySurface
+        {
+            LogicalContentPadding = Padding.Empty,
+            LogicalBorderRadius = 1000
+        };
+        using var content = new PreferredSizeControl(new Size(1000, 1000));
+        surface.AttachContent(content);
+
+        var preferred = surface.GetPreferredSize(Size.Empty);
+        var insets = surface.GetEffectiveContentInsets(preferred);
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(preferred.Width, Is.LessThan(4000));
+            Assert.That(preferred.Height, Is.LessThan(4000));
+            Assert.That(preferred.Width - insets.Horizontal, Is.GreaterThanOrEqualTo(1000));
+            Assert.That(preferred.Height - insets.Vertical, Is.GreaterThanOrEqualTo(1000));
+            Assert.That(surface.GetPreferredSize(Size.Empty), Is.EqualTo(preferred));
+        }));
+    }
+
+    [Test]
+    public void TinyBoundsReturnEmptyContentWithoutNegativeGeometry()
+    {
+        using var surface = new BootstrapOverlaySurface
+        {
+            Size = new Size(3, 2),
+            LogicalContentPadding = Padding.Empty,
+            LogicalBorderRadius = 16
+        };
+        using var content = new Panel();
+        surface.AttachContent(content);
+        surface.PerformLayout();
+
+        var insets = surface.GetEffectiveContentInsets(surface.ClientSize);
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(insets.Left + insets.Right, Is.GreaterThanOrEqualTo(surface.Width));
+            Assert.That(insets.Top + insets.Bottom, Is.GreaterThanOrEqualTo(surface.Height));
+            Assert.That(content.Width, Is.Zero);
+            Assert.That(content.Height, Is.Zero);
+        }));
+    }
 
     [Test]
     public void AttachDetachPreservesCallerOwnership()
@@ -61,11 +188,11 @@ public sealed class BootstrapOverlaySurfaceTests
         Assert.Throws<InvalidOperationException>((Action)(() => surface.AttachContent(parented)));
     }
 
-    [TestCase(96, 126, 58)]
-    [TestCase(120, 132, 62)]
-    [TestCase(144, 140, 68)]
-    [TestCase(168, 146, 72)]
-    [TestCase(192, 152, 76)]
+    [TestCase(96, 132, 64)]
+    [TestCase(120, 138, 68)]
+    [TestCase(144, 146, 74)]
+    [TestCase(168, 154, 80)]
+    [TestCase(192, 160, 84)]
     public void PreferredSizeScalesPaddingAndBorder(int dpi, int expectedWidth, int expectedHeight)
     {
         using var surface = new BootstrapOverlaySurface
@@ -259,7 +386,8 @@ public sealed class BootstrapOverlaySurfaceTests
                     : rendered.Height - 1 - y;
                 var before = rendered.GetPixel(sampleX, sampleY);
                 var beforeArgb = before.ToArgb();
-                if (beforeArgb == outside
+                if (before.A == 0
+                    || beforeArgb == outside
                     || beforeArgb == surface
                     || beforeArgb == border
                     || beforeArgb == content)

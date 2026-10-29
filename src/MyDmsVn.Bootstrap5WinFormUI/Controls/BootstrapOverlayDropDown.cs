@@ -13,6 +13,7 @@ internal sealed class BootstrapOverlayDropDown : ToolStripDropDown
 
     private readonly BootstrapOverlaySurface _surface;
     private readonly ToolStripControlHost _host;
+    private readonly BootstrapOverlayToolStripRenderer _renderer;
     private Region? _ownedRegion;
     private Rectangle _requestedBounds;
     private int _boundsGeneration;
@@ -25,7 +26,8 @@ internal sealed class BootstrapOverlayDropDown : ToolStripDropDown
         Padding = Padding.Empty;
         Margin = Padding.Empty;
         DropShadowEnabled = true;
-        Renderer = new BootstrapOverlayToolStripRenderer();
+        _renderer = new BootstrapOverlayToolStripRenderer(surface.BackColor);
+        Renderer = _renderer;
         _host = new ToolStripControlHost(surface)
         {
             AutoSize = false,
@@ -33,6 +35,9 @@ internal sealed class BootstrapOverlayDropDown : ToolStripDropDown
             Padding = Padding.Empty
         };
         Items.Add(_host);
+        _surface.BackColorChanged += OnSurfacePresentationChanged;
+        _surface.RegionChanged += OnSurfacePresentationChanged;
+        SynchronizeSurfacePresentation();
     }
 
     public bool CloseOnEscape { get; set; }
@@ -140,6 +145,8 @@ internal sealed class BootstrapOverlayDropDown : ToolStripDropDown
             TabNavigationRequested = null;
             ApplicationDeactivated = null;
             WindowDeactivated = null;
+            _surface.BackColorChanged -= OnSurfacePresentationChanged;
+            _surface.RegionChanged -= OnSurfacePresentationChanged;
             Region = null;
             _ownedRegion?.Dispose();
             _ownedRegion = null;
@@ -158,11 +165,27 @@ internal sealed class BootstrapOverlayDropDown : ToolStripDropDown
         _surface.Size = screenBounds.Size;
         _host.Size = screenBounds.Size;
         Size = screenBounds.Size;
+        SynchronizeSurfacePresentation();
+    }
+
+    internal void SynchronizeSurfacePresentation()
+    {
+        BackColor = _surface.BackColor;
+        _renderer.BackColor = _surface.BackColor;
         var next = _surface.Region?.Clone();
         var previous = _ownedRegion;
         _ownedRegion = next;
         Region = next;
         previous?.Dispose();
+    }
+
+    private void OnSurfacePresentationChanged(object? sender, EventArgs e)
+    {
+        if (!IsDisposed)
+        {
+            SynchronizeSurfacePresentation();
+            Invalidate();
+        }
     }
 
     private void RecordRequestedBounds(Rectangle screenBounds)

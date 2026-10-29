@@ -631,23 +631,16 @@ public class BootstrapButton : Button, IBootstrapConnectedControl
     {
         var dpi = DeviceDpi > 0 ? DeviceDpi : DpiScaler.DefaultDpi;
         var borderWidth = Math.Max(1f, DpiScaler.Scale((float)theme.Metrics.BorderWidth, dpi));
-        var inset = borderWidth / 2f;
-        var bounds = new RectangleF(
-            inset,
-            inset,
-            Math.Max(0f, ClientSize.Width - borderWidth),
-            Math.Max(0f, ClientSize.Height - borderWidth));
-        if (bounds.Width <= 0f || bounds.Height <= 0f)
-        {
-            return;
-        }
-
         var radius = ScaleCornerRadius(GetEffectiveCornerRadius(theme.Metrics), dpi);
-        using var path = RoundedPath.Create(bounds, radius);
-        using var background = new SolidBrush(palette.Background);
-        using var border = new Pen(palette.Border, borderWidth);
-        graphics.FillPath(background, path);
-        graphics.DrawPath(border, path);
+        var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
+            new RectangleF(0f, 0f, ClientSize.Width, ClientSize.Height),
+            radius,
+            borderWidth);
+        BootstrapRoundedSurfacePainter.Paint(
+            graphics,
+            geometry,
+            palette.Background,
+            palette.Border);
     }
 
     private void PaintNormalContent(Graphics graphics, BootstrapTheme theme, Color foreground)

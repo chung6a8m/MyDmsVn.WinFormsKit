@@ -10,11 +10,19 @@ namespace MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost;
 internal static class Program
 {
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
         try
         {
+#if NET8_0_OR_GREATER
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+#endif
             Application.EnableVisualStyles();
+            if (args.Length > 0)
+            {
+                return RunScenario(args);
+            }
+
             BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(BootstrapThemeMode.Light);
             using var form = new Form { ClientSize = new Size(440, 280), ShowInTaskbar = false };
             using var list = new BootstrapListView
@@ -45,6 +53,20 @@ internal static class Program
             Console.Error.WriteLine(exception);
             return 1;
         }
+    }
+
+    private static int RunScenario(string[] args)
+    {
+        if (args.Length == 3 && args[0] == "--scenario" &&
+            (args[1] == "combo-accessibility" || args[1] == "combo-accessibility-primed"))
+            return ComboBoxAccessibilityScenario.Run(args[2], primeProvider: args[1] == "combo-accessibility-primed");
+        if (args.Length != 3 || !string.Equals(args[0], "--scenario", StringComparison.Ordinal) ||
+            (args[1] != "rounded-popup" && args[1] != "rounded-popup-theme" && args[1] != "input-row"))
+        {
+            throw new ArgumentException("Expected --scenario rounded-popup|rounded-popup-theme|input-row|combo-accessibility|combo-accessibility-primed <output-directory>.");
+        }
+
+        return RoundedPopupScenario.Run(args[2], inputRowsOnly: args[1] == "input-row", themePalette: args[1] == "rounded-popup-theme");
     }
 
     private static void Verify(BootstrapListView list, BootstrapThemeMode mode)

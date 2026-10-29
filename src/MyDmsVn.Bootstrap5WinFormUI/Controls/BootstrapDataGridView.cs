@@ -24,6 +24,23 @@ public class BootstrapDataGridView : DataGridView
     private bool _initialized;
     private Font? _themeFont;
     private BootstrapFontToken? _themeFontToken;
+    private bool _useEmbeddedBorderlessPresentation;
+
+    internal bool UseEmbeddedBorderlessPresentation
+    {
+        get => _useEmbeddedBorderlessPresentation;
+        set
+        {
+            if (_useEmbeddedBorderlessPresentation == value)
+            {
+                return;
+            }
+
+            _useEmbeddedBorderlessPresentation = value;
+            ApplyTheme();
+            Invalidate();
+        }
+    }
 
     /// <summary>
     /// Initializes a designer-safe Bootstrap-inspired data grid.
@@ -272,7 +289,7 @@ public class BootstrapDataGridView : DataGridView
         BackColor = colors.Surface;
         ForeColor = colors.Text;
         GridColor = colors.Border;
-        BorderStyle = BorderStyle.FixedSingle;
+        BorderStyle = _useEmbeddedBorderlessPresentation ? BorderStyle.None : BorderStyle.FixedSingle;
         CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
         ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
         RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;

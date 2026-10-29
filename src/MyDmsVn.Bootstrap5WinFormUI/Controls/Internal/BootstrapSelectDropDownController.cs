@@ -135,6 +135,26 @@ internal sealed class BootstrapSelectDropDownController : IDisposable
         }
     }
 
+    internal void RefreshGeometryAndLayout()
+    {
+        if (_disposed || _surface is null)
+        {
+            return;
+        }
+
+        var scrollOffset = _content?.ScrollOffset ?? 0;
+        _surface.LogicalBorderRadius = _owner.BorderRadius;
+        _dropDown?.SynchronizeSurfacePresentation();
+        if (_isOpen && _dropDown is not null && !_dropDown.IsDisposed && _owner.IsHandleCreated)
+        {
+            _currentBounds = ComputeBounds();
+            _dropDown.MoveTo(_currentBounds);
+        }
+        // Intermediate layouts may temporarily enlarge the viewport and clamp its offset.
+        // Restore navigation only after final bounds; SetScrollOffset clamps to the final viewport.
+        _content?.RestoreScrollOffset(scrollOffset);
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -190,7 +210,7 @@ internal sealed class BootstrapSelectDropDownController : IDisposable
         var requestedWidth = _owner.DropDownWidth == 0 ? _owner.Width : DpiScaler.Scale(_owner.DropDownWidth, dpi);
         var width = Math.Max(_owner.Width, requestedWidth);
         var maxHeight = DpiScaler.Scale(_owner.MaxDropDownHeight, dpi);
-        var preferred = _content!.GetPreferredSize(new Size(width, maxHeight));
+        var preferred = _surface!.GetPreferredSize(new Size(width, maxHeight));
         var minimumHeight = DpiScaler.Scale(_owner.SearchEnabled ? 64 : 40, dpi);
         var height = Math.Min(maxHeight, Math.Max(minimumHeight, preferred.Height));
         var anchor = _owner.RectangleToScreen(_owner.ClientRectangle);

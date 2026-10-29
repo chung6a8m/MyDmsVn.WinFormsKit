@@ -1,7 +1,9 @@
 using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using MyDmsVn.Bootstrap5WinFormUI.Controls;
 using MyDmsVn.Bootstrap5WinFormUI.Rendering;
 using MyDmsVn.Bootstrap5WinFormUI.Theme;
 
@@ -11,12 +13,13 @@ internal sealed class RenderingDemoForm : DemoFormBase
 {
     private readonly RenderingPreviewSurface _preview = new RenderingPreviewSurface();
     private readonly Label _instructions = new Label();
+    private readonly FlowLayoutPanel _inputBoard = new FlowLayoutPanel();
 
     public RenderingDemoForm()
     {
         Text = "Rendering and DPI Foundation";
         StartPosition = FormStartPosition.CenterParent;
-        ClientSize = new Size(900, 640);
+        ClientSize = new Size(1060, 760);
         MinimumSize = new Size(760, 560);
 
         _instructions.Dock = DockStyle.Top;
@@ -25,13 +28,16 @@ internal sealed class RenderingDemoForm : DemoFormBase
         _instructions.TextAlign = ContentAlignment.MiddleLeft;
         _instructions.Text =
             "Virtual DPI matrix: 100%, 125%, 150%, 175%, 200%. " +
-            "Check radius quality, border thickness, contrast, and icon/text-style alignment. " +
+            "Compare the live input board, then open Select/Lookup and use Home/End/wheel to inspect popup edges. " +
             "This preview complements, not replaces, live Windows DPI checks.";
+
+        ConfigureInputBoard();
 
         _preview.Dock = DockStyle.Fill;
         _preview.AccessibleName = "Rendering and DPI preview";
 
         Controls.Add(_preview);
+        Controls.Add(_inputBoard);
         Controls.Add(_instructions);
 
         BootstrapThemeManager.ThemeChanged += OnThemeChanged;
@@ -59,7 +65,122 @@ internal sealed class RenderingDemoForm : DemoFormBase
         ForeColor = theme.Colors.Text;
         _instructions.BackColor = theme.Colors.SurfaceSecondary;
         _instructions.ForeColor = theme.Colors.Text;
+        _inputBoard.BackColor = theme.Colors.Body;
         _preview.Theme = theme;
+    }
+
+    private void ConfigureInputBoard()
+    {
+        _inputBoard.Dock = DockStyle.Top;
+        _inputBoard.Height = 190;
+        _inputBoard.Padding = new Padding(12, 10, 12, 10);
+        _inputBoard.Margin = Padding.Empty;
+        _inputBoard.WrapContents = true;
+        _inputBoard.AutoScroll = true;
+        _inputBoard.AccessibleName = "Live input and popup rendering comparison";
+
+        var text = new BootstrapTextBox
+        {
+            Width = 170,
+            Text = "Text · default radius",
+            Margin = new Padding(4)
+        };
+        var combo = new BootstrapComboBox
+        {
+            Width = 170,
+            BorderRadius = 0,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Margin = new Padding(4)
+        };
+        combo.Items.AddRange(new object[] { "Combo · square", "Native item two" });
+        combo.SelectedIndex = 0;
+        var numeric = new BootstrapNumericBox
+        {
+            Width = 150,
+            BorderRadius = 12,
+            Value = 12,
+            Margin = new Padding(4)
+        };
+        var date = new BootstrapDatePicker
+        {
+            Width = 200,
+            ValidationState = BootstrapValidationState.Invalid,
+            Margin = new Padding(4)
+        };
+        var select = new BootstrapSelect
+        {
+            Width = 210,
+            BorderRadius = 12,
+            SearchEnabled = true,
+            MaxDropDownHeight = 180,
+            Placeholder = "Select · Home/End/wheel",
+            Margin = new Padding(4)
+        };
+        for (var index = 1; index <= 18; index++)
+        {
+            select.Items.Add(new BootstrapSelectItem(index, $"Result {index:00}"));
+        }
+
+        var emptySelect = new BootstrapSelect
+        {
+            Width = 190,
+            SearchEnabled = false,
+            Placeholder = "Empty Select",
+            Margin = new Padding(4)
+        };
+        var lookupItems = new BindingList<RenderingLookupItem>();
+        for (var index = 1; index <= 18; index++)
+        {
+            lookupItems.Add(new RenderingLookupItem(index, $"Lookup row {index:00}"));
+        }
+        var lookup = new BootstrapLookupBox
+        {
+            Width = 240,
+            DisplayMember = nameof(RenderingLookupItem.Name),
+            ValueMember = nameof(RenderingLookupItem.Id),
+            DataSource = lookupItems,
+            ShowRefreshButton = true,
+            ShowAddNewButton = true,
+            MaxDropDownHeight = 190,
+            BorderRadius = 12,
+            Margin = new Padding(4)
+        };
+        lookup.Columns.Add(new BootstrapLookupColumnDefinition
+        {
+            DataPropertyName = nameof(RenderingLookupItem.Name),
+            HeaderText = "Popup with footer + scrollbar",
+            Width = 260
+        });
+        var disabled = new BootstrapTextBox
+        {
+            Width = 170,
+            Text = "Disabled · radius 12",
+            BorderRadius = 12,
+            Enabled = false,
+            Margin = new Padding(4)
+        };
+
+        _inputBoard.Controls.Add(text);
+        _inputBoard.Controls.Add(combo);
+        _inputBoard.Controls.Add(numeric);
+        _inputBoard.Controls.Add(date);
+        _inputBoard.Controls.Add(select);
+        _inputBoard.Controls.Add(emptySelect);
+        _inputBoard.Controls.Add(lookup);
+        _inputBoard.Controls.Add(disabled);
+    }
+
+    private sealed class RenderingLookupItem
+    {
+        internal RenderingLookupItem(int id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+
+        public int Id { get; }
+
+        public string Name { get; }
     }
 
     private sealed class RenderingPreviewSurface : Control

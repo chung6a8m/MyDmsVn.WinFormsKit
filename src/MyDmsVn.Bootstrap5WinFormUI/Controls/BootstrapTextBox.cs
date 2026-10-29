@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
 using MyDmsVn.Bootstrap5WinFormUI.Icons;
@@ -442,6 +441,7 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
             }
 
             _borderRadius = value;
+            OnFrameworkBorderRadiusChanged();
             Invalidate();
         }
     }
@@ -450,6 +450,10 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
     public void Clear()
     {
         _editor.Clear();
+    }
+
+    internal virtual void OnFrameworkBorderRadiusChanged()
+    {
     }
 
     /// <summary>Selects all text in the native editor.</summary>
@@ -554,13 +558,8 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
         var theme = BootstrapThemeManager.CurrentTheme;
         var dpi = DeviceDpi > 0 ? DeviceDpi : DpiScaler.DefaultDpi;
         var borderWidth = Math.Max(1f, DpiScaler.Scale((float)(ContainsFocus ? theme.Metrics.FocusBorderWidth : theme.Metrics.BorderWidth), dpi));
-        var inset = borderWidth / 2f;
-        var bounds = new RectangleF(
-            inset,
-            inset,
-            Math.Max(0f, ClientSize.Width - borderWidth),
-            Math.Max(0f, ClientSize.Height - borderWidth));
-        if (bounds.Width <= 0f || bounds.Height <= 0f)
+        var outerBounds = new RectangleF(0f, 0f, ClientSize.Width, ClientSize.Height);
+        if (outerBounds.Width <= 0f || outerBounds.Height <= 0f)
         {
             return;
         }
@@ -576,22 +575,9 @@ public class BootstrapTextBox : UserControl, IBootstrapConnectedControl
             ContainsFocus,
             Enabled);
 
-        var graphics = e.Graphics;
-        var previousSmoothing = graphics.SmoothingMode;
-        graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        try
-        {
-            using var path = RoundedPath.Create(bounds, radius);
-            using var surfaceBrush = new SolidBrush(surface);
-            using var borderPen = new Pen(borderColor, borderWidth);
-            graphics.FillPath(surfaceBrush, path);
-            graphics.DrawPath(borderPen, path);
-            PaintIcons(graphics, theme, dpi);
-        }
-        finally
-        {
-            graphics.SmoothingMode = previousSmoothing;
-        }
+        var geometry = BootstrapRoundedSurfaceGeometry.Resolve(outerBounds, radius, borderWidth);
+        BootstrapRoundedSurfacePainter.Paint(e.Graphics, geometry, surface, borderColor);
+        PaintIcons(e.Graphics, theme, dpi);
     }
 
     /// <inheritdoc />

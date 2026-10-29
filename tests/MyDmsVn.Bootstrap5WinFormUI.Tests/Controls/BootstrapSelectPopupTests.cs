@@ -1,9 +1,11 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
+using MyDmsVn.Bootstrap5WinFormUI.Controls.Internal;
 using MyDmsVn.Bootstrap5WinFormUI.Rendering;
 using NUnit.Framework;
 
@@ -17,6 +19,104 @@ public sealed class BootstrapSelectPopupTests
     private const int WmActivate = 0x0006;
     private const int WmActivateApp = 0x001C;
     private const int WaInactive = 0;
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void SelectOuterPreferredHeightIncludesDecorationForUncappedResults(bool searchEnabled)
+    {
+        using var form = new Form { Size = new Size(800, 700), StartPosition = FormStartPosition.Manual, Location = new Point(80, 80) };
+        using var select = new BootstrapSelect
+        {
+            Width = 320,
+            SearchEnabled = searchEnabled,
+            MaxDropDownHeight = 500,
+            BorderRadius = 16
+        };
+        select.Items.Add(new BootstrapSelectItem(1, "Alpha"));
+        select.Items.Add(new BootstrapSelectItem(2, "Beta"));
+        form.Controls.Add(select);
+        form.Show();
+        select.OpenDropDownInternal();
+        Application.DoEvents();
+
+        var content = select.DropDownContentForTest!;
+        var surface = (BootstrapOverlaySurface)content.Parent!.Parent!;
+        var outerPreferred = surface.GetPreferredSize(new Size(select.DropDownBoundsForTest.Width, 500));
+        var insets = surface.GetEffectiveContentInsets(outerPreferred);
+        var contentPreferred = content.GetPreferredSize(new Size(
+            outerPreferred.Width - insets.Horizontal,
+            outerPreferred.Height - insets.Vertical));
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(outerPreferred.Height, Is.LessThan(500));
+            Assert.That(outerPreferred.Height, Is.EqualTo(contentPreferred.Height + insets.Vertical));
+            Assert.That(select.DropDownBoundsForTest.Height, Is.EqualTo(outerPreferred.Height));
+        }));
+    }
+
+    [Test]
+    public void RadiusChangeBeforeOpenDoesNotCreatePopupOrNativeHandle()
+    {
+        using var select = new BootstrapSelect();
+
+        select.BorderRadius = 0;
+        select.BorderRadius = 12;
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(select.IsHandleCreated, Is.False);
+            Assert.That(select.IsDropDownCreatedForTest, Is.False);
+        }));
+    }
+
+    [Test]
+    public void OpenPopupRadiusChangeKeepsScrolledNavigationAndHandle()
+    {
+        using var form = new Form { Size = new Size(800, 700), StartPosition = FormStartPosition.Manual, Location = new Point(80, 80) };
+        using var select = new BootstrapSelect
+        {
+            Width = 320,
+            SearchEnabled = false,
+            MaxDropDownHeight = 180
+        };
+        for (var value = 1; value <= 30; value++)
+        {
+            select.Items.Add(new BootstrapSelectItem(value, $"Item {value:00}"));
+        }
+        form.Controls.Add(select);
+        form.Show();
+        select.OpenDropDownInternal();
+        Application.DoEvents();
+        var content = select.DropDownContentForTest!;
+        var resultsView = content.Controls.OfType<BootstrapSelectResultsView>().Single();
+        resultsView.SetScrollOffset(resultsView.RowHeight * 15);
+        var scrollOffset = select.ResultScrollOffsetForTest;
+        var highlighted = select.HighlightedResultTextForTest;
+        var popup = (BootstrapOverlayDropDown)content.TopLevelControl!;
+        var popupHandle = popup.Handle;
+        var selectionEvents = 0;
+        select.SelectionChanged += (_, _) => selectionEvents++;
+
+        select.BorderRadius = 0;
+        Application.DoEvents();
+        var squareCornerVisible = popup.Region!.IsVisible(1f, 1f);
+        select.BorderRadius = 12;
+        Application.DoEvents();
+        var roundedCornerVisible = popup.Region!.IsVisible(1f, 1f);
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(popup.Handle, Is.EqualTo(popupHandle));
+            Assert.That(select.IsDropDownOpenForTest, Is.True);
+            Assert.That(squareCornerVisible, Is.True);
+            Assert.That(roundedCornerVisible, Is.False);
+            Assert.That(select.HighlightedResultTextForTest, Is.EqualTo(highlighted));
+            Assert.That(select.ResultScrollOffsetForTest, Is.EqualTo(scrollOffset),
+                "Geometry-only refresh must not call EnsureHighlightedVisible.");
+            Assert.That(selectionEvents, Is.Zero);
+        }));
+    }
 
     [Test]
     public void PopupIsLazyReusedAndRaisesLifecycleEvents()

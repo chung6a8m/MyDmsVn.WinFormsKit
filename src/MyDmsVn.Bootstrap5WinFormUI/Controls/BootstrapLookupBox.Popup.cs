@@ -52,8 +52,15 @@ public partial class BootstrapLookupBox
         ApplyCurrentContent(includeResults: false, dpi);
     }
 
+    internal override void OnFrameworkBorderRadiusChanged()
+    {
+        base.OnFrameworkBorderRadiusChanged();
+        _dropDownController?.RefreshGeometryAndLayout();
+    }
+
     private void ApplyCurrentContent(bool includeResults, int dpi)
     {
+        _dropDownContent.ApplyPresentationMetrics(dpi);
         var definitions = Columns;
         if (definitions.Count == 0)
         {

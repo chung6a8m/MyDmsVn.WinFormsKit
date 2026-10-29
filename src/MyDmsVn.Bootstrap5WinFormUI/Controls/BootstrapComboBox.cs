@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Icons;
 using MyDmsVn.Bootstrap5WinFormUI.Rendering;
@@ -17,6 +18,8 @@ public class BootstrapComboBox : ComboBox
 {
     private const int WmPaint = 0x000F;
     private const int WmNcPaint = 0x0085;
+    private const int CbGetItemHeight = 0x0154;
+    private const int CbSetItemHeight = 0x0153;
     private static readonly IIconRenderer DefaultIconRenderer = BootstrapIconRenderer.CreateDefault();
 
     private BootstrapValidationState _validationState = BootstrapValidationState.None;
@@ -30,6 +33,12 @@ public class BootstrapComboBox : ComboBox
     private bool _manageShellRegion = true;
     private Font? _themeFont;
     private Region? _shellRegion;
+    private bool _sizingInitialized;
+    private bool _applyingSizeMetrics;
+    // WinForms' default requested Simple height is 150, independently of its closed DefaultSize.
+    private int _simpleRequestedHeight = 150;
+    private ComboBoxStyle _lastSizingStyle = ComboBoxStyle.DropDown;
+    private ListAccessibilityWindow? _listAccessibilityWindow;
 
     /// <summary>
     /// Initializes a designer-safe native-backed Bootstrap combo box.
@@ -49,12 +58,14 @@ public class BootstrapComboBox : ComboBox
         DropDownClosed += OnComboBoxPresentationChanged;
         SizeChanged += OnComboBoxSizeChanged;
         RegionChanged += OnComboBoxRegionChanged;
+        DropDownStyleChanged += OnComboBoxSizingPolicyChanged;
 
         BootstrapThemeManager.ThemeChanged += OnThemeChanged;
         _themeSubscribed = true;
 
         ApplyThemeFont();
         ApplyThemePresentation();
+        _sizingInitialized = true;
         ApplyOwnerDrawMetrics();
     }
 
@@ -163,16 +174,57 @@ public class BootstrapComboBox : ComboBox
     /// <inheritdoc />
     protected override void OnHandleCreated(EventArgs e)
     {
+        if (_sizingInitialized && DropDownStyle == ComboBoxStyle.Simple && _lastSizingStyle != ComboBoxStyle.Simple)
+        {
+            // RecreateHandle precedes DropDownStyleChanged. Restore the saved request before
+            // base raises HandleCreated, so a caller's newer Height/Size request wins.
+            _lastSizingStyle = ComboBoxStyle.Simple;
+            base.SetBoundsCore(Left, Top, Width, _simpleRequestedHeight, BoundsSpecified.Height);
+        }
         base.OnHandleCreated(e);
 
-        if (DrawMode != DrawMode.OwnerDrawFixed)
-        {
-            base.DrawMode = DrawMode.OwnerDrawFixed;
-        }
+        AttachListAccessibilityWindow();
 
         ApplyThemePresentation();
         ApplyOwnerDrawMetrics();
         ApplyShellRegion();
+    }
+
+    /// <inheritdoc />
+    protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
+    {
+        if (_sizingInitialized && !_applyingSizeMetrics &&
+            (specified & BoundsSpecified.Height) != BoundsSpecified.None)
+        {
+            _simpleRequestedHeight = height;
+        }
+
+        if (!_sizingInitialized || _applyingSizeMetrics || !UsesClosedOwnerDrawSizingPolicy())
+        {
+            base.SetBoundsCore(x, y, width, height, specified);
+            return;
+        }
+
+        var sizing = ResolveSizing(ResolveNativeChromeHeight());
+        // FlowLayout measures non-AutoSize controls from specified bounds, not actual bounds.
+        // Keep that closed height current; restore the separate caller request when entering Simple.
+        base.SetBoundsCore(x, y, width, sizing.OuterHeight, specified | BoundsSpecified.Height);
+        if (!IsHandleCreated)
+        {
+            UpdateBounds(Left, Top, Width, sizing.OuterHeight);
+        }
+    }
+
+    /// <inheritdoc />
+    public override Size GetPreferredSize(Size proposedSize)
+    {
+        var preferred = base.GetPreferredSize(proposedSize);
+        if (!_sizingInitialized || !UsesClosedOwnerDrawSizingPolicy())
+        {
+            return preferred;
+        }
+
+        return new Size(preferred.Width, ResolveSizing(ResolveNativeChromeHeight()).OuterHeight);
     }
 
     /// <inheritdoc />
@@ -206,12 +258,56 @@ public class BootstrapComboBox : ComboBox
             DropDownClosed -= OnComboBoxPresentationChanged;
             SizeChanged -= OnComboBoxSizeChanged;
             RegionChanged -= OnComboBoxRegionChanged;
+            DropDownStyleChanged -= OnComboBoxSizingPolicyChanged;
 
             DisposeShellRegion();
             DisposeThemeFont();
         }
 
-        base.Dispose(disposing);
+        try { base.Dispose(disposing); }
+        finally
+        {
+            if (disposing)
+            {
+                _listAccessibilityWindow?.ReleaseHandle();
+                _listAccessibilityWindow = null;
+            }
+        }
+    }
+
+    private void AttachListAccessibilityWindow()
+    {
+        if (!IsHandleCreated || Disposing || IsDisposed) return;
+        var info = new NativeComboBoxInfo { Size = Marshal.SizeOf(typeof(NativeComboBoxInfo)) };
+        if (!GetComboBoxInfo(Handle, ref info) || info.List == IntPtr.Zero) return;
+        _listAccessibilityWindow?.ReleaseHandle();
+        _listAccessibilityWindow = new ListAccessibilityWindow(this, DropDownStyle);
+        _listAccessibilityWindow.AssignHandle(info.List);
+    }
+
+    private sealed class ListAccessibilityWindow : NativeWindow
+    {
+        private readonly BootstrapComboBox _owner;
+        private readonly ComboBoxStyle _nativeStyle;
+        internal ListAccessibilityWindow(BootstrapComboBox owner, ComboBoxStyle nativeStyle)
+        {
+            _owner = owner;
+            _nativeStyle = nativeStyle;
+        }
+        protected override void WndProc(ref Message m)
+        {
+            // WinForms changes DropDownStyle before destroying the old list HWND. Its .NET 8
+            // provider then dereferences the not-yet-created Simple list for an old dropdown.
+            // A retiring child has no valid provider; stable queries keep native processing.
+            var objectId = unchecked((int)m.LParam.ToInt64());
+            if (m.Msg == 0x003D && (objectId == -4 || objectId == -25) &&
+                (_owner.DropDownStyle != _nativeStyle || _owner.Disposing || _owner.IsDisposed))
+            {
+                m.Result = IntPtr.Zero;
+                return;
+            }
+            base.WndProc(ref m);
+        }
     }
 
     private void DrawBootstrapItem(DrawItemEventArgs e)
@@ -304,29 +400,23 @@ public class BootstrapComboBox : ComboBox
             return;
         }
 
-        var inset = borderWidth / 2f;
-        var borderBounds = new RectangleF(
-            bounds.Left + inset,
-            bounds.Top + inset,
-            Math.Max(0f, bounds.Width - borderWidth),
-            Math.Max(0f, bounds.Height - borderWidth));
-        if (borderBounds.Width <= 0f || borderBounds.Height <= 0f)
-        {
-            return;
-        }
-
         using var graphics = Graphics.FromHwnd(Handle);
-        var oldSmoothingMode = graphics.SmoothingMode;
+        var state = graphics.Save();
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.PixelOffsetMode = PixelOffsetMode.Half;
         try
         {
-            using var path = RoundedPath.Create(borderBounds, new CornerRadius(metrics.Radius));
+            var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
+                new RectangleF(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                new CornerRadius(metrics.Radius),
+                borderWidth);
+            using var path = geometry.CreateStrokePath();
             using var pen = new Pen(palette.Border, borderWidth);
             graphics.DrawPath(pen, path);
         }
         finally
         {
-            graphics.SmoothingMode = oldSmoothingMode;
+            graphics.Restore(state);
         }
     }
 
@@ -378,6 +468,26 @@ public class BootstrapComboBox : ComboBox
         ApplyShellRegion();
     }
 
+    private void OnComboBoxSizingPolicyChanged(object? sender, EventArgs e)
+    {
+        _lastSizingStyle = DropDownStyle;
+        if (DropDownStyle == ComboBoxStyle.Simple)
+        {
+            _applyingSizeMetrics = true;
+            try
+            {
+                base.SetBoundsCore(Left, Top, Width, _simpleRequestedHeight, BoundsSpecified.Height);
+            }
+            finally
+            {
+                _applyingSizeMetrics = false;
+            }
+        }
+        ApplyOwnerDrawMetrics();
+        ApplyShellRegion();
+        Invalidate();
+    }
+
     private void OnComboBoxRegionChanged(object? sender, EventArgs e)
     {
         if (_settingShellRegion)
@@ -409,17 +519,105 @@ public class BootstrapComboBox : ComboBox
 
     private void ApplyOwnerDrawMetrics()
     {
-        if (IsDisposed || !IsHandleCreated)
+        if (IsDisposed || !_sizingInitialized || _applyingSizeMetrics || !UsesClosedOwnerDrawSizingPolicy())
         {
             return;
         }
 
-        var metrics = ResolveMetrics(BootstrapThemeManager.CurrentTheme);
-        var nextHeight = Math.Max(1, metrics.ItemHeight);
-        if (ItemHeight != nextHeight)
+        var parent = Parent;
+        parent?.SuspendLayout();
+        _applyingSizeMetrics = true;
+        try
         {
-            ItemHeight = nextHeight;
+            var nativeChromeHeight = ResolveNativeChromeHeight();
+            var sizing = ResolveSizing(nativeChromeHeight);
+            if (!IsHandleCreated)
+            {
+                base.SetBoundsCore(Left, Top, Width, sizing.OuterHeight, BoundsSpecified.Height);
+                UpdateBounds(Left, Top, Width, sizing.OuterHeight);
+                return;
+            }
+
+            ApplyNativeHeights(sizing);
+            UpdateBounds();
+            var correction = sizing.OuterHeight - Height;
+            if (correction != 0 && sizing.SelectionHeight + correction > 0)
+            {
+                var corrected = new BootstrapComboBoxSizing(
+                    sizing.OuterHeight,
+                    sizing.SelectionHeight + correction,
+                    sizing.ItemHeight + correction);
+                ApplyNativeHeights(corrected);
+                UpdateBounds();
+            }
         }
+        finally
+        {
+            _applyingSizeMetrics = false;
+            parent?.ResumeLayout(performLayout: true);
+        }
+    }
+
+    private void ApplyNativeHeights(BootstrapComboBoxSizing sizing)
+    {
+        if (ItemHeight != sizing.ItemHeight)
+        {
+            ItemHeight = sizing.ItemHeight;
+        }
+
+        if (IsHandleCreated && GetNativeSelectionHeight() != sizing.SelectionHeight)
+        {
+            SendMessage(Handle, CbSetItemHeight, new IntPtr(-1), new IntPtr(sizing.SelectionHeight));
+        }
+    }
+
+    private BootstrapComboBoxSizing ResolveSizing(int nativeChromeHeight)
+    {
+        var metrics = ResolveMetrics(BootstrapThemeManager.CurrentTheme);
+        return BootstrapComboBoxSizingLogic.Resolve(
+            metrics.OuterHeight,
+            nativeChromeHeight,
+            metrics.MinimumFieldHeight);
+    }
+
+    private int ResolveNativeChromeHeight()
+    {
+        if (IsHandleCreated)
+        {
+            var selectionHeight = GetNativeSelectionHeight();
+            var outerHeight = GetNativeOuterHeight();
+            if (selectionHeight > 0 && outerHeight >= selectionHeight)
+            {
+                return outerHeight - selectionHeight;
+            }
+        }
+
+        return Math.Max(0, SystemInformation.FixedFrameBorderSize.Height * 2);
+    }
+
+    private int GetNativeSelectionHeight()
+    {
+        if (!IsHandleCreated)
+        {
+            return 0;
+        }
+
+        return SendMessage(Handle, CbGetItemHeight, new IntPtr(-1), IntPtr.Zero).ToInt32();
+    }
+
+    private int GetNativeOuterHeight()
+    {
+        if (!IsHandleCreated || !GetWindowRect(Handle, out var bounds))
+        {
+            return Height;
+        }
+
+        return Math.Max(0, bounds.Bottom - bounds.Top);
+    }
+
+    private bool UsesClosedOwnerDrawSizingPolicy()
+    {
+        return DrawMode == DrawMode.OwnerDrawFixed && DropDownStyle != ComboBoxStyle.Simple;
     }
 
     private void ApplyShellRegion()
@@ -433,9 +631,11 @@ public class BootstrapComboBox : ComboBox
         Region? nextRegion = null;
         if (metrics.Radius > 0f)
         {
-            using var path = RoundedPath.Create(
+            var geometry = BootstrapRoundedSurfaceGeometry.Resolve(
                 new RectangleF(0f, 0f, Width, Height),
-                new CornerRadius(metrics.Radius));
+                new CornerRadius(metrics.Radius),
+                Math.Max(metrics.BorderWidth, metrics.FocusBorderWidth));
+            using var path = geometry.CreateOuterPath();
             nextRegion = new Region(path);
         }
 
@@ -531,5 +731,34 @@ public class BootstrapComboBox : ComboBox
     private int GetCurrentDpi()
     {
         return DeviceDpi > 0 ? DeviceDpi : DpiScaler.DefaultDpi;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetComboBoxInfo(IntPtr window, ref NativeComboBoxInfo info);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeComboBoxInfo
+    {
+        public int Size;
+        public NativeRect ItemBounds, ButtonBounds;
+        public int ButtonState;
+        public IntPtr Combo, Edit, List;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect bounds);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 }

@@ -145,6 +145,21 @@ internal sealed class BootstrapLookupDropDownController : IDisposable, IMessageF
         if (_isOpen) Reposition();
     }
 
+    internal void RefreshGeometryAndLayout()
+    {
+        if (_disposed || _surface is null)
+        {
+            return;
+        }
+
+        _surface.LogicalBorderRadius = _owner.BorderRadius;
+        _dropDown?.SynchronizeSurfacePresentation();
+        if (_isOpen && _dropDown is not null && !_dropDown.IsDisposed && _owner.IsHandleCreated)
+        {
+            _dropDown.MoveTo(ComputeBounds());
+        }
+    }
+
     private Rectangle ComputeBounds()
     {
         var dpi = _effectiveDpi;

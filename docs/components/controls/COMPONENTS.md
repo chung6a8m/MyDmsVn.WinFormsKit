@@ -24,6 +24,8 @@ IconPosition
 
 Do not create `AnimationTime`, `TransitionDuration`, and `Duration` aliases for the same concept.
 
+Các input shell do framework vẽ (`BootstrapTextBox`/Lookup, ComboBox, NumericBox, DatePicker, Select và Button) dùng chung quy ước hình học: outer bounds giữ nguyên khi border focus dày lên, radius được normalize một lần, stroke nằm trong bounds và `PixelOffsetMode.Half` được khôi phục cùng toàn bộ `Graphics` state. Quy ước này không thay đổi size do caller đặt, native editor/caret, dotted focus cue riêng của Button hoặc connected per-corner overrides.
+
 ## BootstrapSpinner
 
 Responsibility: display ongoing work without owning business/task state.
@@ -333,6 +335,7 @@ BootstrapComboBox.ValidationState
 BootstrapComboBox.BorderRadius
 BootstrapComboBox.LeadingIcon
 BootstrapComboBox.IconRenderer
+BootstrapComboBox.GetPreferredSize(Size)
 ```
 
 Behavior:
@@ -342,11 +345,14 @@ Behavior:
 - `IconRenderer` uses the existing source-neutral `IIconRenderer` infrastructure and rejects `null`. It is runtime-only/non-serialized; no FontAwesome-specific dependency is introduced.
 - Validation/focus border priority reuses the established TextBox input model: disabled presentation wins first; otherwise Valid uses success, Invalid uses danger, neutral focus uses the focus token, and unfocused neutral uses the border token.
 - `BorderRadius = -1` uses the current theme radius; non-negative values are explicit logical radii and values below `-1` are rejected before mutation. Radius is best-effort for framework-controlled shell presentation only and does **not** promise rounded native arrow/edit/popup chrome.
-- The framework owns theme/DPI palette, fixed item-height metrics, owner-drawn text/icon presentation, validation/focus shell border, and theme-created font lifecycle. Runtime Light/Dark switches update presentation in place without replacing or clearing native items, data source, selection, or autocomplete state.
+- Framework sở hữu palette theme/DPI, target outer height khi đóng, metrics selection/list-item cố định, text/icon owner-draw, shell border validation/focus và vòng đời font do theme tạo. `GetPreferredSize(Size)` trả cùng outer height mà `SetBoundsCore` dùng; native selection-field overhead chỉ được hiệu chỉnh sau khi có handle và tối đa một lần correction. `Simple` cùng draw mode không hỗ trợ giữ sizing native. Chuyển Light/Dark cập nhật presentation tại chỗ, không thay hay xóa items, data source, selection hoặc autocomplete state.
 - The native editable child, native arrow button, popup window/list chrome, hit-testing, dropdown placement, IME/text editing, Up/Down/Enter/Escape behavior, Tab traversal, and `DropDown`/`DropDownClosed`/selection event paths remain WinForms/OS-owned.
 - `BootstrapDropdown` is not used internally. Stage 6 creates no custom `Form`, `ToolStripDropDown`, `ListBox`, popup host, child-window replacement, global hook, or private WinForms reflection path.
 - The control subscribes once to the existing theme manager and owns only framework-created theme fonts. Handle recreation restores framework presentation settings without mirroring native data/selection state. Disposal removes the static theme subscription and never disposes caller-assigned fonts/renderers/descriptors.
-- Designer construction is parameterless and requires no application bootstrap. `DropDown` and `DropDownList` remain normal native modes; `Simple` is best-effort/native and is not given a separate framework implementation.
+- Khởi tạo Designer là parameterless, không tạo handle và không cần application bootstrap. Layout trước handle chỉ dùng theme/font/system metrics managed; `DropDown` và `DropDownList` vẫn là native modes bình thường, còn `Simple` giữ chính sách native/best-effort và không có framework implementation riêng.
+- Closed sizing đồng bộ specified height mà FlowLayout đo với theme/font metrics trước handle, kể cả khi đã layout rồi mới đổi metrics. Toolkit giữ riêng requested height dành cho `Simple` (mặc định native 150), ghi nhận yêu cầu Height của caller và restore khi vào Simple; layout callbacks, metric refresh và đổi riêng width/location không được thay giá trị đó. Size đặt trước DropDownStyle, default Simple và chuyển Simple→DropDown→Simple tiếp tục giữ native height policy.
+- Khi đổi style trên control đang hiển thị, restore Simple height diễn ra trước khi phát `HandleCreated`; yêu cầu Height/Size mới của caller trong callback đó phải thắng giá trị đã lưu và còn hiệu lực ở lần đổi style kế tiếp.
+- Native list HWND có owned NativeWindow guard cho `WM_GETOBJECT`: chỉ trả0 cho yêu cầu MSAA/UIA tới list đang chuyển style hoặc đang dispose, khi chưa có provider hợp lệ. Chuẩn hóa object ID32-bit để nhận cả sign-extension/zero-extension x64; trạng thái ổn định vẫn chuyển query tới provider WinForms/native và giữ role ComboBox. Guard gắn sau handle creation, tự detach khi child bị hủy và release sau base Dispose; không tạo HWND trong constructor, không thay accessible object hoặc native child.
 
 Manual verification: choose **Advanced Inputs**. Compare unbound and bound (`DisplayMember`/`ValueMember`) lists, editable `DropDown`, selection-only `DropDownList`, native `SuggestAppend`/`ListItems` autocomplete, long values, leading-icon/no-icon examples, valid/invalid/disabled states, and explicit radius. Exercise mouse plus Up/Down/Enter/Escape/Tab/Shift+Tab, switch Light/Dark, resize repeatedly, and repeat at 100/125/150/175/200% real Windows scaling. Confirm selected value/binding remain stable and accept that native edit/arrow/popup chrome may remain square/OS-themed.
 
@@ -417,6 +423,7 @@ Behavior:
 - `ResultRowHeight` is a positive `int` expressed in logical pixels at 96 DPI. Its default is `32`, and it defines one uniform height for selectable, loading, empty, retry, create, and other popup result rows. Variable-height measurement and hosted/HTML-like row templates are outside the contract.
 - Custom result metadata belongs in caller-owned `BootstrapSelectItem.Tag`. Local and provider-created items use the same `IBootstrapSelectRenderer.DrawResult` path; `DrawSelection` independently controls the closed single-selection presentation.
 - Changing `ResultRowHeight` while open refreshes and repositions the existing popup. DPI transitions refresh presentation before placement, with one effective DPI used throughout that refresh. Wheel steps are row-based, while the exact final clamp may be non-row-aligned.
+- Outer measurement của popup tính shared rounded-surface decoration đúng một lần trước khi áp `MaxDropDownHeight`. Đổi `BorderRadius` khi popup đang mở tái sử dụng HWND hiện có và đi qua refresh chỉ dành cho geometry: cập nhật safe content layout, Regions và placement mà không rebuild results, reconcile selection hay cuộn highlighted row trở lại viewport.
 - The popup reuses the existing internal overlay host/surface/anchor tracking and `BootstrapOverlayPlacementEngine`. Bottom-start is preferred; flip/shift keeps the popup inside the current monitor working area. No second Popper-like engine, custom top-level `Form`, or global mouse/keyboard hook is introduced.
 - Closed keyboard paths include Alt+Down/F4/Enter/Space open and printable-input search. Open popup uses Up/Down, Home/End, PageUp/PageDown, Enter, Escape, and normal Tab traversal. Search editing remains a real WinForms text editor so caret, clipboard, selection, IME, and Vietnamese input remain native responsibilities.
 - The outer control exposes ComboBox-style accessibility semantics, focusability, expanded/collapsed state, selected text in Single mode, and a stable selected-count summary in Multiple mode. Retry, custom-value creation, clear, and chip removal have keyboard equivalents.
@@ -627,7 +634,9 @@ Responsibility: provide a local, single-selection lookup that separates committe
 
 Exact text commits only one distinct logical value. Ambiguous labels with distinct values validate instead of silently choosing; duplicate rows with the same value choose the first source row. Empty text clears, while unmatched input follows RestorePreviousSelection, KeepFocusWithValidationError, or CommitAndAdd. Lookup validation is transient and does not erase application validation.
 
-The popup composes shared overlay infrastructure and `BootstrapDataGridView`. Result navigation never takes editor focus or commits. Tab resolves before native traversal; Escape equals `CancelPendingEdit()`; application deactivation closes presentation only. Refresh and Add New are explicit application workflows.
+Popup ghép shared overlay infrastructure với `BootstrapDataGridView`. Grid do framework sở hữu dùng internal borderless embedding policy và giữ policy này qua theme change; `BootstrapDataGridView` standalone vẫn là `FixedSingle`, còn cell/header separators tiếp tục theo theme. Result navigation không lấy editor focus và không commit. Tab resolve trước native traversal; Escape tương đương `CancelPendingEdit()`; application deactivation chỉ đóng presentation. Refresh và Add New là các application workflow tường minh.
+
+Footer/layout metrics của popup dùng effective DPI từ controller trước khi đo outer size. Đổi `BorderRadius` khi đang mở đi qua geometry-only path, giữ native editor query/caret, committed value, highlighted/current row và scroll position hiện có; đường này không gọi result synchronization và không đưa first displayed row về highlighted row.
 
 `BootstrapLookupColumn` binds `DataPropertyName` to the row's raw value, maps `ValueMember` to `DisplayMember`, and exposes contextual SelectionCommitted/Refresh/AddNew/CreateItemFromText events. Its internal reusable editor detaches old datasource/events/debounce/popup state before applying cloned configuration for another cell. Native DataGridView navigation, validation, BindingSource currency, and new-row creation remain authoritative. See `docs/BOOTSTRAP_LOOKUP_BOX.md`.
 
@@ -654,6 +663,7 @@ Behavior:
 - `BootstrapDataGridView` derives directly from `DataGridView`; binding, columns, sorting, editing, selection, virtual mode, and other native APIs remain caller-owned and are not wrapped or replaced.
 - `EmptyStateText` defaults to `"No data to display."`; `Loading` defaults to `false`; `LoadingText` defaults to `"Loading..."`. Text properties normalize `null` to an empty string.
 - Header, normal row, alternating row, selected row/cell, grid-line, foreground, and background styles are mapped from the current theme. `EnableHeadersVisualStyles` is disabled so native visual styles cannot override framework header colors.
+- Border mặc định public của grid standalone vẫn là `FixedSingle`. Popup composition do framework sở hữu có thể bật internal borderless presentation policy; đây không phải public styling mode và theme refresh sẽ áp lại policy mà không đổi quy tắc cell/header separator.
 - Runtime Light/Dark changes update the existing grid presentation in place without rebinding data. The control owns theme-derived font instances until a caller explicitly assigns `Font`, after which caller font ownership is preserved.
 - When there are no real data rows, the control paints `EmptyStateText` once in the grid client area. The native new-row placeholder does not count as data.
 - Empty-state rendering is grid-level; the implementation does not install per-cell painting solely for framework decoration and avoids per-cell allocations in the hot path.
@@ -836,6 +846,7 @@ Behavior:
 - Click trigger toggles from Target activation; Manual has no target Click subscription. External Target/Content disposal first detaches and clears the exact disposed object, then closes, so a replacement assigned reentrantly from `Closed` remains attached and subscribed.
 - Placement/collision semantics are identical to managed Tooltip through the pure internal engine. Logical spacing is scaled at target DPI before screen-pixel computation against `Screen.FromRectangle(anchor).WorkingArea`; `None` may overflow and `Flip` does not add cross-axis shifting.
 - The host is one internal `ToolStripDropDown` plus `ToolStripControlHost` and themed rounded surface. It applies the engine's exact position and size directly to the current native HWND after WinForms show/layout and during movement. No custom Form, global hook, timer, animation engine, or public native host is introduced.
+- Popup measurement và layout dùng chung một effective-content inset suy từ rounded geometry chung cộng caller `ContentPadding`; decorative border/corner safety chỉ được tính một lần. Rectangular native backing luôn được tô bằng surface color opaque hiện hành trước rounded fill/stroke; content host và outer native window dùng các Region do framework sở hữu, cùng suy từ geometry đó. Refresh theme, DPI, radius hoặc presentation cùng size thay owned Regions mà không sửa caller content padding hay Region.
 - Native AutoClose owns outside-click dismissal. The accepted v1 host remains `ToolStripDropDown`: its narrow keyboard policy cancels only the observed Alt/menu-mode keyboard close and does not broadly cancel keyboard or application-click close reasons.
 - Escape restores focus to a live Target; outside-click does not steal focus back. Pressing Alt alone leaves the Popover open. Focus selection checks the Content root first, then follows native WinForms tab order through nested containers while skipping invisible, disabled, non-tab-stop, or non-selectable controls.
 - The Popover is non-modal and does not trap focus. Tab from the last eligible descendant and Shift+Tab from the first eligible descendant close without Escape-style target restoration, then continue after or before Target in the surrounding form tab order; Target is only the fallback when no eligible peer exists.

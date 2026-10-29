@@ -25,7 +25,8 @@ internal sealed class BootstrapLookupDropDownContent : UserControl
             AllowUserToDeleteRows = false,
             RowHeadersVisible = false,
             TabStop = false,
-            AutoGenerateColumns = false
+            AutoGenerateColumns = false,
+            UseEmbeddedBorderlessPresentation = true
         };
         _footer.Dock = DockStyle.None;
         Controls.Add(_footer);
@@ -89,6 +90,13 @@ internal sealed class BootstrapLookupDropDownContent : UserControl
     internal void ConfigureFooter(bool showRefresh, bool showAddNew) => _footer.Configure(showRefresh, showAddNew);
     internal void UpdateStatus(int position, int total, bool waiting, int minimumLength) => _footer.UpdateStatus(position, total, waiting, minimumLength);
 
+    internal void ApplyPresentationMetrics(int dpi)
+    {
+        if (dpi <= 0) throw new ArgumentOutOfRangeException(nameof(dpi));
+        _footer.ApplyMetrics(dpi);
+        PerformLayout();
+    }
+
     internal BootstrapLookupSourceItem? GetSourceItem(int rowIndex)
     {
         if (rowIndex < 0 || rowIndex >= ResultsGrid.Rows.Count) return null;
@@ -105,6 +113,7 @@ internal sealed class BootstrapLookupDropDownContent : UserControl
         ResultsGrid.RowHeadersVisible = false;
         ResultsGrid.TabStop = false;
         ResultsGrid.DataSource = null;
+        ResultsGrid.UseEmbeddedBorderlessPresentation = true;
     }
 
     public override System.Drawing.Size GetPreferredSize(System.Drawing.Size proposedSize)

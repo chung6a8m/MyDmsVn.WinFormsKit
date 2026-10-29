@@ -90,8 +90,9 @@ public sealed class DataGridDemoFormTests
         }));
     }
 
-    [Test]
-    public void ThemeChangePreservesRowSharingForTheLargeScenario()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ThemeChangePreservesRowSharingForTheLargeScenario(bool queueConsumerRead)
     {
         var originalTheme = BootstrapThemeManager.CurrentTheme;
         try
@@ -107,15 +108,23 @@ public sealed class DataGridDemoFormTests
             FindControls<Button>(form).Single(button => button.Text == "Load 10,000 rows").PerformClick();
             Application.DoEvents();
             var unsharedCount = 0;
-            grid.RowUnshared += (_, _) => unsharedCount++;
+            DataGridViewRowEventHandler rowUnshared = (_, _) => unsharedCount++;
+            grid.RowUnshared += rowUnshared;
 
             BootstrapThemeManager.CurrentTheme = DemoThemeFactory.Create(BootstrapThemeMode.Dark);
+            // Count only the synchronous theme operation. Pumped accessibility/consumer
+            // callbacks may legitimately materialize a row after the theme update finishes.
+            grid.RowUnshared -= rowUnshared;
+            var consumerReadRan = false;
+            if (queueConsumerRead)
+                grid.BeginInvoke((Action)(() => { _ = grid.Rows[9999]; consumerReadRan = true; }));
             Application.DoEvents();
 
             Assert.Multiple((Action)(() =>
             {
                 Assert.That(grid.Rows.Count, Is.EqualTo(10000));
                 Assert.That(unsharedCount, Is.Zero);
+                Assert.That(consumerReadRan, Is.EqualTo(queueConsumerRead));
             }));
         }
         finally
