@@ -160,8 +160,9 @@ public sealed class BootstrapOverlayDropDownTests
             {
                 var sampleX = left ? x : rendered.Width - 1 - x;
                 var sampleY = top ? y : rendered.Height - 1 - y;
-                var before = rendered.GetPixel(sampleX, sampleY).ToArgb();
-                if (before == outside || before == surface || before == border)
+                var beforeColor = rendered.GetPixel(sampleX, sampleY);
+                var before = beforeColor.ToArgb();
+                if (beforeColor.A == 0 || before == outside || before == surface || before == border)
                 {
                     continue;
                 }

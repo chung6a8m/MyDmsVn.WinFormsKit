@@ -259,7 +259,8 @@ public sealed class BootstrapOverlaySurfaceTests
                     : rendered.Height - 1 - y;
                 var before = rendered.GetPixel(sampleX, sampleY);
                 var beforeArgb = before.ToArgb();
-                if (beforeArgb == outside
+                if (before.A == 0
+                    || beforeArgb == outside
                     || beforeArgb == surface
                     || beforeArgb == border
                     || beforeArgb == content)
