@@ -113,6 +113,10 @@ Mở ControlGallery hoặc GridGallery làm startup project để kiểm các be
 
 Khi có DPI scope, ghi **physical monitor scale** và **window DPI** riêng. Screenshot không tự chứng minh caret/IME, native focus hoặc per-monitor behavior. Không đem physical/Designer evidence từ baseline cũ sang candidate toolkit, theo [native evidence proposal][native-policy].
 
+Helper host input/popup hỗ trợ `--scenario rounded-popup <output-directory>` và `--scenario input-row <output-directory>`; launch tuần tự với timeout 30 giây. Scenario input-row chụp Light/Dark ở hàng một/hai dòng và log managed/native DPI, native ComboBox height, FlowLayout containment/stability. Scenario popup giữ RGB oracle, Region/content/footer metadata; cả hai yêu cầu PerMonitorV2 và managed/native DPI bằng nhau. Xem [commands và evidence physical125%](verification/20261029-input-popup-rendering-physical125.md); canonical native PASS không thay full-suite PASS, Owner decision hoặc consumer acceptance.
+
+Với net48 host, dùng built-in `System.Windows.Forms.ApplicationConfigurationSection` trong App.config, không khai báo lại trong configSections. Manifest giữ Windows10 compatibility/Common-Controls; DPI opt-in thuộc App.config. Native HWND120 trong khi Control.DeviceDpi96 không đủ điều kiện nghiệm thu125%.
+
 ## Báo cáo kết quả
 
 Mỗi lần nghiệm thu ghi candidate SHA, engine pin, OS/SDK/runtime, configuration/framework/bitness, commands/filter, discovered/executed/pass/fail/skip và limitations. Ghi warm hay clean restore; với manual observations ghi gallery, thao tác và kỳ vọng quan sát được. Raw TRX/dumps/logs giữ ngoài Git; chỉ commit bản tóm tắt đã rà soát.

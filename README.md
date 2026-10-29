@@ -2,15 +2,15 @@
 
 Toolkit Windows Forms tập hợp **Bootstrap5WinFormUI** và **BootstrapSourceGrid** trong một repository, giữ hai assembly/public identities và pin engine SourceGrid riêng. Source được nhập từ dependency revisions mà MyDmsVn sử dụng; mapping nằm trong [PROVENANCE](docs/PROVENANCE.md).
 
-Công việc được chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](docs/plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](docs/design/20261029-input-popup-rendering.md) ghi phân tích source, lịch sử các lần sửa và giải pháp. T01–T07 đã có implementation cùng [candidate evidence](docs/verification/20261029-input-popup-rendering.md): toolkit gates PASS trên `net48`/`net8.0-windows` và native desktop 100%; physical 125%+, Owner visual decision và consumer MyDmsVn acceptance vẫn được giữ riêng là chưa chạy/chưa duyệt.
+Công việc được chọn ngày **2026-10-29**: [chiều cao input và góc bo popup Select/LookupBox](docs/plans/20261029-001-input-popup-rendering.md). [Thiết kế kỹ thuật](docs/design/20261029-input-popup-rendering.md) ghi phân tích source, lịch sử các lần sửa và giải pháp. T01–T07 đã có implementation cùng [candidate evidence](docs/verification/20261029-input-popup-rendering.md): kết quả trước review được giữ theo candidate. [Evidence physical 125%](docs/verification/20261029-input-popup-rendering-physical125.md) sở hữu kiểm chứng mới nhất; Owner visual decision và consumer MyDmsVn acceptance vẫn chưa hoàn tất, physical 150%/200% chưa chạy.
 
 Scope [khắc phục ba ngoại lệ Business Compact](docs/plans/20261028-001-business-compact-exceptions.md) — disabled action, modal Font và multiline read-only — đã hoàn tất trong phạm vi được chọn. [Candidate evidence](docs/verification/20261028-business-compact-exceptions.md) ghi focused Windows/native tests, consumer physical-100/125 review và quyết định Owner APPROVED ngày 2026-10-28 cho code/test execution revision `a71d64bd82eb40123eafef4c5a6832e53d7ef9ca`; ba ngoại lệ đã CLOSED. Consumer phải pin đúng commit chứa report hiện tại.
 
 Phạm vi, trạng thái bootstrap và phần kiểm chứng/consumer migration của A3 vẫn thuộc [plan A3](docs/plans/20261024-001-a3-winformskit.md), với [evidence A3](docs/verification/20261024-a3-bootstrap.md) giữ nguyên theo candidate.
 
-Candidate sau bốn findings PR #3 có [evidence sửa review](docs/verification/20261029-input-popup-rendering-review-fixes.md) riêng. Physical DPI, Owner visual decision và consumer acceptance tiếp tục để mở.
+Candidate sau bốn findings PR #3 có [evidence sửa review](docs/verification/20261029-input-popup-rendering-review-fixes.md) riêng, giữ nguyên là lịch sử.
 
-[Evidence review vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md) giữ kết quả pre-handle FlowLayout và alpha compositing. [Evidence vòng ba](docs/verification/20261029-input-popup-rendering-round-three.md) ghi candidate mới nhất cho caller Height trong handle recreation và bitmap export khác DPI; các mục nghiệm thu bên trên vẫn chưa hoàn tất.
+[Evidence review vòng hai](docs/verification/20261029-input-popup-rendering-round-two.md) giữ kết quả pre-handle FlowLayout và alpha compositing. [Evidence vòng ba](docs/verification/20261029-input-popup-rendering-round-three.md) ghi kết quả tiếp theo cho caller Height trong handle recreation và bitmap export khác DPI; các mục nghiệm thu bên trên vẫn chưa hoàn tất.
 
 ## Bắt đầu trên Windows
 
