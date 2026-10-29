@@ -93,8 +93,8 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 | Task | Depends on | Trạng thái ban đầu |
 |---|---|---|
 | TAB-01 — native reproducer và paint proof | baseline | IN PROGRESS — probe hai TFM; gate OPEN |
-| TAB-02 — common hover fix | TAB-01 trace | IMPLEMENTED — focused tests hai TFM; native tooltip/focus oracle còn mở |
-| TAB-03 — painter/close extraction | TAB-02 | IMPLEMENTED — focused tests hai TFM; physical 125%/orientation còn mở |
+| TAB-02 — common hover fix | TAB-01 trace | IN PROGRESS — focused tests và overflow stationary-pointer hai TFM; native tooltip/focus oracle còn mở |
+| TAB-03 — painter/close extraction | TAB-02 | IN PROGRESS — painter/close và focused tests hai TFM; physical 125%/orientation còn mở |
 | TAB-04 — BootstrapTabs và composition | TAB-01 proof, TAB-03 | PENDING |
 | TAB-05 — demo | TAB-04 | PENDING |
 | TAB-06 — contracts, API, native acceptance | TAB-02–05 | PENDING |
