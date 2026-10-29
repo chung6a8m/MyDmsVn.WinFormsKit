@@ -497,7 +497,7 @@ internal static class RoundedPopupScenario
 #if NET8_0_OR_GREATER
             return "Application.SetHighDpiMode(PerMonitorV2)";
 #else
-            return "App.config:System.Windows.Forms.DpiAwareness=PerMonitorV2";
+            return "app.net48.manifest:PerMonitorV2;App.config:System.Windows.Forms.DpiAwareness=PerMonitorV2";
 #endif
         }
     }

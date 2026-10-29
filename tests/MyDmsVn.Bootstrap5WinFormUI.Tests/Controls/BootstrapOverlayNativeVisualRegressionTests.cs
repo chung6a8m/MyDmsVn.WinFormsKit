@@ -44,6 +44,8 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
             Assert.That(metadata.Count(line => line.StartsWith("process.awareness=", StringComparison.Ordinal)), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("thread.awareness=", StringComparison.Ordinal)), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("popup.awareness=", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "thread.awareness=PerMonitorV2"), Is.EqualTo(4));
+            Assert.That(metadata.Count(line => line == "popup.awareness=PerMonitorV2"), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("awareness.source=", StringComparison.Ordinal)), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("popup.region.bounds=", StringComparison.Ordinal)), Is.EqualTo(4));
             Assert.That(metadata.Count(line => line.StartsWith("content.bounds=", StringComparison.Ordinal)), Is.EqualTo(4));
