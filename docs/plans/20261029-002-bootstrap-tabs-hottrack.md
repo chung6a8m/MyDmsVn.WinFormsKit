@@ -97,7 +97,7 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 | TAB-03 — painter/close extraction | TAB-02 | IN PROGRESS — painter/close và focused tests hai TFM; physical 125%/orientation còn mở |
 | TAB-04 — BootstrapTabs và composition | TAB-01 proof, TAB-03 | IN PROGRESS — code, tests và native DPI96 proof hai TFM đã có; physical/Owner gate OPEN |
 | TAB-05 — demo | TAB-04 | IN PROGRESS — route/actions/tests đã có; Light/Dark và physical review PENDING |
-| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API, native 100%/125% Light/Dark, 18 artifact URLs và Owner static visual APPROVED; temporal no-flicker, mixed-DPI (một monitor), 150%/200% OPEN |
+| TAB-06 — contracts, API, native acceptance | TAB-02–05 | IN PROGRESS — contract/API và native 100%/125% Light/Dark PASS; Owner static/temporal 100%/125% APPROVED; 150%/200% và mixed-DPI NOT RUN/BLOCKED với OWNER EXCEPTION APPROVED ngày 29/10/2026. Các gate độc lập của TAB-01–05 chưa được đánh DONE bởi ngoại lệ này. |
 
 ### TAB-01 — Reproducer và proof cho native paint
 
@@ -175,11 +175,11 @@ bool TryPaint(ref Message message, BootstrapTabMessageDispatch dispatch,
 
 - [x] Ghi API/defaults, supported compact mode/native chrome fallback, inherited HotTrack, close/ownership và DrawItem compatibility. Consumer recipe thay app subclass bằng BootstrapTabs theo exact pin ở PR riêng; giải thích lớp app vẽ screen DC sau base nằm ngoài toolkit buffer.
 - [x] Review exported public/protected diff thực tế; thêm exact contract tests, rồi mới cập nhật fingerprint bằng assembly đã build trên hai TFM. Giữ assembly version; không hard-code một hash đoán trước hoặc nới gate để bỏ qua overrides mới.
-- [ ] Chạy Commands và native matrix: hai TFM × Light/Dark × physical 100/125 **PASS**, actual window DPI 96/120 đã ghi; representative 150/200 **NOT RUN**, mixed-DPI **BLOCKED BY ENVIRONMENT** vì chỉ có một monitor; hover/overflow/print/fallback/close đã kiểm trong matrix. Thiếu môi trường giữ gate mở.
+- [x] Chạy Commands và native matrix: hai TFM × Light/Dark × physical 100/125 **PASS**, actual window DPI 96/120 đã ghi; hover/overflow/print/fallback/close đã kiểm trong matrix. Representative 150/200 **NOT RUN** và mixed-DPI **NOT RUN / BLOCKED BY ENVIRONMENT** vì chỉ có một monitor; Owner **APPROVED ngoại lệ** cho đúng hai khoảng trống này trên candidate TAB hiện hành ngày 29/10/2026. Không ghi PASS cho case chưa chạy hoặc chuyển ngoại lệ sang candidate/BUS khác.
 - [x] Build graph All để phát hiện consumer compile issues; tests chọn Controls fixtures liên quan, không tự kéo SQL hoặc full suites ngoài boundary. Nếu manifest/DPI gallery đổi đồng thời bởi BUS, chạy thêm integrated typography/layout regressions trên candidate hợp nhất.
 - [x] Lưu 18 ảnh visual có thể mở lại bằng [artifact URL + candidate/scenario/hash manifest](../verification/20261029-tabs-hottrack-visual-artifacts.md); các URL đã kiểm GET không đăng nhập và hash byte khớp. Raw trace/JSON vẫn local và được ghi giới hạn.
 - [x] Owner review 18 ảnh Light/Dark, fallback và ba frame hover tĩnh trên candidate đó: **APPROVED visual ảnh tĩnh** ngày 29/10/2026, đúng phạm vi trong [manifest](../verification/20261029-tabs-hottrack-visual-artifacts.md).
-- [x] Owner **APPROVED temporal 125%** cho bốn clip trên candidate `5dfa854` và **APPROVED temporal 100%** cho [bốn clip](../verification/20261029-tabs-hottrack-temporal-artifacts.md) trên candidate `9e7af4a`, ngày 29/10/2026. Cả hai bộ là Light/Dark × hai TFM; production source không đổi. Full gate vẫn OPEN cho DPI/environment chưa kiểm.
+- [x] Owner **APPROVED temporal 125%** cho bốn clip trên candidate `5dfa854` và **APPROVED temporal 100%** cho [bốn clip](../verification/20261029-tabs-hottrack-temporal-artifacts.md) trên candidate `9e7af4a`, ngày 29/10/2026. Cả hai bộ là Light/Dark × hai TFM; production source không đổi. 150%/200% và mixed-DPI được xử lý bằng ngoại lệ Owner riêng ở trên, không phải temporal PASS.
 - [ ] Commit `docs: record tabs contracts and candidate verification`; chỉ đánh DONE từng task đã đạt cả deliverable và evidence của chính nó.
 
 ## Commands cho implementer
