@@ -190,7 +190,7 @@ public class BootstrapComboBox : ComboBox
     /// <inheritdoc />
     protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
     {
-        if (_sizingInitialized && !_applyingSizeMetrics && DropDownStyle == _lastSizingStyle &&
+        if (_sizingInitialized && !_applyingSizeMetrics &&
             (specified & BoundsSpecified.Height) != BoundsSpecified.None)
         {
             _simpleRequestedHeight = height;
