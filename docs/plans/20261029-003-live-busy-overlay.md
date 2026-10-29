@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–2, 4–5](../design/20261029-tabs-hottrack-live-busy-overlay.md). [Plan TAB](20261029-002-bootstrap-tabs-hottrack.md) có thể chạy song song; chỉ tích hợp shared files theo một integrator.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation và strict resource gate 5/5 PASS sau attribution/cleanup prefix RCWs; physical/mixed-DPI còn mở; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, physical125/SourceGrid còn mở; BUS-06 còn PLANNED; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation và strict resource gate 5/5 PASS sau attribution/cleanup prefix RCWs; physical/mixed-DPI còn mở; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, physical125/SourceGrid còn mở; BUS-06 có implementation/docs/API và focused verification, acceptance còn PENDING; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
 
 ## Global Constraints
 
@@ -74,7 +74,7 @@ Native seam internal có thể test failure deterministically: `TryGetLayeredChi
 | BUS-03 — native renderer/layout/capability | BUS-01, BUS-02 | Đã triển khai; minimum Cancel width và zero-size recovery đã sửa sau review; focused tests + native96 DPI theo [candidate evidence](../verification/20261030-live-busy-overlay-production.md); acceptance ngoài96 DPI còn mở |
 | BUS-04 — input/focus/lifecycle hardening | BUS-02/03 | Đã triển khai và sửa findings review; strict native resource matrix 5/5 PASS sau attribution finalizer HIMC và bounded prefix RCW drain; mixed-DPI NOT RUN; [evidence BUS-04](../verification/20261030-live-busy-overlay-lifecycle.md) |
 | BUS-05 — demo và manifest gallery | BUS-03/04 | Đã triển khai provisional; regression59/59 mỗi TFM và actual EXE context96 DPI PASS; physical125/SourceGrid NOT RUN; [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md) |
-| BUS-06 — contract, API, evidence | BUS-01–05 | PENDING |
+| BUS-06 — contract, API, evidence | BUS-01–05 | Implementation/docs/API và focused verification đã có; acceptance PENDING do physical125/150/200%, mixed-DPI, SourceGrid, shared artifact retention và Owner decision còn mở; [candidate BUS-06](../verification/20261030-live-busy-overlay-acceptance.md) |
 
 ### BUS-01 — Proof native trước khi triển khai đầy đủ
 
@@ -161,13 +161,13 @@ Candidate BUS-05: source/demo/tests đã triển khai provisional khi BUS-04 res
 
 **Files:** sửa `docs/components/controls/COMPONENTS.md`, `PUBLIC_API_BASELINE.md`, `COMPATIBILITY.md`, `docs/CONSUMER_MIGRATION.md`, `docs/TESTING.md`, `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Release/Phase16PublicApiBaselineTests.cs`; cập nhật report BUS và checklist plan này.
 
-- [ ] Ghi public contract/defaults, delay/token/cancel/focus/input ownership, live vs OpaqueFallback, manifest prerequisites, popup/raw input boundary và recipe constructor/Begin/dispose trên UI thread. Chỉ docs mới cho host mới; contract host cũ giữ nguyên.
-- [ ] Review exported API/protected overrides thực tế trên hai targets, exact host/enum tests, assembly identity/version không đổi. Chỉ update fingerprint sau khi review delta; nếu TAB merge trước/sau thì tính lại trên candidate hợp nhất.
-- [ ] Run Commands; discovery thực và pass/fail/skip theo target. NUnit process có thể thiếu manifest: pure/fault tests không giả định RenderMode NativeLayered; native acceptance phải launch đúng manifested helper exe với timeout và assert actual mode, không skip rồi tính PASS.
+- [x] Ghi public contract/defaults, delay/token/cancel/focus/input ownership, live vs OpaqueFallback, manifest prerequisites, popup/raw input boundary và recipe constructor/Begin/dispose trên UI thread. Chỉ docs mới cho host mới; contract host cũ giữ nguyên.
+- [x] Review exported API/protected overrides thực tế trên hai targets, exact host/enum tests, assembly identity/version không đổi. Chỉ update fingerprint sau khi review delta; nếu TAB merge trước/sau thì tính lại trên candidate hợp nhất.
+- [x] Run Commands; discovery thực và pass/fail/skip theo target. NUnit process có thể thiếu manifest: pure/fault tests không giả định RenderMode NativeLayered; native acceptance phải launch đúng manifested helper exe với timeout và assert actual mode, không skip rồi tính PASS.
 - [ ] Native matrix hai TFM × Light/Dark × physical 100/125; representative 150/200/mixed monitor, x86 net48 capability/input probe; exact OS/runtime/bitness/DPI. Kiểm live marker, opaque foreground, mouse/Cancel/focus, fallback, clipping/modal/recreate và resource soak.
-- [ ] Build All; giữ tests theo diff, old BusyHost fixtures và gallery DPI regressions. Nếu cần SourceGrid evidence chưa chạy, ghi riêng NOT RUN thay vì suy từ DataGridView; không kéo SQL tests vào toolkit.
+- [x] Build All; giữ tests theo diff, old BusyHost fixtures và gallery DPI regressions. Nếu cần SourceGrid evidence chưa chạy, ghi riêng NOT RUN thay vì suy từ DataGridView; không kéo SQL tests vào toolkit.
 - [ ] Publish/open evidence artifacts có thể xem lại, ghi exact candidate/URL/scenario/hash/retention cùng before/after frames hoặc clip. Owner review actual live demo/clip; NativeLayered PASS và Owner decision mới đóng BUS acceptance. OpaqueFallback hoặc snapshot không đủ.
-- [ ] Commit `docs: document native busy overlay contract and verification`; update task status đúng evidence, không chuyển lịch sử PASS của PR #3 sang feature mới.
+- [x] Commit `docs: document native busy overlay contract and verification`; update task status đúng evidence, không chuyển lịch sử PASS của PR #3 sang feature mới.
 
 ## Commands và positive/negative hosts
 
@@ -185,14 +185,15 @@ Discovery lặp cho net8.0-windows. Positive helper đã có manifest hỗ trợ
 
 ```powershell
 $busyNegativeRoot = Join-Path (Get-Location) 'artifacts/verification/busy/negative-bin'
-dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj -c Release -f net48 --no-restore -p:ApplicationManifest=app.no-layered.manifest -p:AppendTargetFrameworkToOutputPath=false -p:AppendRuntimeIdentifierToOutputPath=false "-p:OutputPath=$busyNegativeRoot/net48/"
+$busyNegativeManifest = (Resolve-Path 'tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/app.no-layered.manifest').Path
+dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj -c Release -f net48 --no-restore "-p:ApplicationManifest=$busyNegativeManifest" -p:AppendTargetFrameworkToOutputPath=false -p:AppendRuntimeIdentifierToOutputPath=false "-p:OutputPath=$busyNegativeRoot/net48/"
 & "$busyNegativeRoot/net48/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe" --scenario busy-overlay-fallback artifacts/verification/busy/negative-net48
-dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj -c Release -f net8.0-windows --no-restore -p:ApplicationManifest=app.no-layered.manifest -p:AppendTargetFrameworkToOutputPath=false -p:AppendRuntimeIdentifierToOutputPath=false "-p:OutputPath=$busyNegativeRoot/net8/"
+dotnet build tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj -c Release -f net8.0-windows --no-restore "-p:ApplicationManifest=$busyNegativeManifest" -p:AppendTargetFrameworkToOutputPath=false -p:AppendRuntimeIdentifierToOutputPath=false "-p:OutputPath=$busyNegativeRoot/net8/"
 & "$busyNegativeRoot/net8/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe" --scenario busy-overlay-fallback artifacts/verification/busy/negative-net8
 .\build.ps1 -Configuration Release -Scope All
 ```
 
-Xác minh manifest thực của từng output; global property override phải hiện trong build/evidence. Build positive lại sau negative trước tests cần dùng default helper output; không parallel hóa hai build dùng chung obj. Một native API success, process exit 0 hoặc test discovery rỗng không chứng minh live composition. Helper scenario tự timeout tối đa 30 giây và cleanup mọi window/filter; parent test process có timeout hữu hạn trong hang gate 5 phút.
+Xác minh manifest thực của từng output; global property override phải hiện trong build/evidence. Build positive lại sau negative trước tests cần dùng default helper output; không parallel hóa hai build dùng chung obj. Một native API success, process exit 0 hoặc test discovery rỗng không chứng minh live composition. Helper scenario tự timeout tối đa 60 giây và cleanup mọi window/filter; parent test process có timeout hữu hạn trong hang gate 5 phút.
 
 ## Handoff và rollback
 

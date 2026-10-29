@@ -22,8 +22,12 @@ internal static class BusyOverlayScenario
     private static readonly Guid Windows10 = new("8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a");
     [ThreadStatic] private static ScenarioDeadline? currentDeadline;
 
-    internal static int Run(string directory, bool fallback)
+    internal static int Run(string directory, bool fallback, string themeName)
     {
+        if (!Enum.TryParse(themeName, true, out BootstrapThemeMode mode) ||
+            (mode != BootstrapThemeMode.Light && mode != BootstrapThemeMode.Dark))
+            throw new ArgumentException("Expected Light or Dark.", nameof(themeName));
+        var oldTheme = BootstrapThemeManager.CurrentTheme;
         Directory.CreateDirectory(directory);
         using var log = new StreamWriter(Path.Combine(directory, "result.txt"), false, new UTF8Encoding(false)) { AutoFlush = true };
         var timeoutProof = Environment.GetEnvironmentVariable("BUS_TIMEOUT_PROOF") == "1";
@@ -35,6 +39,8 @@ internal static class BusyOverlayScenario
         currentDeadline = deadline;
         try
         {
+            BootstrapThemeManager.CurrentTheme = BootstrapTheme.CreateDefault(mode);
+            log.WriteLine($"Theme={mode}; Tint={Tint.ToArgb():X8}; Fallback={Fallback.ToArgb():X8}");
             log.WriteLine($"Candidate={Environment.GetEnvironmentVariable("BUS_CANDIDATE")}; Runtime={RuntimeInformation.FrameworkDescription}; Bitness={IntPtr.Size * 8}; OS={Environment.OSVersion}; Interactive={Environment.UserInteractive}");
             var capability = QueryExecutable(log);
             Require(capability != fallback, "Executable capability does not match requested scenario.");
@@ -263,7 +269,7 @@ internal static class BusyOverlayScenario
         finally
         {
             try { deadline.VerifyCleanup(); }
-            finally { currentDeadline = null; }
+            finally { currentDeadline = null; BootstrapThemeManager.CurrentTheme = oldTheme; }
         }
     }
 

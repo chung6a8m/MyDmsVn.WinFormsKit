@@ -109,4 +109,54 @@ Rollback PR tabs bằng revert commit(s) của **PR consumer tabs** để khôi 
 
 ### BootstrapBusyOverlayHost sau review PR #5
 
-Không đổi public API hoặc `BootstrapBusyHost` cũ. Consumer nhúng Form `TopLevel=false` trong shell được theo dõi đúng top-level owner khi minimize/restore/reparent và trả focus từ Cancel về Content descendant đã nhớ. Callback Layout có thể hide/release/Begin trong cập nhật opacity/theme mà không bị lượt cũ khôi phục RenderMode. Message dài wrap theo client width có scrollbar dọc; Cancel giữ native semantics. Consumer tiếp tục tự chặn keyboard/UIA/commands và đóng popup trước Begin; [evidence PR #5](verification/20261030-pr5-review-fixes.md) không đóng physical/mixed-DPI/Owner/resource gates còn mở.
+Không đổi public API hoặc `BootstrapBusyHost` cũ. Consumer nhúng Form `TopLevel=false` trong shell được theo dõi đúng top-level owner khi minimize/restore/reparent và trả focus từ Cancel về Content descendant đã nhớ. Callback Layout có thể hide/release/Begin trong cập nhật opacity/theme mà không bị lượt cũ khôi phục RenderMode. Message dài wrap theo client width có scrollbar dọc; Cancel giữ native semantics. Consumer tiếp tục tự chặn keyboard/UIA/commands và đóng popup trước Begin. [Evidence PR #5](verification/20261030-pr5-review-fixes.md) là checkpoint lịch sử; trạng thái resource và acceptance hiện hành thuộc [report BUS-06](verification/20261030-live-busy-overlay-acceptance.md) và [plan BUS](plans/20261029-003-live-busy-overlay.md), không suy từ câu pending của candidate cũ.
+
+## Dùng BootstrapBusyOverlayHost từ source — BUS-06
+
+Đây là recipe cho app opt-in, không tự sửa gitlink consumer hoặc chuyển mọi `BootstrapBusyHost` cũ. Pin exact toolkit commit đã chọn và ghi old/new pins như runbook trên; source consumption dùng `ProjectReference` tới `src/MyDmsVn.Bootstrap5WinFormUI/MyDmsVn.Bootstrap5WinFormUI.csproj`, không reference thêm bản DLL/package cùng assembly. Host mới giữ targets `net48;net8.0-windows` và assembly version `1.0.0.0`.
+
+Trong **executable project**, đặt `<ApplicationManifest>app.manifest</ApplicationManifest>`. Copy cấu trúc [manifest gallery](../samples/ControlGallery/app.manifest) gồm Common-Controls v6 và compatibility `supportedOS` Windows 10 `{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}`, rồi đổi `assemblyIdentity` theo app. Manifest nằm trong DLL không cấp capability cho process. Xác minh embedded manifest và executable compatibility context của binary cuối; chạy `.exe`/net8 apphost, không chạy `dotnet app.dll` rồi gán manifest apphost cho process khác.
+
+Với `net48`, dùng built-in `System.Windows.Forms.ApplicationConfigurationSection` trong executable `App.config` để đặt `DpiAwareness=PerMonitorV2` và `EnableWindowsFormsHighDpiAutoResizing=true` như [gallery App.config](../samples/ControlGallery/App.config); không khai báo lại section trong `configSections`. Với `net8.0-windows`, gọi `Application.SetHighDpiMode(HighDpiMode.PerMonitorV2)` trước tạo bất kỳ HWND nào như [gallery Program](../samples/ControlGallery/Program.cs). Cả hai startup chạy STA, bật visual styles và chạy message loop WinForms. PMv2 không thay `supportedOS`; kiểm cả native HWND DPI và `Control.DeviceDpi` trên actual monitor.
+
+Ví dụ sau đặt trong Form, với `contentPanel` chưa có parent. Mọi entry point keyboard, UIA Invoke, toolbar/menu và business command của app phải dùng cùng admission check `_busyDepth != 0`; chỉ vô hiệu hóa một nút bấm là chưa đủ. `CloseTransientEditors()` là logic app để đóng dropdown/editor/popup đang mở, không phải API toolkit.
+
+```csharp
+private readonly BootstrapBusyOverlayHost _busyHost;
+private int _busyDepth;
+
+public EditorForm()
+{
+    InitializeComponent();
+    var contentPanel = new Panel(); // tạo và gắn editor vào panel chưa có parent
+    _busyHost = new BootstrapBusyOverlayHost(contentPanel) { Dock = DockStyle.Fill };
+    Controls.Add(_busyHost); // Form sở hữu host; host sở hữu contentPanel
+}
+
+private async Task SaveFromCommandAsync()
+{
+    // Chạy trên UI thread; tất cả command routes dùng cùng guard này.
+    if (_busyDepth != 0) return;
+    using var cancellation = new CancellationTokenSource();
+    ++_busyDepth; // admission đóng ngay, kể cả 150 ms pending
+    try
+    {
+        CloseTransientEditors();
+        using var token = _busyHost.Begin(new BusyPresentation(
+            "Đang lưu…", () => cancellation.Cancel()));
+        await SaveAsync(cancellation.Token); // giữ WinForms SynchronizationContext
+    }
+    catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+    {
+        // App hiển thị trạng thái hủy nếu cần; Cancel không hứa rollback.
+    }
+    finally
+    {
+        --_busyDepth; // vẫn mở lại admission nếu đóng popup/Begin/operation ném lỗi
+    }
+}
+```
+
+Handler event gọi method này cần bắt và hiển thị lỗi khác theo policy app; không bỏ qua Task hoặc dùng `ConfigureAwait(false)` trước token release. Nếu worker thread thực hiện I/O/CPU, marshal `Begin`, token dispose và host dispose về UI thread. App phải chờ operation kết thúc hoặc có policy đóng Form rõ trước dispose owner. Không dispose Content riêng, không reparent/reuse Content đã được host sở hữu. Nếu app cho phép nested operations, dùng counter/admission chung và release mỗi token trong `finally`; newest live token quyết định presentation, Cancel không tự release.
+
+Host không đổi `Content.Enabled`; caller giữ admission ngay cả khi `RenderMode=None` vì pending hoặc owner bị minimize/ẩn. Filter chỉ bảo vệ queued mouse của Content/native descendants khi presentation hiện, không bảo vệ keyboard/UIA, arbitrary SendMessage, raw touch/pen hoặc top-level popups. Khi capability không đủ, `OpaqueFallback` vẫn có message/Cancel/tokens nhưng chưa đạt live-opacity acceptance. [Contract](components/controls/COMPONENTS.md#bootstrapbusyoverlayhost) và [TESTING](TESTING.md#busy-overlay--bus-06) giữ các giới hạn focus, native proof và candidate acceptance; không suy acceptance app từ test toolkit.

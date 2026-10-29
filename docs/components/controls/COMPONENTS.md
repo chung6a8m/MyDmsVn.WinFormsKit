@@ -1497,7 +1497,7 @@ Each call to `Begin` owns a separate idempotent token. The newest live token sup
 
 Skeleton and other unimplemented components are not part of the initial foundation contract.
 
-## BootstrapBusyOverlayHost — candidate BUS-03/04
+## BootstrapBusyOverlayHost
 
 `BootstrapBusyOverlayHost : Panel` sở hữu một `Content` chưa có parent; constructor không tạo HWND. `Begin(BusyPresentation)` dùng delay 150 ms và token trên UI thread; token mới nhất còn sống cung cấp message/Cancel, Cancel không tự release. `BootstrapBusyHost` cũ giữ nguyên.
 
@@ -1505,7 +1505,7 @@ Backdrop và card là sibling của Content trong host. `BackdropOpacity` mặc 
 
 `RenderMode` là `None` khi chưa hiện, `NativeLayered` khi thiết lập child-layer thành công, hoặc `OpaqueFallback` khi thiếu capability/native alpha thất bại. Fallback dùng `SurfaceSecondary`, không chụp Content. `RenderModeChanged` phát sau khi commit mode; callback consumer không bị chuyển thành lỗi native. Khi đang hiện, filter UI-thread chặn queued mouse chỉ tới HWND Content và native descendants, kể cả opacity 0; Cancel/sibling ngoài host/keyboard không bị filter này chặn. Caller vẫn sở hữu keyboard/UIA/command admission và phải đóng popup transient trước Begin.
 
-BUS-03 đã kiểm production native ở physical 100%/96 DPI trên net48 x64/x86 và net8 x64; xem [evidence production](../../verification/20261030-live-busy-overlay-production.md). BUS-04 bổ sung [input/focus/lifecycle evidence](../../verification/20261030-live-busy-overlay-lifecycle.md). Demo thuộc BUS-05, fingerprint và acceptance đầy đủ thuộc BUS-06; physical/mixed-DPI chưa được suy ra từ proof96.
+BUS-03 đã kiểm production native ở physical 100%/96 DPI trên net48 x64/x86 và net8 x64; xem [evidence production](../../verification/20261030-live-busy-overlay-production.md). BUS-04 bổ sung [input/focus/lifecycle evidence](../../verification/20261030-live-busy-overlay-lifecycle.md). Demo thuộc BUS-05; [fingerprint đã review](PUBLIC_API_BASELINE.md#bus--review-exported-delta-ngày-30102026), còn acceptance đầy đủ thuộc BUS-06. Physical/mixed-DPI chưa được suy ra từ proof96. Các checkpoint này là lịch sử; [report BUS-06](../../verification/20261030-live-busy-overlay-acceptance.md) và [plan BUS](../../plans/20261029-003-live-busy-overlay.md) sở hữu trạng thái resource/API/native acceptance hiện hành.
 
 Khi ClientSize của host về zero ở một chiều, host hủy pending generation và dừng presentation/filter/spinner, vẫn giữ live tokens. Khi client dương trở lại, token còn sống được schedule lại150ms; resize giữa hai kích thước dương không reset delay. Callback resize/Begin lồng nhau không được làm presentation generation cũ hiện lại.
 
@@ -1518,3 +1518,20 @@ Caller phải đóng native popup transient rồi chặn keyboard/UIA/business c
 PR #5: owner dùng cho foreground/minimize là Form top-level thực, kể cả khi host nằm trong embedded Form (`TopLevel=false`); reparent cập nhật subscriptions sang shell mới. Cập nhật opacity/theme chỉ commit mode khi presentation generation vẫn còn hợp lệ sau native configure và từng callback đổi z-order. Message dài được đo lại theo bề rộng client đã dành chỗ cho scrollbar dọc; viewport cuộn dọc, không đòi cuộn ngang để đọc dòng đã wrap. [Evidence sửa review](../../verification/20261030-pr5-review-fixes.md) ghi candidate và giới hạn.
 
 Khi token mới thay message, nhu cầu scrollbar và bề rộng wrap được tính từ message/layout mới; extent hoặc scrollbar của message trước không làm hẹp dòng mới. Chuyển từ message dài sang message vừa khung phải bỏ scrollbar không còn cần thiết và cho cùng hình học như host mới hiển thị message đó.
+
+### API, defaults và cách dùng trên UI thread — BUS-06
+
+Namespace/assembly giữ `MyDmsVn.Bootstrap5WinFormUI.Controls` / `MyDmsVn.Bootstrap5WinFormUI`; class `sealed`, base trực tiếp `Panel`, targets `net48;net8.0-windows`.
+
+| Public member | Default / quy tắc |
+|---|---|
+| `BootstrapBusyOverlayHost(Control content)` | `null` bị từ chối bằng `ArgumentNullException`; Content đã có parent bị từ chối bằng `ArgumentException`. Sau construction thành công, host sở hữu Content và đặt `Dock=Fill`. Constructor không tạo handle, query capability hoặc khởi động delay/spinner. |
+| `Control Content { get; }` | Không có setter; không dùng lại cùng instance trong host khác và không dispose riêng Content khi host còn dùng nó. |
+| `double BackdropOpacity { get; set; }` | `0.35`; chỉ số hữu hạn `[0,1]`, invalid input ném `ArgumentOutOfRangeException` trước mutation; chỉ backdrop thay alpha. |
+| `BootstrapBusyOverlayRenderMode RenderMode { get; }` | `None=0` khi pending/hidden; `NativeLayered=1` là child-layer live; `OpaqueFallback=2` là backdrop opaque. |
+| `event EventHandler RenderModeChanged` | Chỉ phát khi mode đổi, sau commit state; callback có thể reenter. Exception consumer được truyền lại, không được coi là lỗi capability. |
+| `IDisposable Begin(BusyPresentation presentation)` | UI-thread-affine; `null` bị từ chối. Host đã dispose ném `ObjectDisposedException`. Token idempotent; release trên UI thread khi host còn sống. |
+
+Không có minimum hold. Release token mới nhất có thể làm hiện lại presentation của token cũ còn sống; release token cũ không ẩn token mới. Show không tự chuyển focus vào Cancel. Callback Cancel chỉ gửi yêu cầu cho operation hiện hành; app xử lý cancellation/exception và giữ token tới khi operation thực sự kết thúc. Dispose host trên UI thread sẽ dispose Content và tài nguyên host sở hữu; không dispose fonts/images/tài nguyên do consumer cung cấp.
+
+Executable sở hữu manifest compatibility và DPI opt-in, không phải DLL toolkit. Xem [recipe consumer](../../CONSUMER_MIGRATION.md#dùng-bootstrapbusyoverlayhost-từ-source--bus-06) và [commands native](../../TESTING.md#busy-overlay--bus-06). Mode `NativeLayered` là trạng thái setup thực tế, chưa tự chứng minh live pixels hoặc visual acceptance; `OpaqueFallback` không đóng gate 3B. [API baseline](PUBLIC_API_BASELINE.md#bus--review-exported-delta-ngày-30102026) ghi delta đã review; plan BUS tiếp tục sở hữu trạng thái nghiệm thu theo candidate.
