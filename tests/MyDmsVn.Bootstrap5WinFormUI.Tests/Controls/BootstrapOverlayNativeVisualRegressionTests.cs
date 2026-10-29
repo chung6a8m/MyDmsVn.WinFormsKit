@@ -21,6 +21,10 @@ public sealed class BootstrapOverlayNativeVisualRegressionTests
         using (var graphics = Graphics.FromImage(bitmap)) graphics.Clear(Color.White);
         for (var index = 1; index <= 8; index++) bitmap.SetPixel(1, index, Color.FromArgb(index * 20, 0, 0));
         Assert.That(CountDistinctColors(bitmap), Is.EqualTo(9), "Sparse sampling must not misclassify real pixels between sample points as a blank capture.");
+        var hostOracle = Assembly.Load("MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost")
+            .GetType("MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.RoundedPopupScenario")!
+            .GetMethod("RequireCaptureContent", BindingFlags.Static | BindingFlags.NonPublic)!;
+        Assert.DoesNotThrow((Action)(() => hostOracle.Invoke(null, new object[] { bitmap, "literal sparse-content fixture" })));
     }
 
     [TestCase(0xE7EAED, false, true)]

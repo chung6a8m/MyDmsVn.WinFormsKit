@@ -435,11 +435,12 @@ internal static class RoundedPopupScenario
     private static void RequireCaptureContent(Bitmap bitmap, string controlName)
     {
         var distinct = new HashSet<int>();
-        for (var y = 0; y < bitmap.Height; y += Math.Max(1, bitmap.Height / 24))
+        for (var y = 0; y < bitmap.Height; y++)
         {
-            for (var x = 0; x < bitmap.Width; x += Math.Max(1, bitmap.Width / 24))
+            for (var x = 0; x < bitmap.Width; x++)
             {
                 distinct.Add(bitmap.GetPixel(x, y).ToArgb());
+                if (distinct.Count >= 6) return;
             }
         }
 
