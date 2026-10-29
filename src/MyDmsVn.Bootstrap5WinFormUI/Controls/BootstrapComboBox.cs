@@ -35,6 +35,9 @@ public class BootstrapComboBox : ComboBox
     private Region? _shellRegion;
     private bool _sizingInitialized;
     private bool _applyingSizeMetrics;
+    // WinForms' default requested Simple height is 150, independently of its closed DefaultSize.
+    private int _simpleRequestedHeight = 150;
+    private ComboBoxStyle _lastSizingStyle = ComboBoxStyle.DropDown;
 
     /// <summary>
     /// Initializes a designer-safe native-backed Bootstrap combo box.
@@ -180,6 +183,12 @@ public class BootstrapComboBox : ComboBox
     /// <inheritdoc />
     protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
     {
+        if (_sizingInitialized && !_applyingSizeMetrics && DropDownStyle == _lastSizingStyle &&
+            (specified & BoundsSpecified.Height) != BoundsSpecified.None)
+        {
+            _simpleRequestedHeight = height;
+        }
+
         if (!_sizingInitialized || _applyingSizeMetrics || !UsesClosedOwnerDrawSizingPolicy())
         {
             base.SetBoundsCore(x, y, width, height, specified);
@@ -187,9 +196,9 @@ public class BootstrapComboBox : ComboBox
         }
 
         var sizing = ResolveSizing(ResolveNativeChromeHeight());
-        // Native ComboBox remembers caller-requested Height for a later switch to Simple.
-        // Its closed HWND clamps independently; do not replace that native request with toolkit metrics.
-        base.SetBoundsCore(x, y, width, height, specified);
+        // FlowLayout measures non-AutoSize controls from specified bounds, not actual bounds.
+        // Keep that closed height current; restore the separate caller request when entering Simple.
+        base.SetBoundsCore(x, y, width, sizing.OuterHeight, specified | BoundsSpecified.Height);
         if (!IsHandleCreated)
         {
             UpdateBounds(Left, Top, Width, sizing.OuterHeight);
@@ -408,6 +417,19 @@ public class BootstrapComboBox : ComboBox
 
     private void OnComboBoxSizingPolicyChanged(object? sender, EventArgs e)
     {
+        _lastSizingStyle = DropDownStyle;
+        if (DropDownStyle == ComboBoxStyle.Simple)
+        {
+            _applyingSizeMetrics = true;
+            try
+            {
+                base.SetBoundsCore(Left, Top, Width, _simpleRequestedHeight, BoundsSpecified.Height);
+            }
+            finally
+            {
+                _applyingSizeMetrics = false;
+            }
+        }
         ApplyOwnerDrawMetrics();
         ApplyShellRegion();
         Invalidate();
@@ -458,6 +480,7 @@ public class BootstrapComboBox : ComboBox
             var sizing = ResolveSizing(nativeChromeHeight);
             if (!IsHandleCreated)
             {
+                base.SetBoundsCore(Left, Top, Width, sizing.OuterHeight, BoundsSpecified.Height);
                 UpdateBounds(Left, Top, Width, sizing.OuterHeight);
                 return;
             }
