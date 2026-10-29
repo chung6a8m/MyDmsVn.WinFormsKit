@@ -25,9 +25,9 @@ public sealed class BootstrapDecimalInputInteractionTests
         {
             input.NativeEditor.SelectAll();
             SendMessage(input.NativeEditor.Handle, WmCopy, IntPtr.Zero, IntPtr.Zero);
-            var copiedText = Clipboard.GetText();
-            Assert.That(copiedText, Is.EqualTo("1234"), "The control must copy correctly before external clipboard activity.");
+            var copiedText = AssertClipboardText("1234");
             using var opened = new ManualResetEventSlim();
+            using var observedEmpty = new ManualResetEventSlim();
             Exception? workerError = null;
             var worker = new Thread(() =>
             {
@@ -37,7 +37,8 @@ public sealed class BootstrapDecimalInputInteractionTests
                     try { if (!EmptyClipboard()) throw new InvalidOperationException("Cannot establish the empty native clipboard interval."); }
                     finally { CloseClipboard(); }
                     opened.Set();
-                    Thread.Sleep(180);
+                    if (!observedEmpty.Wait(1000)) throw new TimeoutException("The observer did not inspect the empty clipboard interval.");
+                    Thread.Sleep(30);
                     Clipboard.SetText(copiedText);
                 }
                 catch (Exception error) { workerError = error; opened.Set(); }
@@ -48,7 +49,8 @@ public sealed class BootstrapDecimalInputInteractionTests
             {
                 Assert.That(opened.Wait(2000), Is.True);
                 if (workerError is not null) throw workerError;
-                AssertClipboardText("1234");
+                AssertClipboardText("1234", () => observedEmpty.Set());
+                Assert.That(observedEmpty.IsSet, Is.True);
             }
             finally
             {
@@ -293,7 +295,7 @@ public sealed class BootstrapDecimalInputInteractionTests
         }
     }
 
-    private static void AssertClipboardText(string expected)
+    private static string AssertClipboardText(string expected, Action? onEmpty = null)
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var actual = Clipboard.GetText();
@@ -301,12 +303,14 @@ public sealed class BootstrapDecimalInputInteractionTests
         // formats; observe that bounded empty interval without repeating copy/cut writes.
         while (actual.Length == 0 && watch.ElapsedMilliseconds < 1000)
         {
+            onEmpty?.Invoke();
             Application.DoEvents();
             Thread.Sleep(5);
             actual = Clipboard.GetText();
         }
         Assert.That(actual, Is.EqualTo(expected),
             $"Clipboard sequence={GetClipboardSequenceNumber()}, owner={GetClipboardOwner()}, observed for {watch.ElapsedMilliseconds}ms.");
+        return actual;
     }
 
     [DllImport("user32.dll")] private static extern uint GetClipboardSequenceNumber();

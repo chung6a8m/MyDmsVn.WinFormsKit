@@ -63,7 +63,7 @@ internal static class Program
         if (args.Length != 3 || !string.Equals(args[0], "--scenario", StringComparison.Ordinal) ||
             (args[1] != "rounded-popup" && args[1] != "input-row"))
         {
-            throw new ArgumentException("Expected --scenario rounded-popup|input-row <output-directory>.");
+            throw new ArgumentException("Expected --scenario rounded-popup|input-row|combo-accessibility|combo-accessibility-primed <output-directory>.");
         }
 
         return RoundedPopupScenario.Run(args[2], inputRowsOnly: args[1] == "input-row");
