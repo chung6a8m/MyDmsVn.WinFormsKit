@@ -28,6 +28,21 @@ Build: 2/2 TFM thành công, 0 warning, 0 error. Helper bounded run: net48 exit 
 
 **TAB-01 chưa DONE; native paint gate OPEN.** Supplied-HDC dispatch, dirty header clip và overflow click của baseline probe hoạt động trên hai runtime ở physical 100%, đủ trace đầu vào cho TAB-02. Trước TAB-04 cần proof final compositor với child exclusion, print flags/nested print và không có đường native drawing ngoài buffer khi control mới hoàn thiện. Physical 125% và artifact URL/Owner visual decision chưa có; không suy ra no-flicker từ exit 0 hoặc một bitmap.
 
+## TAB-01 addendum: actual hover/update region
+
+Ngày 29/10/2026, helper được bổ sung subclass `NativeWindow` tại helper host để lấy `WM_MOUSEMOVE` nhận thực, `TCM_HITTEST` tại `LParam`, state hover managed của `BootstrapTabControl` và `GetUpdateRect` **ngay sau** native/managed dispatch nhưng trước pump paint tiếp theo. Pointer được di chuyển bằng `Cursor.Position`, chờ hữu hạn 25 ms mỗi vị trí để Windows phát message, rồi pump. `WindowFromPoint` xác nhận target HWND ở vị trí thử. Probe chưa can thiệp production.
+
+Candidate lần chạy cuối: HEAD `862d112b42026a114cc33af2d086686d3979b2e6` cộng thay đổi helper chưa commit, SHA-256 `TabsHoverScenario.cs` là `55E2B4AE370AE51772697038986092AEF35D696E71AA8ECF27B3394B2978B5D3`. TAB-02/TAB-03 đang sửa source đồng thời trong worktree; vì vậy đây là trace phát triển, **chưa phải candidate nghiệm thu đã chốt**. `dotnet build ...VisualStyleHost.csproj -c Release`: hai TFM PASS, 0 warning/error. Chạy hai EXE tuần tự, timeout 30 giây: net48 exit 0 trong 697 ms; net8 exit 0 trong 679 ms. Helper scenario discovered/executed 1/1 mỗi TFM, probe pass 1, fail 0, skip 0. Actual OS/bitness/DPI giữ như trên: Windows NT 10.0.26300.0, 64 bit, window DPI 96. Raw trace/PNG/JSON local không commit.
+
+| TFM | WM_MOUSEMOVE nhận: native/hot/cold/paint probe | Managed/native hover khớp hot/cold | `GetUpdateRect` có vùng: native/hot/cold |
+|---|---:|---:|---:|
+| net48 | 3/3/3/3 | 3/3, 3/3 | 3/2/0 |
+| net8.0-windows | 3/3/3/3 | 3/3, 3/3 | 3/2/0 |
+
+Ví dụ net8 khi pointer chuyển vào header Bootstrap index 1: `point={X=191,Y=18}`, native/managed hover đều `1`, dirty `{181,2,360,34}`. Khi trở về index 0, hover đều `0`, dirty vùng header cũ. HotTrack false vẫn nhận native `WM_MOUSEMOVE` và cập nhật hovered state nhưng không tạo update region trong ba chuyển động thử. Native TabControl có dirty region cả ba lần. Đây là vùng update quan sát được; không khóa số lượng `WM_PAINT` vì Windows có thể coalesce.
+
+Một lần net48 trước đó trùng GUI run của TAB-02 nên **loại khỏi evidence**. Lần net8 kế tiếp exit 2 vì target index 2 của Bootstrap nằm dưới overflow child, chỉ có 2/3 `WM_MOUSEMOVE` tới tab; đây là lỗi chọn target của helper, không suy ra defect control. Helper đổi sequence Bootstrap thành header nhìn thấy `0→1→0`; hai lần chạy cuối có lane GUI riêng và kết quả ở bảng trên. Full native/Owner gate tiếp tục **OPEN**.
+
 ## TAB-03 — painter và close extraction
 
 Candidate khi chạy: `e638d53` cộng diff TAB-03 chưa commit trong cùng worktree, Windows NT 10.0.26300.0, SDK `8.0.427`, Release, process test x64. Tests mới khóa thứ tự derived `OnDrawItem` → default renderer/user handler → marker sau base, cùng Graphics/index/bounds và pixel cuối; close pointer callback xóa page đồng bộ vẫn không đổi selection; disabled/unowned page bị từ chối và menu của consumer không bị dispose. Caption closable trước sửa có tâm pixel `80.5` thay vì `76` (RED ở net8), sau sửa PASS. Renderer đo và vẽ text với cùng `NoPadding`, căn nhóm icon/text trong phần content đã trừ close.

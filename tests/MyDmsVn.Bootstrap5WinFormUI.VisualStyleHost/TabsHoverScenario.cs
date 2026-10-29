@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 using MyDmsVn.Bootstrap5WinFormUI.Controls;
 
@@ -17,6 +19,7 @@ internal static class TabsHoverScenario
     private const int WmPaint = 0x000F;
     private const int WmPrintClient = 0x0318;
     private const int WmEraseBkgnd = 0x0014;
+    private const int WmMouseMove = 0x0200;
     private static readonly Stopwatch Clock = new Stopwatch();
     private static readonly List<string> Trace = new List<string>();
 
@@ -34,6 +37,7 @@ internal static class TabsHoverScenario
         var dirtyClip = false;
         var selectedPixels = false;
         var overflowClickable = false;
+        var realHoverObserved = false;
         try
         {
             using var images = new ImageList { ImageSize = new Size(16, 16) };
@@ -67,7 +71,12 @@ internal static class TabsHoverScenario
             cold.SetTabClosable(cold.TabPages[1], true);
             form.Show();
             Pump();
+            using var nativeHoverProbe = new HoverWindowProbe(native);
+            using var hotHoverProbe = new HoverWindowProbe(hot);
+            using var coldHoverProbe = new HoverWindowProbe(cold);
+            using var paintHoverProbe = new HoverWindowProbe(paintProbe);
             Write("environment", Environment.OSVersion + "; " + IntPtr.Size * 8 + " bit; runtime " + Environment.Version + "; DeviceDpi=" + form.DeviceDpi + "; nativeDpi=" + GetDpiForWindow(form.Handle));
+            Write("window", "formVisible=" + IsWindowVisible(form.Handle) + "; foreground=" + GetForegroundWindow() + "; form=" + form.Handle);
             Write("overflow-child", "probe=" + FindWindowEx(paintProbe.Handle, IntPtr.Zero, "msctls_updown32", null));
             foreach (TabControl tabs in new TabControl[] { native, hot, cold, paintProbe })
                 Snapshot(tabs, "before");
@@ -78,16 +87,27 @@ internal static class TabsHoverScenario
             // Cursor.Position sends actual desktop pointer movement, not an artificial MouseMove event.
             foreach (TabControl tabs in new TabControl[] { native, hot, cold, paintProbe })
             {
-                for (var index = 0; index < 3; index++)
+                // The third fixed-width Bootstrap header is covered by the native overflow child.
+                var hoverSequence = tabs is BootstrapTabControl ? new[] { 0, 1, 0 } : new[] { 0, 1, 2 };
+                foreach (var index in hoverSequence)
                 {
                     var rect = tabs.GetTabRect(index);
                     Cursor.Position = tabs.PointToScreen(new Point(rect.Left + Math.Min(10, rect.Width / 2), rect.Top + rect.Height / 2));
+                    Thread.Sleep(25);
                     Pump();
-                    Write("hover", tabs.GetType().Name + "; index=" + index + "; handle=" + tabs.Handle + "; rect=" + rect);
+                    Write("hover-target", tabs.GetType().Name + "; intendedIndex=" + index + "; handle=" + tabs.Handle + "; actualWindow=" + WindowFromPoint(Cursor.Position) + "; rect=" + rect);
                 }
                 Snapshot(tabs, "after");
             }
             Capture(form, Path.Combine(outputDirectory, "after.png"));
+            realHoverObserved = nativeHoverProbe.MoveCount >= 3 && hotHoverProbe.MoveCount >= 3 &&
+                                coldHoverProbe.MoveCount >= 3 && paintHoverProbe.MoveCount >= 3 &&
+                                hotHoverProbe.ManagedMatches >= 3 && coldHoverProbe.ManagedMatches >= 3;
+            Write("real-hover-summary", "native=" + nativeHoverProbe.MoveCount + "; hot=" + hotHoverProbe.MoveCount +
+                "; cold=" + coldHoverProbe.MoveCount + "; paintProbe=" + paintHoverProbe.MoveCount +
+                "; hotManagedMatches=" + hotHoverProbe.ManagedMatches + "; coldManagedMatches=" + coldHoverProbe.ManagedMatches +
+                "; nativeDirty=" + nativeHoverProbe.DirtyCount + "; hotDirty=" + hotHoverProbe.DirtyCount +
+                "; coldDirty=" + coldHoverProbe.DirtyCount + "; pass=" + realHoverObserved);
             invariant = hotBefore == Signature(hot) && coldBefore == Signature(cold);
             Write("hover-invariant", invariant ? "PASS" : "FAIL");
 
@@ -157,8 +177,8 @@ internal static class TabsHoverScenario
             }
             drawOutsidePaint = paintProbe.OutsidePaintDrawCount;
             Capture(form, Path.Combine(outputDirectory, "final.png"));
-            result = suppliedPaint && printClient && drawOutsidePaint == 0 && invariant && dirtyClip && selectedPixels && overflowClickable ? "PROBE PASS" : "PROBE BLOCKED";
-            Write("gate", "suppliedPaint=" + suppliedPaint + "; printClientDispatched=" + printClient + "; outsidePaintDraw=" + drawOutsidePaint + "; hoverInvariant=" + invariant + "; dirtyClip=" + dirtyClip + "; selectedPixels=" + selectedPixels + "; overflowClickable=" + overflowClickable);
+            result = suppliedPaint && printClient && drawOutsidePaint == 0 && invariant && dirtyClip && selectedPixels && overflowClickable && realHoverObserved ? "PROBE PASS" : "PROBE BLOCKED";
+            Write("gate", "suppliedPaint=" + suppliedPaint + "; printClientDispatched=" + printClient + "; outsidePaintDraw=" + drawOutsidePaint + "; hoverInvariant=" + invariant + "; dirtyClip=" + dirtyClip + "; selectedPixels=" + selectedPixels + "; overflowClickable=" + overflowClickable + "; realHoverObserved=" + realHoverObserved);
         }
         finally
         {
@@ -278,7 +298,56 @@ internal static class TabsHoverScenario
         }
     }
 
+    private sealed class HoverWindowProbe : NativeWindow, IDisposable
+    {
+        private readonly TabControl _owner;
+        internal int MoveCount { get; private set; }
+        internal int ManagedMatches { get; private set; }
+        internal int DirtyCount { get; private set; }
+        internal HoverWindowProbe(TabControl owner)
+        {
+            _owner = owner;
+            AssignHandle(owner.Handle);
+        }
+        protected override void WndProc(ref Message message)
+        {
+            if (message.Msg != WmMouseMove)
+            {
+                base.WndProc(ref message);
+                return;
+            }
+            var value = message.LParam.ToInt64();
+            var point = new Point(unchecked((short)(value & 0xffff)), unchecked((short)((value >> 16) & 0xffff)));
+            var hit = new TabHitTestInfo { Point = point };
+            var nativeIndex = SendMessage(_owner.Handle, 0x130D, IntPtr.Zero, ref hit).ToInt32();
+            base.WndProc(ref message);
+            var dirty = new NativeRect();
+            var hasDirty = GetUpdateRect(_owner.Handle, ref dirty, false);
+            var managedIndex = ManagedHoverIndex(_owner);
+            MoveCount++;
+            if (managedIndex == Convert.ToString(nativeIndex)) ManagedMatches++;
+            if (hasDirty) DirtyCount++;
+            Write("WM_MOUSEMOVE", _owner.GetType().Name + "; point=" + point + "; nativeHover=" + nativeIndex +
+                "; managedHover=" + managedIndex + "; dirty=" + (hasDirty ? dirty.ToString() : "none") +
+                "; handle=" + _owner.Handle);
+        }
+        public void Dispose() => ReleaseHandle();
+    }
+
+    private static string ManagedHoverIndex(TabControl control)
+    {
+        if (!(control is BootstrapTabControl)) return "native-only";
+        var field = typeof(BootstrapTabControl).GetField("_interaction", BindingFlags.Instance | BindingFlags.NonPublic);
+        var interaction = field?.GetValue(control);
+        var property = interaction?.GetType().GetProperty("HoveredIndex", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (property != null) return Convert.ToString(property.GetValue(interaction, null)) ?? "unknown";
+        var legacy = typeof(BootstrapTabControl).GetField("_hoveredIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+        return legacy == null ? "unknown" : Convert.ToString(legacy.GetValue(control)) ?? "unknown";
+    }
+
     [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, ref TabHitTestInfo hit);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetUpdateRect(IntPtr hWnd, ref NativeRect bounds, [MarshalAs(UnmanagedType.Bool)] bool erase);
     [DllImport("gdi32.dll")] private static extern int SaveDC(IntPtr hdc);
     [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool RestoreDC(IntPtr hdc, int savedDc);
     [DllImport("gdi32.dll")] private static extern int IntersectClipRect(IntPtr hdc, int left, int top, int right, int bottom);
@@ -287,9 +356,17 @@ internal static class TabsHoverScenario
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? windowName);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect bounds);
     [DllImport("user32.dll", EntryPoint = "mouse_event")] private static extern void MouseEvent(uint flags, uint x, uint y, uint data, UIntPtr extraInfo);
+    [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsWindowVisible(IntPtr window);
     [StructLayout(LayoutKind.Sequential)] private struct NativeRect
     {
         internal int Left, Top, Right, Bottom;
         public override string ToString() => "{" + Left + "," + Top + "," + Right + "," + Bottom + "}";
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct TabHitTestInfo
+    {
+        internal Point Point;
+        internal uint Flags;
     }
 }
