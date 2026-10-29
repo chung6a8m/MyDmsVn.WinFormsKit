@@ -183,3 +183,26 @@ dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.
 ```
 
 Build PASS hai TFM, 0 warning/error; discovery/execution **100/100 PASS**, fail 0, skip 0 trên mỗi TFM. Helper sau commit exit 0/0, metadata đúng SHA candidate, `PROBE PASS`, `productionProof=True`, `compositionProof=True`, `fullGate=OPEN`, `flicker=NOT REPRODUCED`; elapsed 1053/1085 ms. Raw trace/PNG ở ignored `artifacts/verification/tabs/pr4-review4-commit-net48` và `pr4-review4-commit-net8`, không commit. Physical DPI/Owner/artifact URL và API TAB-06 vẫn PENDING; không coi DPI96 là nghiệm thu full no-flicker.
+
+## TAB-06 — contract, API baseline và native matrix
+
+Ngày chạy 29/10/2026. Candidate `e780da5` (parent code `5b012e276ac5e7b12e150751f2c2fc95e9bdc563`); SourceGrid gitlink `f4e457b43582bf01892f50bdc74aa480531e5944`. Windows NT 10.0.26300.0, SDK `8.0.427`, Release, helper process 64 bit; net48 CLR `4.0.30319.42000`, net8 runtime `8.0.33`. Một monitor `\\.\DISPLAY1`, system DPI 96; `Form.DeviceDpi`, `BootstrapTabs.DeviceDpi` và `GetDpiForWindow` của cả hai HWND đều 96 ở bốn ô native. Restore warm; không xác nhận clean restore.
+
+Fingerprint gate ban đầu **RED** trên assembly net48/net8: expected `1de84ca1b9a297e0caff576b4b18c0296ca17d0ebabf088be2f48213cad27755`, actual chung `1d1172af4dc1a247b330ca3df84d00bf0903ab22470fa9c59581b1543002f3c1` (1/1 fail mỗi TFM). Đối chiếu `git diff` từ baseline `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921` và reflection surface: exported delta gồm protected `BootstrapTabControl.CreateParams` và type mới `BootstrapTabs : TabControl` với constructor, bốn appearance properties, close event/ba methods, protected `CreateParams`, `Dispose`, `GetTabCloseButtonBounds`, `ProcessCmdKey`, `WndProc`. Không có exported internal helper, removal hoặc signature change của type cũ khác; `AssemblyVersion=1.0.0.0`. Exact contract test khóa cả hai facades. Fingerprint được cập nhật sau review, không nới gate.
+
+Lệnh đã chạy tuần tự (helper dùng `Start-Process -WindowStyle Hidden`, `WaitForExit(30000)` và dừng process nếu timeout):
+
+```powershell
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --filter "FullyQualifiedName~Phase16PublicApiBaselineTests" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --filter "FullyQualifiedName~Phase16PublicApiBaselineTests" --blame-hang --blame-hang-timeout 5m
+.\build.ps1 -Configuration Release -Scope All
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net48 --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~Phase16PublicApiBaselineTests|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemo" --blame-hang --blame-hang-timeout 5m
+dotnet test tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj -c Release -f net8.0-windows --no-build --filter "FullyQualifiedName~BootstrapTab|FullyQualifiedName~Phase16PublicApiBaselineTests|FullyQualifiedName~NavigationDemoFormTests|FullyQualifiedName~IntegratedDemo" --blame-hang --blame-hang-timeout 5m
+# Sau build All cuối, VisualStyleHost Release EXE --scenario tabs-matrix: net48 rồi net8.0-windows.
+```
+
+`Phase16PublicApiBaselineTests`: discovered/executed **16/16 PASS** mỗi TFM, fail 0, skip 0. Focused Controls/gallery filter: discovered/executed **153/153 PASS** mỗi TFM, fail 0, skip 0. Build `All` PASS hai TFM, 0 warning/error, gồm adapter/SourceGrid và hai gallery compile. Không chạy SQL/full suites ngoài boundary; BUS chưa đổi manifest/DPI gallery. Native helper bounded final: 2 process exit 0/0, discovered/executed 2 theme cases mỗi TFM, tổng **4/4 PASS**, fail 0, skip 0. Mỗi case có hover `0→1→0` nhận 3/3 native targets, HWND/font/item bounds/selection giữ nguyên; close pointer phát 1 request `Pointer`, còn 10 page và selection không đổi; overflow child `msctls_updown32` nhận click thật, `GetTabRect(0).X` đổi `2→-133`; `WM_PRINTCLIENT` đổi 129 sampled header pixels; fallback `Bottom+RTL+Buttons+Multiline` và roundtrip giữ page/selection. Lượt probe đầu net48 báo FAIL giả do lấy mẫu tab 0 sau khi overflow đã cuộn nó khỏi vùng nhìn thấy; đã sửa probe sang header còn hiển thị và chạy lại cả hai runtime. Chỉ lượt cuối dùng làm evidence.
+
+Helper source SHA-256 `4E3CC0717F577D0007022AF5765E8AAB34BE3C28A8549CB251D9F1A38EE4CC73`; local trace SHA-256 net48 `505F1D69F20D25A3096B9899B71CD3FD4FD7D248D945450ABF773F8320A5BD36`, net8 `4B9D5E47F5F7A708731176CFAC978603DBA8EF740357BEB0B031981AC3651B9D`. Trace và Light/Dark hover/fallback/print PNG chỉ ở `%TEMP%\tab06-matrix-final-net48` và `%TEMP%\tab06-matrix-final-net8`; raw artifacts không commit. **Artifact URL và retention ngoài máy: PENDING**; local path không phải evidence lâu dài.
+
+Physical 125% trên hai TFM, representative 150%/200%, mixed-DPI, Owner visual review chuỗi hover và ảnh Light/Dark trên candidate này: **NOT RUN/PENDING** vì máy chỉ có monitor DPI96 và chưa có Owner decision. Native DPI96 cùng bitmap/exit 0 không chứng minh no-flicker ở môi trường chưa chạy; TAB-01 full native/Owner gate và TAB-06 acceptance tiếp tục **OPEN**. Không triển khai BUS, không publish/merge.

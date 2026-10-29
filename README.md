@@ -2,7 +2,7 @@
 
 Toolkit Windows Forms tập hợp **Bootstrap5WinFormUI** và **BootstrapSourceGrid** trong một repository, giữ hai assembly/public identities và pin engine SourceGrid riêng. Source được nhập từ dependency revisions mà MyDmsVn sử dụng; mapping nằm trong [PROVENANCE](docs/PROVENANCE.md).
 
-Công việc mới được chọn ngày **2026-10-29**: [BootstrapTabs mới và sửa HotTrack dùng chung](docs/plans/20261029-002-bootstrap-tabs-hottrack.md), cùng [BootstrapBusyOverlayHost theo phương án 3B live opacity và demo](docs/plans/20261029-003-live-busy-overlay.md). Đọc [thiết kế chung](docs/design/20261029-tabs-hottrack-live-busy-overlay.md) trước khi triển khai. Hai plan có file map, API/defaults, task dependencies, test commands và native proof gates; hiện ở **PLANNED**, chưa có implementation hoặc nghiệm thu cho scope mới. Tiến độ thực thi thuộc từng plan, không dùng evidence scope trước thay thế.
+Công việc mới được chọn ngày **2026-10-29**: [BootstrapTabs mới và sửa HotTrack dùng chung](docs/plans/20261029-002-bootstrap-tabs-hottrack.md), cùng [BootstrapBusyOverlayHost theo phương án 3B live opacity và demo](docs/plans/20261029-003-live-busy-overlay.md). Đọc [thiết kế chung](docs/design/20261029-tabs-hottrack-live-busy-overlay.md) trước khi triển khai. Hai plan có file map, API/defaults, task dependencies, test commands và native proof gates. Tiến độ và nghiệm thu hiện hành thuộc từng plan, không dùng evidence scope trước thay thế.
 
 ## Các scope trước
 

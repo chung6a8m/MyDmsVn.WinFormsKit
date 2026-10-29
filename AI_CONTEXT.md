@@ -1,6 +1,6 @@
 # Bối cảnh làm việc
 
-Đọc [README](README.md), [ROADMAP](docs/ROADMAP.md), [thiết kế tabs/HotTrack/live busy overlay](docs/design/20261029-tabs-hottrack-live-busy-overlay.md), rồi [plan TAB](docs/plans/20261029-002-bootstrap-tabs-hottrack.md) và [plan BUS](docs/plans/20261029-003-live-busy-overlay.md) cho scope mới được chọn ngày 2026-10-29. Hai plan bắt đầu ở **PLANNED** trên toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`; mỗi plan sở hữu tiến độ/evidence của mình.
+Đọc [README](README.md), [ROADMAP](docs/ROADMAP.md), [thiết kế tabs/HotTrack/live busy overlay](docs/design/20261029-tabs-hottrack-live-busy-overlay.md), rồi [plan TAB](docs/plans/20261029-002-bootstrap-tabs-hottrack.md) và [plan BUS](docs/plans/20261029-003-live-busy-overlay.md) cho scope mới được chọn ngày 2026-10-29. Hai plan bắt đầu ở **PLANNED** trên toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`; trạng thái và evidence hiện hành thuộc từng plan.
 
 BootstrapTabs phải trực tiếp kế thừa TabControl và độc lập BusinessCompactAppearance. HotTrack dùng helpers chung, giữ DrawItem/extensibility của control cũ. BUS là **3B live native opacity**: nội dung dưới overlay phải tiếp tục cập nhật trong cùng phiên; không thay bằng snapshot, không dùng opaque fallback để nhận live PASS. BootstrapBusyHost cũ giữ nguyên. Native paint/child-layer proof đi trước triển khai đầy đủ; demo có riêng cho cả hai control. Hai luồng có thể phát triển song song nhưng GUI execution và merge shared files/API fingerprint phải tuần tự.
 
