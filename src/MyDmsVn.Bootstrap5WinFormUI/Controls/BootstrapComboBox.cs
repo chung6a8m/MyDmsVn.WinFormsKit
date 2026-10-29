@@ -277,6 +277,7 @@ public class BootstrapComboBox : ComboBox
 
     private void AttachListAccessibilityWindow()
     {
+        if (!IsHandleCreated || Disposing || IsDisposed) return;
         var info = new NativeComboBoxInfo { Size = Marshal.SizeOf(typeof(NativeComboBoxInfo)) };
         if (!GetComboBoxInfo(Handle, ref info) || info.List == IntPtr.Zero) return;
         _listAccessibilityWindow?.ReleaseHandle();
@@ -298,7 +299,8 @@ public class BootstrapComboBox : ComboBox
             // WinForms changes DropDownStyle before destroying the old list HWND. Its .NET 8
             // provider then dereferences the not-yet-created Simple list for an old dropdown.
             // A retiring child has no valid provider; stable queries keep native processing.
-            if (m.Msg == 0x003D && (m.LParam == new IntPtr(-4) || m.LParam == new IntPtr(-25)) &&
+            var objectId = unchecked((int)m.LParam.ToInt64());
+            if (m.Msg == 0x003D && (objectId == -4 || objectId == -25) &&
                 (_owner.DropDownStyle != _nativeStyle || _owner.Disposing || _owner.IsDisposed))
             {
                 m.Result = IntPtr.Zero;

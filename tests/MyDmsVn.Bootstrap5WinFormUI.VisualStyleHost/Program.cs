@@ -57,8 +57,9 @@ internal static class Program
 
     private static int RunScenario(string[] args)
     {
-        if (args.Length == 3 && args[0] == "--scenario" && args[1] == "combo-accessibility")
-            return ComboBoxAccessibilityScenario.Run(args[2]);
+        if (args.Length == 3 && args[0] == "--scenario" &&
+            (args[1] == "combo-accessibility" || args[1] == "combo-accessibility-primed"))
+            return ComboBoxAccessibilityScenario.Run(args[2], primeProvider: args[1] == "combo-accessibility-primed");
         if (args.Length != 3 || !string.Equals(args[0], "--scenario", StringComparison.Ordinal) ||
             (args[1] != "rounded-popup" && args[1] != "input-row"))
         {

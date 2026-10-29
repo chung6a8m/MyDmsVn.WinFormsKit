@@ -9,7 +9,7 @@ namespace MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost;
 
 internal static class ComboBoxAccessibilityScenario
 {
-    internal static int Run(string outputDirectory)
+    internal static int Run(string outputDirectory, bool primeProvider)
     {
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
         Directory.CreateDirectory(outputDirectory);
@@ -21,6 +21,7 @@ internal static class ComboBoxAccessibilityScenario
         form.Controls.Add(combo);
         form.Show();
         Application.DoEvents();
+        if (primeProvider) VerifyStableList(combo);
         for (var iteration = 0; iteration < 3; iteration++)
         {
             combo.DropDownStyle = ComboBoxStyle.Simple;
@@ -31,12 +32,12 @@ internal static class ComboBoxAccessibilityScenario
             Application.DoEvents();
             VerifyStableList(combo);
         }
-        Require(combo.TransientQueries == 3, "Expected one query on each retiring dropdown list.");
+        Require(combo.TransientQueries == (IntPtr.Size == 8 ? 9 : 6), "Expected MSAA and UIA queries on each retiring dropdown list.");
         Require(combo.SelectedIndex == 1, "Selection changed during recreation.");
         File.WriteAllLines(Path.Combine(outputDirectory, "combo-accessibility.txt"), new[]
         {
             "transient.queries=" + combo.TransientQueries,
-            "stable.queries=6", "selection.index=" + combo.SelectedIndex,
+            "stable.queries=" + (primeProvider ? 7 : 6), "selection.index=" + combo.SelectedIndex,
             "oracle.no-crash=pass", "oracle.stable-native-accessibility=pass", "oracle.simple-height=pass"
         });
         return 0;
@@ -75,10 +76,17 @@ internal static class ComboBoxAccessibilityScenario
             if (m.Msg == 0x0002 && RecreatingHandle && DropDownStyle == ComboBoxStyle.Simple)
             {
                 var info = GetInfo(m.HWnd);
-                TransientQueries++;
                 // An accessibility client can query the old dropdown while its owner already
                 // reports Simple. This is a real native message to a still-live child HWND.
-                SendMessage(info.List, 0x003D, IntPtr.Zero, new IntPtr(-4));
+                var objectIds = IntPtr.Size == 8
+                    ? new[] { new IntPtr(0xFFFFFFFCL), new IntPtr(-4), new IntPtr(-25) }
+                    : new[] { new IntPtr(-4), new IntPtr(-25) };
+                foreach (var objectId in objectIds)
+                {
+                    TransientQueries++;
+                    Require(SendMessage(info.List, 0x003D, IntPtr.Zero, objectId) == IntPtr.Zero,
+                        "Retiring list must not expose a stale provider.");
+                }
             }
             base.WndProc(ref m);
         }
