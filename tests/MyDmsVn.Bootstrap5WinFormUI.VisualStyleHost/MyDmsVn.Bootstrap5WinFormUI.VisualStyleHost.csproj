@@ -5,6 +5,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationManifest Condition="'$(TargetFramework)' == 'net48'">app.net48.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(BusyOverlayNegativeManifest)' == 'true'">app.no-layered.manifest</ApplicationManifest>
     <RootNamespace>MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost</RootNamespace>
   </PropertyGroup>
 

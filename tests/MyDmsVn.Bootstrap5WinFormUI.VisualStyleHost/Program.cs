@@ -57,6 +57,9 @@ internal static class Program
 
     private static int RunScenario(string[] args)
     {
+        if (args.Length == 3 && args[0] == "--scenario" &&
+            (args[1] == "busy-overlay-live" || args[1] == "busy-overlay-fallback"))
+            return BusyOverlayScenario.Run(args[2], args[1] == "busy-overlay-fallback");
         if (args.Length == 4 && args[0] == "--scenario" && args[1] == "tabs-temporal")
             return TabsTemporalScenario.Run(args[2], args[3]);
         if (args.Length == 3 && args[0] == "--scenario" && args[1] == "tabs-hover")
