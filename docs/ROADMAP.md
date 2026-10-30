@@ -1,8 +1,8 @@
 # Công việc hiện hành
 
-Scope được Owner chọn ngày **2026-10-30**: **UI Composition Recipes**, gồm hai mẫu trung tính UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. [Plan ACTIVE](plans/20261030-001-ui-composition-recipes.md) sở hữu duy nhất trạng thái CMP-T01/CMP-T02, file map, steps/tests và các gate nghiệm thu.
+Scope **UI Composition Recipes** ngày **2026-10-30** đã **COMPLETE trong phạm vi hẹp**: UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. [Plan](plans/20261030-001-ui-composition-recipes.md) sở hữu duy nhất trạng thái CMP-T01/CMP-T02, file map, evidence và giới hạn. Correction accessibility source/test `bdac29b` không đổi layout/API; Owner visual approval `1420f25` là historical decision riêng, không phải AT approval.
 
-Đợt kích hoạt chỉ cập nhật tài liệu và đường đọc; không tính là implementation hay native acceptance. [Plan phối hợp trong MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu CMP-T03–CMP-T05, skill/mapping/pilot và điều phối hai repo. Recipe source revision tách khỏi runtime toolkit pin của app; không nâng gitlink chỉ để lấy source ví dụ. Trang này chỉ điều hướng, không duy trì bảng tiến độ thứ hai và không yêu cầu repo Docs thứ ba.
+Đợt kích hoạt lịch sử chỉ cập nhật tài liệu và đường đọc; completion hiện có source/tests/evidence theo plan, không cấp product/native AT acceptance ngoài boundary đã ghi. [Plan phối hợp trong MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu CMP-T03–CMP-T05, skill/mapping/pilot và điều phối hai repo. Recipe source revision tách khỏi runtime toolkit pin của app; không nâng gitlink chỉ để lấy source ví dụ. Trang này chỉ điều hướng, không duy trì bảng tiến độ thứ hai và không yêu cầu repo Docs thứ ba.
 
 ## Scope TAB/BUS độc lập trước đó
 
