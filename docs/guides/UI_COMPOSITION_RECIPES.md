@@ -6,7 +6,7 @@ Hai mẫu thuộc assembly demo ControlGallery, dùng public controls của UI c
 
 **Purpose:** danh sách tham chiếu chỉ đọc, tìm kiếm và lọc trạng thái cùng một dataset, phản hồi rõ dữ liệu đã biết/chưa biết. Chạy Gallery → **Compositions → UIC-01 Filter Results**.
 
-**Source:** [CompositionListDemoForm.cs](../../samples/ControlGallery/CompositionListDemoForm.cs), revision `4bbdeb56f40ead9017098eef787ff605fafeebc4`; source này cũng được giữ trong candidate tích hợp `4c4466dca9f8e543119ee9608d509a4fadb104c0`. Commits hiện là local branch; chỉ dùng URL GitHub theo SHA sau khi source được đẩy lên remote. Xem [evidence](../verification/20261030-ui-composition-recipes.md).
+**Source:** [CompositionListDemoForm.cs tại candidate được Owner duyệt `1420f25`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/blob/1420f252ca198cd4409e0e945fa6433b30b943b3/samples/ControlGallery/CompositionListDemoForm.cs). Recipe source SHA độc lập với runtime pin consumer. Xem [evidence](../verification/20261030-ui-composition-recipes.md).
 
 | Vùng | Controls/API công khai | Ownership |
 |---|---|---|
@@ -37,7 +37,7 @@ Hai mẫu thuộc assembly demo ControlGallery, dùng public controls của UI c
 
 **Purpose:** form minh họa bản nháp cục bộ với mã, tên, nhóm, trạng thái và ghi chú. Chạy Gallery → **Compositions → UIC-02 Compact Edit Form**. Rule mã/tên bắt buộc chỉ phục vụ demo, không phải validation contract của MyDmsVn.
 
-**Source:** [CompositionEditDemoForm.cs](../../samples/ControlGallery/CompositionEditDemoForm.cs), revision `4c4466dca9f8e543119ee9608d509a4fadb104c0` trên local branch; source revision độc lập với runtime pin consumer. Xem [evidence](../verification/20261030-ui-composition-recipes.md).
+**Source:** [CompositionEditDemoForm.cs tại candidate được Owner duyệt `1420f25`](https://github.com/chung6a8m/MyDmsVn.WinFormsKit/blob/1420f252ca198cd4409e0e945fa6433b30b943b3/samples/ControlGallery/CompositionEditDemoForm.cs). Recipe source SHA độc lập với runtime pin consumer. Xem [evidence](../verification/20261030-ui-composition-recipes.md).
 
 | Vùng | Controls/API công khai | Ownership |
 |---|---|---|

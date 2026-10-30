@@ -2,7 +2,7 @@
 
 > **For agentic workers:** triển khai từng task theo checkbox, đọc `AGENTS.md` và `docs/TESTING.md`; dùng `superpowers:subagent-driven-development` hoặc `superpowers:executing-plans` nếu có. Việc kích hoạt tài liệu không thay thế implementation, tests hoặc nghiệm thu.
 
-**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01/CMP-T02 đã có samples, tests, route Compositions và recipe guide; focused Windows/native automation PASS trên hai TFM. Gallery physical100/125 review và Owner acceptance được ghi riêng trong [candidate evidence](../verification/20261030-ui-composition-recipes.md); chưa có Owner acceptance cho candidate mới.
+**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01/CMP-T02 đã có samples, tests, route Compositions và recipe guide; focused Windows/native automation PASS trên hai TFM. Owner **APPROVED** candidate `1420f25` ngày 2026-10-30; các quan sát thực tế và giới hạn attended matrix được ghi riêng trong [candidate evidence](../verification/20261030-ui-composition-recipes.md).
 
 **Mục tiêu:** tạo hai mẫu WinForms chạy được trong ControlGallery: UIC-01 Filter Results và UIC-02 Compact Edit Form, có hướng dẫn ngắn để consumer chuyển thể qua public APIs.
 
@@ -17,7 +17,7 @@
 | WinFormsKit main | `2521dfe99461e8f6d1954da96ffaed0688027455` |
 | MyDmsVn main | `16c24738a4758ccdceb1f3509f4e37adb0d03464` |
 | Runtime gitlink `vendor/MyDmsVn.WinFormsKit` của MyDmsVn | `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` |
-| Recipe source revision | UIC-01 `4bbdeb56f40ead9017098eef787ff605fafeebc4`; integrated UIC-01/UIC-02 `4c4466dca9f8e543119ee9608d509a4fadb104c0` (local branch, chưa publish) |
+| Recipe source revision | UIC-01/UIC-02 tại candidate được Owner duyệt và đã publish `1420f252ca198cd4409e0e945fa6433b30b943b3`; links cố định tại [guide](../guides/UI_COMPOSITION_RECIPES.md) |
 
 Recipe source revision và runtime toolkit pin là hai trường độc lập. SHA baseline của toolkit ở trên chưa phải revision chứa hai mẫu mới. Consumer đọc/chuyển thể source mẫu nhưng chỉ dùng APIs đã có ở runtime pin của mình; không nâng gitlink chỉ để lấy source ví dụ. Nếu cần API/fix thật sự còn thiếu, ghi dependency follow-up riêng và tiếp tục phần không bị chặn.
 
@@ -27,8 +27,8 @@ Khi bắt đầu implementation, đọc lại HEAD, instructions và gitlinks; c
 
 | Task | Kết quả cần tạo | Phụ thuộc | Implementation | Windows/native verification | Owner acceptance |
 |---|---|---|---|---|---|
-| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; native gates OPEN** | **Focused automation PASS hai TFM; Gallery physical100/125 PENDING** | **PENDING** |
-| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; native gates OPEN** | **Focused automation PASS hai TFM; Gallery physical100/125 PENDING** | **PENDING** |
+| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; attended matrix OPEN** | **Focused automation PASS hai TFM; physical100/125 captures, bounded review; attended matrix OPEN** | **APPROVED `1420f25`, 2026-10-30** |
+| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; attended matrix OPEN** | **Focused automation PASS hai TFM; physical100/125 captures, bounded review; attended matrix OPEN** | **APPROVED `1420f25`, 2026-10-30** |
 
 Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages chỉ điều hướng; không duy trì ledger thứ hai. CMP-T03–CMP-T05 và tiến độ toàn đợt do plan app sở hữu. Approval chọn scope ngày 2026-10-30 không phải approval implementation hoặc native result. Không kế thừa PASS/ACCEPTED của TAB, BUS, input/popup, ba ngoại lệ Business Compact hay A3 cho hai mẫu mới.
 

@@ -5,8 +5,8 @@
 - Ngày 30/10/2026; baseline toolkit `7a1467f` (activation trên `2521dfe`), nhánh `codex/composition-recipes-20261030`.
 - CMP-T01 tạo UIC-01, route Compositions, focused tests và guide. CMP-T02 có record riêng bên dưới khi tích hợp.
 - Runtime MyDmsVn vẫn pin `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf`; không thay production core API, packages/projects, SourceGrid hoặc product source.
-- UIC-01 source/test `4bbdeb56f40ead9017098eef787ff605fafeebc4`; integrated source/test `4c4466dca9f8e543119ee9608d509a4fadb104c0`. Commits local, chưa publish; baseline không phải recipe revision.
-- Owner acceptance **PENDING**. Tests/source links không cung cấp visual acceptance hoặc app acceptance.
+- Candidate source/test được Owner duyệt và đã publish `1420f252ca198cd4409e0e945fa6433b30b943b3`; các source/test `4bbdeb56f40ead9017098eef787ff605fafeebc4` và `4c4466dca9f8e543119ee9608d509a4fadb104c0` là các revision triển khai trước đó, không phải candidate cuối.
+- Owner **APPROVED** `1420f25` ngày 2026-10-30 cho hai Gallery recipes; attended matrix chưa được ghi đủ vẫn OPEN. Decision không cấp app acceptance.
 
 ## CMP-T01 — focused automation
 
@@ -106,4 +106,8 @@ Actual Gallery `--composition-proof` trên candidate này: hai TFMs, Light/Dark,
 
 Binary hashes: net48 EXE SHA256 `E4CFE57545C62FEBFE134A514322B1582A7E937FCAC5EE10B1E4D6188CE330DD`; net8 managed DLL SHA256 `8134BE2BA5405F99E948CFEF92A8DAE68967131B46B556A49F7F25E568E12BBA`. Trước correction này có quan sát trực tiếp trên Gallery net48 physical100 candidate `def2116`: gõ từng phím k/h/o cho 3/4 và Enter giữ text/focus; chưa kiểm riêng native caret/range bằng observation đó. Automated native input và lifecycle được ghi theo đúng run của chúng, không thay physical attended matrix.
 
-**Attended matrix: OPEN. Owner acceptance: PENDING.** Owner cần xem candidate `1420f25` trong Gallery thật, cả hai theme/viewport và physical100/125, kiểm UIC-01 filter/states/keyboard và UIC-02 invalid→correct→Save→edit→Cancel, theme/selection/scroll trước khi đưa quyết định. Không suy Owner approval từ yêu cầu tiến hành hay ảnh chụp. Header correction làm content nhỏ còn 626×373 tại100 và 561×358 tại125; cần đánh giá chấp nhận trade-off này trong native review. Không có product/SQL/release acceptance.
+**Attended matrix: OPEN tại thời điểm chuẩn bị review.** Header correction làm content nhỏ còn 626×373 tại100 và 561×358 tại125. Không có product/SQL/release acceptance.
+
+## Owner decision — 30/10/2026
+
+Owner trực tiếp trả lời **“APPROVE candidate `1420f25`”** cho candidate `1420f252ca198cd4409e0e945fa6433b30b943b3`, sau yêu cầu review hai Gallery recipes. Decision là **APPROVED** cho candidate và phạm vi Gallery này; không suy từ ảnh hay test. Owner không cung cấp kết quả theo từng ô attended matrix, nên các ô chưa có quan sát riêng vẫn **OPEN**, không tự ghi PASS hoặc waived. Không mở rộng decision sang product pilot, SQL, package hay release; runtime app pin `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` giữ độc lập.
