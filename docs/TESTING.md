@@ -131,7 +131,75 @@ Host `--scenario combo-accessibility <output-directory>` và `combo-accessibilit
 
 Clipboard assertions chỉ chờ tối đa1 giây khi đọc rỗng và vẫn so sánh exact lexical text; không reissue copy/cut hoặc ghi lại expected value. Controlled republishing test giữ native empty interval tới khi observer thực sự thấy nó, rồi publish lại actual text đã copy. Test này chứng minh khả năng chịu transient availability, không xác định actor của lần lỗi lịch sử. Row-sharing performance assertions đo synchronous theme setter; consumer/accessibility reads được pump sau đó thuộc phạm vi riêng.
 
+### Busy overlay — BUS-06
+
+Chạy GUI tuần tự trên desktop tương tác, STA và cùng candidate; build/discovery/NUnit không thay native live composition. Lặp discovery trên cả hai TFM, giữ hang diagnostics 5 phút:
+
+```powershell
+.\build.ps1 -Configuration Release -Scope Controls
+$busyTestProject = (Resolve-Path 'tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj').Path
+$busyFilter = 'FullyQualifiedName~BootstrapBusy|FullyQualifiedName~BusyOverlayDemoFormTests|FullyQualifiedName~Phase16PublicApiBaselineTests|FullyQualifiedName~IntegratedDemo|FullyQualifiedName~AdvancedInputsDemoLayoutRegressionTests|FullyQualifiedName~NavigationDemoFormTests'
+foreach ($busyTfm in @('net48', 'net8.0-windows')) {
+    dotnet test $busyTestProject -c Release -f $busyTfm --no-build --list-tests --filter $busyFilter --blame-hang --blame-hang-timeout 5m
+    if ($LASTEXITCODE -ne 0) { throw "Discovery failed: $busyTfm" }
+    dotnet test $busyTestProject -c Release -f $busyTfm --no-build --filter $busyFilter --blame-hang --blame-hang-timeout 5m
+    if ($LASTEXITCODE -ne 0) { throw "Tests failed: $busyTfm" }
+}
+.\build.ps1 -Configuration Release -Scope All
+```
+
+Kiểm discovery có cases thật và ghi discovered/executed/pass/fail/skip từng target; không gọi selection rỗng PASS. Giữ fixtures `BootstrapBusyHost` cũ và gallery DPI regressions. NUnit testhost có thể không có compatibility manifest: pure/fault tests không được giả định `NativeLayered`; native tests phải launch đúng helper EXE.
+
+Recipe positive/negative dưới đây tạo absolute manifest/output paths từ checkout đang đứng. Chạy từng build/run tuần tự vì chung `obj`; không cần đổi manifest source hoặc vendor. Positive dùng manifest riêng đúng target; negative bỏ supportedOS nhưng giữ Common-Controls. Helper có total deadline thực **60 giây**, bounded pump và cleanup; parent guard dưới đây 75 giây chỉ là chốt ngoài cho chính process vừa tạo, không thay hang diagnostics 5 phút của NUnit.
+
+```powershell
+$busyRepo = (Get-Location).Path
+$busyHelperProject = (Resolve-Path 'tests/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost/MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.csproj').Path
+$busyHelperDirectory = Split-Path $busyHelperProject
+$busyOutputRoot = Join-Path $busyRepo 'artifacts/verification/busy-bus06'
+New-Item -ItemType Directory -Force -Path $busyOutputRoot | Out-Null
+
+foreach ($busyTfm in @('net48', 'net8.0-windows')) {
+    foreach ($busyNegative in @($false, $true)) {
+        $busyKind = if ($busyNegative) { 'negative' } else { 'positive' }
+        $busyManifestName = if ($busyNegative) { 'app.no-layered.manifest' } elseif ($busyTfm -eq 'net48') { 'app.net48.manifest' } else { 'app.manifest' }
+        $busyManifest = (Resolve-Path (Join-Path $busyHelperDirectory $busyManifestName)).Path
+        $busyBin = Join-Path $busyOutputRoot "$busyKind-$busyTfm-bin"
+        $busyTheme = 'Light' # chạy lại recipe với 'Dark'; không gộp evidence hai theme
+        $busyEvidence = Join-Path $busyOutputRoot "$busyKind-$busyTfm-$busyTheme-evidence"
+        New-Item -ItemType Directory -Force -Path $busyEvidence | Out-Null
+        dotnet build $busyHelperProject -c Release -f $busyTfm --no-restore -t:Rebuild "-p:ApplicationManifest=$busyManifest" "-p:BusyOverlayNegativeManifest=$busyNegative" -p:AppendTargetFrameworkToOutputPath=false -p:AppendRuntimeIdentifierToOutputPath=false "-p:OutputPath=$busyBin/"
+        if ($LASTEXITCODE -ne 0) { throw "Build failed: $busyKind $busyTfm" }
+        $busyExe = (Resolve-Path (Join-Path $busyBin 'MyDmsVn.Bootstrap5WinFormUI.VisualStyleHost.exe')).Path
+        $busyScenario = if ($busyNegative) { 'busy-overlay-fallback' } else { 'busy-overlay-live' }
+        $busyStart = New-Object System.Diagnostics.ProcessStartInfo
+        $busyStart.FileName = $busyExe
+        $busyStart.UseShellExecute = $false
+        $busyStart.Arguments = "--scenario $busyScenario `"$busyEvidence`" $busyTheme"
+        $busyProcess = [System.Diagnostics.Process]::Start($busyStart)
+        try {
+            if (-not $busyProcess.WaitForExit(75000)) {
+                $busyProcess.Kill()
+                $busyProcess.WaitForExit(5000) | Out-Null
+                throw "Helper exceeded parent deadline: $busyKind $busyTfm"
+            }
+            if ($busyProcess.ExitCode -ne 0) { throw "Helper failed: $busyKind $busyTfm exit $($busyProcess.ExitCode)" }
+        }
+        finally { $busyProcess.Dispose() }
+        Get-FileHash -Algorithm SHA256 -LiteralPath $busyExe, $busyManifest
+    }
+}
+# Khôi phục default positive outputs trước fixtures dùng helper mặc định:
+.\build.ps1 -Configuration Release -Scope Controls
+```
+
+Xác minh embedded manifest của **từng EXE** và compatibility context mà helper report, không chỉ hash XML/build property. Chạy trực tiếp net8 apphost, không `dotnet helper.dll`. Kiểm actual `RenderMode=NativeLayered` ở positive và `OpaqueFallback` ở negative, report failure thay vì skip; exit0 riêng lẻ không chứng minh live pixels. Metadata phải giữ content updates dưới tint trong cùng token/HWND, opaque foreground, không production capture/WM_PRINT, alpha0/0.35/1, queued mouse/Cancel/sibling, focus/capture và cleanup. Với x86 net48, rebuild output riêng thêm `-p:PlatformTarget=x86` rồi xác nhận actual process bitness/capability/input; không gán kết quả x64 cho x86.
+
+Matrix BUS cần hai TFM × Light/Dark × physical100/125 với actual native/managed window DPI; representative150/200 và mixed-DPI; clipping/scroll/overlapping sibling/TabPage/modal/minimize/reparent/handle recreation và resource soak. Dark palette unit tests không thay native Dark. DataGridView không thay SourceGrid-under-overlay proof. Thiếu monitor/desktop thì ghi `NOT RUN / BLOCKED BY ENVIRONMENT`, giữ gate mở; TAB DPI exception không áp cho BUS. Upload/open artifact có thể xem lại với candidate/scenario/OS/runtime/SDK/bitness/DPI/hash/URL/retention; Owner phải review actual live demo/clip của đúng candidate. [Plan BUS](plans/20261029-003-live-busy-overlay.md) sở hữu trạng thái; recipe không tự đóng native, consumer hoặc Owner acceptance.
+
 ## Báo cáo kết quả
+
+SourceGrid-under-overlay thuộc grid test owner: `BusyOverlayDemoFormTests` chứa regression ownership/admission/live data và hai case launch exact GridGallery EXE Light/Dark (STA, tuần tự, watchdog60s; hang diagnostics5m). `dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Release -f <TFM> --no-build --blame-hang --blame-hang-timeout 5m` chạy toàn suite. Route proof thủ công: `samples/GridGallery/bin/Release/<TFM>/MyDmsVn.BootstrapSourceGrid.Demo.exe --scenario sourcegrid-busy-live <absolute-output> Light|Dark`. Dùng desktop tương tác, không launch hidden; proof có bounded own-title activation trước SendInput/keyboard, không đổi foreground-lock policy. Negative build override `ApplicationManifest` bằng absolute `samples/GridGallery/app.no-layered.manifest`, output riêng, rồi chạy `--scenario sourcegrid-busy-fallback`; rebuild positive trước suite tiếp theo. [Evidence SourceGrid](verification/20261030-sourcegrid-busy-overlay.md) ghi exact commands, counts, executable hashes và phạm vi96 DPI; fallback không nhận live-pixel PASS.
 
 Mỗi lần nghiệm thu ghi candidate SHA, engine pin, OS/SDK/runtime, configuration/framework/bitness, commands/filter, discovered/executed/pass/fail/skip và limitations. Ghi warm hay clean restore; với manual observations ghi gallery, thao tác và kỳ vọng quan sát được. Raw TRX/dumps/logs giữ ngoài Git; chỉ commit bản tóm tắt đã rà soát.
 

@@ -12,10 +12,10 @@ Phase 16 froze the Phase 15-reviewed exported API as the proposed v1 compatibili
 
 The baseline covers every exported type plus each declared public, protected, and protected-internal constructor, field, property, event, and method in the core assembly. Including protected surface is intentional because subclasses can depend on it.
 
-Approved SHA-256 API fingerprint (TAB-06 compiled review, 2026-10-29):
+Approved SHA-256 API fingerprint (BUS exported-delta review, 2026-10-30):
 
 ```text
-1d1172af4dc1a247b330ca3df84d00bf0903ab22470fa9c59581b1543002f3c1
+a96de87de1e1a0df9dbddf68a48614a13ca6e83e4927fbb4b64f2fc336c56cba
 ```
 
 The reviewed Pagination addition exports only `MyDmsVn.Bootstrap5WinFormUI.Controls.BootstrapPagination`. Its declared surface is the parameterless constructor, `TotalItems`, `PageSize`, `CurrentPage`, `TotalPages`, `MaxVisiblePages`, `ShowFirstLast`, `ShowPreviousNext`, `ButtonSize`, `Variant`, `BorderRadius`, `PageChanged`, and the `GetPreferredSize(Size)` override inherited as part of the control contract. Pagination layout helper types remain internal.
@@ -149,3 +149,11 @@ Assembly compatibility remains `AssemblyVersion` `1.0.0.0` for the v1 line. Pack
 Changes include removing or renaming a type/member, changing visibility, signature, base type, enum values, constructors, or protected extensibility hooks. Additions also change the fingerprint and therefore require review even when they are source/binary compatible.
 
 The fingerprint gate is a review trigger, not a substitute for engineering judgment. A changed fingerprint must never be accepted merely to make CI green.
+
+## BUS — review exported delta ngày 30/10/2026
+
+Candidate sửa PR #5 được build và chạy gate RED trên cả `net48` và `net8.0-windows` trước khi cập nhật fingerprint. Hai surface 1.787 dòng giống nhau từng byte; loại chính xác hai type mới cùng declared members tái tạo approved TAB fingerprint `1d1172af4dc1a247b330ca3df84d00bf0903ab22470fa9c59581b1543002f3c1`. Không có removals hoặc thay đổi signatures ngoài hai additions này; assembly identity/version giữ nguyên.
+
+Delta được review: sealed `BootstrapBusyOverlayHost : Panel`, constructor `(Control)`, read-only `Content`, `BackdropOpacity`, read-only `RenderMode`, `RenderModeChanged` và `Begin(BusyPresentation): IDisposable`. Protected overrides được tính đủ: `Dispose`, `OnClientSizeChanged`, `OnDpiChangedAfterParent`, `OnFontChanged`, `OnHandleCreated`, `OnHandleDestroyed`, `OnLayout`, `OnParentChanged`, `OnVisibleChanged`. Enum `BootstrapBusyOverlayRenderMode : Int32` chỉ có `None=0`, `NativeLayered=1`, `OpaqueFallback=2`. `BusyOverlayExportsOnlyTheReviewedAdditiveContract` khóa constructors, setters, public/protected members và enum; controllers, native/filter/layout helpers không export. Host cũ `BootstrapBusyHost` giữ nguyên.
+
+Fingerprint mới `a96de87de1e1a0df9dbddf68a48614a13ca6e83e4927fbb4b64f2fc336c56cba` chỉ xác nhận API đã review; không đóng native/Owner acceptance của BUS-06. Candidate execution và giới hạn nằm tại [evidence sửa full suite PR #5](../../verification/20261030-pr5-controls-suite-fixes.md).

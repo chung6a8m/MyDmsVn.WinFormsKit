@@ -207,3 +207,13 @@ Before MVP release, verify at least:
 | Demo app | Required | Required |
 
 A documented environment limitation may prevent one manual matrix cell from being exercised in CI, but it does not remove the release requirement.
+
+## 15. SourceGrid trong BootstrapBusyOverlayHost
+
+`samples/GridGallery/BusyOverlayDemoForm.cs` là recipe tích hợp bằng public API: content/grid/editor có instance riêng, UI core không tham chiếu adapter. `Live Busy Overlay` trên toolbar mở form riêng; marker cell và progress tiếp tục cập nhật trong khi token còn sống. Slider alpha, theme, cancel và hide/show nằm ngoài Content.
+
+Caller đóng `ChoiceEditor.Control.DroppedDown`, rồi gọi `CellContext.EndEdit(true)` của active cell trước `Begin`; khi không thể kết thúc edit, không bắt đầu busy. SourceGrid vẫn sở hữu conversion/commit/cancel. Demo chọn hủy candidate; consumer có thể chọn `EndEdit(false)` và xử lý validation failure trước khi tạo token. Với LookupBox/popup khác phải dùng lifecycle của chính editor đó; demo này chứng minh native engine ComboBox, không suy rộng sang mọi third-party popup.
+
+Caller đặt `Grid.Enabled=false`, khóa native command button và guard lệnh `TryApply` ngay từ pending150ms đến khi token cuối kết thúc. Mouse filter của host không bảo vệ keyboard/UIA/business commands. Disabled UIA Invoke có thể trả success từ provider; điều kiện đúng là business state không đổi. Cancel chỉ gọi callback; demo callback tự release token. Registry sở hữu Bootstrap editor; demo dispose cả native `ChoiceEditor.Control` và `ChoiceEditor` (`ComponentLight`) do mình tạo, kể cả chưa attach.
+
+GridGallery khai báo Windows10 supportedOS/common-controls trong embedded EXE manifest, net48 dùng App.config PerMonitorV2 và net8 gọi `SetHighDpiMode` trước HWND. Đây là executable prerequisites, không đổi DPI policy của thư viện. Native SourceGrid gate và giới hạn theo candidate nằm trong [evidence](../../verification/20261030-sourcegrid-busy-overlay.md); physical125/150/200, mixed-DPI, hardware/third-party rendering và Owner approval vẫn riêng.

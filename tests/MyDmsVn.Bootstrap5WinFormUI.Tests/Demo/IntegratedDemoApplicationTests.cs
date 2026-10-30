@@ -28,6 +28,7 @@ public sealed class IntegratedDemoApplicationTests
         "Feedback",
         "Collapse / Accordion",
         "Loading / Spinner",
+        "Loading / Busy Overlay",
         "Placeholder / Skeleton",
         "Progress",
         "Breadcrumb",

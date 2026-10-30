@@ -14,7 +14,7 @@ namespace MyDmsVn.Bootstrap5WinFormUI.Tests.Release;
 [TestFixture]
 public sealed class Phase16PublicApiBaselineTests
 {
-    private const string ApprovedV1Fingerprint = "1d1172af4dc1a247b330ca3df84d00bf0903ab22470fa9c59581b1543002f3c1";
+    private const string ApprovedV1Fingerprint = "a96de87de1e1a0df9dbddf68a48614a13ca6e83e4927fbb4b64f2fc336c56cba";
 
     [Test]
     public void ExportedApiMatchesApprovedV1Baseline()
@@ -34,6 +34,43 @@ public sealed class Phase16PublicApiBaselineTests
     public void V1CompatibilityAssemblyVersionIsStable()
     {
         Assert.That(typeof(BootstrapButton).Assembly.GetName().Version, Is.EqualTo(new Version(1, 0, 0, 0)));
+    }
+
+    [Test]
+    public void BusyOverlayExportsOnlyTheReviewedAdditiveContract()
+    {
+        var type = typeof(BootstrapBusyOverlayHost);
+        var expectedProtected = new[]
+        {
+            "Dispose", "OnClientSizeChanged", "OnDpiChangedAfterParent", "OnFontChanged", "OnHandleCreated",
+            "OnHandleDestroyed", "OnLayout", "OnParentChanged", "OnVisibleChanged"
+        };
+        var exports = type.Assembly.GetExportedTypes()
+            .Where(exported => exported.Name.IndexOf("BusyOverlay", StringComparison.Ordinal) >= 0)
+            .Select(exported => exported.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray();
+
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(exports, Is.EqualTo(new[] { "BootstrapBusyOverlayHost", "BootstrapBusyOverlayRenderMode" }));
+            Assert.That(type.IsSealed, Is.True);
+            Assert.That(type.BaseType, Is.EqualTo(typeof(Panel)));
+            Assert.That(type.GetConstructors().Select(FormatConstructor),
+                Is.EqualTo(new[] { "public ctor(System.Windows.Forms.Control)" }));
+            Assert.That(GetDeclaredPublicPropertyNames(type), Is.EqualTo(new[] { "BackdropOpacity", "Content", "RenderMode" }));
+            Assert.That(type.GetProperty("Content")!.SetMethod, Is.Null);
+            Assert.That(type.GetProperty("RenderMode")!.SetMethod!.IsPrivate, Is.True);
+            Assert.That(GetDeclaredPublicEventNames(type), Is.EqualTo(new[] { "RenderModeChanged" }));
+            Assert.That(GetDeclaredPublicMethodNames(type), Is.EqualTo(new[] { "Begin" }));
+            Assert.That(FormatMethod(type.GetMethod("Begin")!),
+                Is.EqualTo("public method System.IDisposable Begin(MyDmsVn.Bootstrap5WinFormUI.Controls.BusyPresentation)"));
+            Assert.That(GetDeclaredProtectedMethodNames(type), Is.EqualTo(expectedProtected));
+            Assert.That(Enum.GetUnderlyingType(typeof(BootstrapBusyOverlayRenderMode)), Is.EqualTo(typeof(int)));
+            Assert.That(Enum.GetNames(typeof(BootstrapBusyOverlayRenderMode)),
+                Is.EqualTo(new[] { "None", "NativeLayered", "OpaqueFallback" }));
+            Assert.That((int)BootstrapBusyOverlayRenderMode.None, Is.Zero);
+            Assert.That((int)BootstrapBusyOverlayRenderMode.NativeLayered, Is.EqualTo(1));
+            Assert.That((int)BootstrapBusyOverlayRenderMode.OpaqueFallback, Is.EqualTo(2));
+        }));
     }
 
     [Test]
