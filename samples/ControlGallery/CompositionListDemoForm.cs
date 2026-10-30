@@ -198,7 +198,7 @@ public sealed class CompositionListDemoForm : DemoFormBase
             var query = _search.Text.Trim(); // Read a normalized query; never rewrite the native edit buffer.
             foreach (var row in dataset)
             {
-                var matchesText = query.Length == 0 || string.Join(" ", row).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0;
+                var matchesText = query.Length == 0 || string.Join(" ", row[0], row[1], row[2]).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0;
                 var matchesStatus = _status.SelectedIndex == 0 || row[3] == (_status.SelectedIndex == 1 ? "Đang hoạt động" : "Ngừng hoạt động");
                 if (matchesText && matchesStatus) rows.Rows.Add(row);
             }

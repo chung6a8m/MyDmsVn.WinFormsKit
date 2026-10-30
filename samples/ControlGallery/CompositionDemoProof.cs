@@ -41,8 +41,10 @@ internal static class CompositionDemoProof
         void Prepare(string name, BootstrapThemeMode theme, Size size, int tabIndex, string state)
         {
             BootstrapThemeManager.CurrentTheme = DemoThemeFactory.Create(theme, DemoTypographyPreset.Base16Px);
-            form.Size = size;
-            form.Location = Screen.FromControl(form).WorkingArea.Location;
+            var workArea = Screen.FromControl(form).WorkingArea;
+            form.Size = FitViewport(size, workArea.Size, form.MinimumSize);
+            form.Location = workArea.Location;
+            File.AppendAllText(metadata, "Requested=" + size + "; Fitted=" + form.Size + "; WorkArea=" + workArea + Environment.NewLine, new UTF8Encoding(false));
             var sidebar = Descendants(form).OfType<BootstrapSidebar>().Single();
             sidebar.SelectedItem = sidebar.Items.Single(item => item.Text == "Compositions");
             var tabs = Descendants(form).OfType<TabControl>().Single();
@@ -126,7 +128,7 @@ internal static class CompositionDemoProof
     private static void Capture(Form form, Form content, string output, string metadata, string name)
     {
         if (GetForegroundWindow() != form.Handle) throw new InvalidOperationException("Gallery is not foreground; refusing an unrelated screen capture.");
-        if (!Screen.FromControl(form).Bounds.Contains(form.Bounds)) throw new InvalidOperationException("Gallery outer bounds do not fit the current monitor.");
+        if (!Screen.FromControl(form).WorkingArea.Contains(form.Bounds)) throw new InvalidOperationException("Gallery outer bounds do not fit the current working area.");
         form.Update();
         var data = new StringBuilder();
         data.AppendLine("Capture=" + name + "; Theme=" + BootstrapThemeManager.CurrentTheme.Mode);
@@ -150,6 +152,13 @@ internal static class CompositionDemoProof
             bitmap.Save(Path.Combine(output, name + ".png"), ImageFormat.Png);
         }
         File.AppendAllText(metadata, data + Environment.NewLine, new UTF8Encoding(false));
+    }
+
+    internal static Size FitViewport(Size desired, Size workArea, Size minimum)
+    {
+        if (workArea.Width < minimum.Width || workArea.Height < minimum.Height)
+            throw new InvalidOperationException("The display working area is smaller than the Gallery minimum size.");
+        return new Size(Math.Max(minimum.Width, Math.Min(desired.Width, workArea.Width)), Math.Max(minimum.Height, Math.Min(desired.Height, workArea.Height)));
     }
 
     private static T Named<T>(Control root, string name) where T : Control => Descendants(root).OfType<T>().Single(control => control.Name == name);

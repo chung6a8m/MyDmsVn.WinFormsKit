@@ -30,6 +30,36 @@ public sealed class CompositionDemoFormTests
     public void TearDown() => BootstrapThemeManager.CurrentTheme = _original!;
 
     [Test]
+    public void FilterResults_SearchExcludesStatusAndStatusFilterRemainsIndependent()
+    {
+        using var form = CreateList();
+        form.Show();
+        var search = Find<BootstrapTextBox>(form, "SearchInput");
+        var status = Find<BootstrapComboBox>(form, "StatusFilter");
+        var grid = Find<BootstrapDataGridView>(form, "ResultsGrid");
+        search.Text = "hoạt động";
+        Assert.That(grid.Rows.Count, Is.Zero);
+        search.Text = "";
+        status.SelectedIndex = 1;
+        Assert.That(grid.Rows.Count, Is.EqualTo(2));
+        status.SelectedIndex = 2;
+        Assert.That(grid.Rows.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ProofViewportFitsLowWorkingAreaAndRejectsUnavailableSpace()
+    {
+        var type = typeof(MainForm).Assembly.GetType("MyDmsVn.Bootstrap5WinFormUI.Demo.CompositionDemoProof")!;
+        var method = type.GetMethod("FitViewport", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        Assert.That(method, Is.Not.Null);
+        var fitted = (Size)method!.Invoke(null, new object[] { new Size(1280, 800), new Size(1366, 728), new Size(900, 600) })!;
+        Assert.That(fitted, Is.EqualTo(new Size(1280, 728)));
+        var small = (Size)method.Invoke(null, new object[] { new Size(900, 600), new Size(1366, 728), new Size(900, 600) })!;
+        Assert.That(small, Is.EqualTo(new Size(900, 600)));
+        Assert.Throws<System.Reflection.TargetInvocationException>((Action)(() => method.Invoke(null, new object[] { new Size(900, 600), new Size(800, 500), new Size(900, 600) })));
+    }
+
+    [Test]
     public void FilterResults_QueryChangesRowsCountWithoutResettingSearchBuffer()
     {
         using var form = CreateList();
