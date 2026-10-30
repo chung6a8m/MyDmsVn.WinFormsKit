@@ -91,3 +91,9 @@ Owner decision **PENDING**: visual QA của agent không phải approval; Owner 
 ## Cập nhật SourceGrid ngày 30/10/2026
 
 Các mục SourceGrid NOT RUN trong kết quả BUS-06 phía trên mô tả candidate lịch sử đó. Candidate working tree mới trên HEAD 5e13a3d có [evidence SourceGrid](20261030-sourcegrid-busy-overlay.md) riêng: Build All, grid full265/265 mỗi target, native live5/fallback4 tại96 DPI đã PASS; UI core không phụ thuộc adapter. Gate SourceGrid96 DPI hiện đã đạt trong scope demo GridGallery. Physical125/150/200/mixed-DPI, hardware/third-party, shared durable artifacts, consumer MyDmsVn và Owner approval vẫn mở; không đổi kết quả historical BUS-06 hoặc đóng feature acceptance.
+
+## Cập nhật physical125 và ngoại lệ Owner ngày30/10/2026
+
+[Evidence physical125](20261030-busy-overlay-physical125.md) thay trạng thái NOT RUN physical125 của các checkpoint trước bằng technical PASS: monitor scale125%, actual HWND120/managed120, BUS9/9 và SourceGrid9/9, Controls181/181 và grid265/265 mỗi TFM. Negative net48 chỉ nhận fallback scope, không nhận PMv2/live PASS. Báo cáo giữ các lượt thất bại do occlusion/automation observer và đối chứng cùng binary sau cleanup observer, không nới assertions hoặc resource thresholds.
+
+Owner đã cho ngoại lệ **physical150%/200% và mixed-DPI chỉ candidate/scope lượt này**: NOT RUN / Owner-exempt, không PASS. Ngoại lệ không đóng Owner visual/live approval, consumer MyDmsVn/hardware/third-party hoặc shared/durable artifact destination/retention. BUS feature acceptance vẫn OPEN. Các trạng thái thiếu125/mixed trong phần trước là checkpoint lịch sử; plan BUS và evidence mới sở hữu tiến độ hiện hành.

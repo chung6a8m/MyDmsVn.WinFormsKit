@@ -45,7 +45,7 @@ internal static class BusyOverlayScenario
                 activation.Save(Path.Combine(directory, "activation.png"), ImageFormat.Png);
             }
             Wait(() => GetForegroundWindow() == form.Handle, "foreground");
-            log.WriteLine($"EXE={Process.GetCurrentProcess().MainModule!.FileName}; OS={Environment.OSVersion}; CLR={Environment.Version}; x64={Environment.Is64BitProcess}; Theme={mode}; DPI={GetDpiForWindow(form.Handle)}; PMv2={AreDpiAwarenessContextsEqual(GetWindowDpiAwarenessContext(form.Handle), new IntPtr(-4))}");
+            log.WriteLine($"EXE={Process.GetCurrentProcess().MainModule!.FileName}; OS={Environment.OSVersion}; CLR={Environment.Version}; x64={Environment.Is64BitProcess}; Theme={mode}; DPI={GetDpiForWindow(form.Handle)}; managedDeviceDpi={form.DeviceDpi}; PMv2={AreDpiAwarenessContextsEqual(GetWindowDpiAwarenessContext(form.Handle), new IntPtr(-4))}");
             var module = GetModuleHandle(null);
             var resource = FindResource(module, new IntPtr(1), new IntPtr(24));
             Require(resource != IntPtr.Zero, "Embedded EXE manifest missing");
@@ -136,7 +136,7 @@ internal static class BusyOverlayScenario
             Require(textContext.EndEdit(false) && Equals(grid[1, 1].Value, "Sau busy"), "reedit commit");
             log.WriteLine("PASS hide/show same operation; edit and commit after release");
             form.Close();
-            log.WriteLine($"PASS cleanup; disposed={form.IsDisposed}; elapsedMs={Deadline.ElapsedMilliseconds}; physical125/hardware/Owner=NOT RUN");
+            log.WriteLine($"PASS cleanup; disposed={form.IsDisposed}; elapsedMs={Deadline.ElapsedMilliseconds}; physicalDpi=see-runtime-metadata; hardware=NOT RUN; Owner=PENDING");
             return 0;
         }
         catch (Exception error) { log.WriteLine("FAIL " + error); return 1; }

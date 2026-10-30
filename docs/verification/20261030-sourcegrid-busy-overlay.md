@@ -107,3 +107,9 @@ Local pack `artifacts/verification/sourcegrid-busy/`, [frame index](../../artifa
 | negative net8x64 apphost | `36E150F05C928AB37656ED6ED799CC337C50A6A4E31B12EE8221CC49D6949081` |
 
 Net8 apphost hash riêng không nhận diện toàn managed implementation; inventory ghi cả gallery DLL, UI/adapter/engine DLL và source hashes. SourceGrid96-DPI gate PASS trong phạm vi trên. Physical125/150/200%, mixed monitor **NOT RUN / BLOCKED BY ENVIRONMENT**; hardware/third-party renderer/popup **NOT RUN**; consumer MyDmsVn integration **NOT RUN**; Owner actual live/visual decision **PENDING**; durable artifacts **NOT PUBLISHED**. BUS-06 và BUS feature acceptance vẫn OPEN, không mở lại A3 hoặc historical input/popup acceptance.
+
+## Cập nhật physical125 và ngoại lệ Owner ngày30/10/2026
+
+[Evidence physical125](20261030-busy-overlay-physical125.md) thay trạng thái NOT RUN physical125 của các checkpoint trước bằng technical PASS: monitor scale125%, actual HWND120/managed120, BUS9/9 và SourceGrid9/9, Controls181/181 và grid265/265 mỗi TFM. Negative net48 chỉ nhận fallback scope, không nhận PMv2/live PASS. Báo cáo giữ các lượt thất bại do occlusion/automation observer và đối chứng cùng binary sau cleanup observer, không nới assertions hoặc resource thresholds.
+
+Owner đã cho ngoại lệ **physical150%/200% và mixed-DPI chỉ candidate/scope lượt này**: NOT RUN / Owner-exempt, không PASS. Ngoại lệ không đóng Owner visual/live approval, consumer MyDmsVn/hardware/third-party hoặc shared/durable artifact destination/retention. BUS feature acceptance vẫn OPEN. Các trạng thái thiếu125/mixed trong phần trước là checkpoint lịch sử; plan BUS và evidence mới sở hữu tiến độ hiện hành.

@@ -127,7 +127,7 @@ internal static class BusyOverlayScenario
                     using (var shown = Capture(form, card)) AssertPatch(shown, form, patch, fallback ? Fallback : Blend(Patches[0], 89), "show");
                     Require(UnexpectedPrintCount(printHooks) == 0, "Overlay show invoked non-native Content print.");
                     log.WriteLine($"PASS overlay show explicit Content print=0; incidental native background delta={PrintCount(printHooks) - showPrintBefore}");
-                    log.WriteLine($"DPI={GetDpiForWindow(form.Handle)}; Monitors={Screen.AllScreens.Length}; Generation=1; Mode={(fallback ? "OpaqueFallback production" : "NativeLayered production")}");
+                    log.WriteLine($"DPI={GetDpiForWindow(form.Handle)}; managedDeviceDpi={form.DeviceDpi}; Monitors={Screen.AllScreens.Length}; Generation=1; Mode={(fallback ? "OpaqueFallback production" : "NativeLayered production")}");
                     LogWindow(log, "host", host); LogWindow(log, "content", content); LogWindow(log, "backdrop", backdrop); LogWindow(log, "card", card);
                     Require((ClassStyle(backdrop.Handle) & 0x60) == 0, "Backdrop class owns a DC.");
                     Require((WindowStyle(backdrop.Handle, -20) & 0x80000) == (fallback ? 0 : 0x80000), "Incorrect layered style.");
