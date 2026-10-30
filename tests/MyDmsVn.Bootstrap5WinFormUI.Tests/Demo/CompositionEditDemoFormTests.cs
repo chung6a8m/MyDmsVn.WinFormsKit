@@ -48,14 +48,88 @@ public sealed class CompositionEditDemoFormTests
             Assert.That(code.ContainsFocus, Is.True, "First invalid native input receives focus.");
             Assert.That(Find<Label>(form, "SaveFeedback").Text, Is.EqualTo(feedback));
             Assert.That(Find<Label>(form, "ValidationSummary").Text, Does.Contain("mã").And.Contain("tên"));
-            Assert.That(Find<Label>(form, "CodeError").AccessibleName, Is.Not.Empty);
-            Assert.That(Find<Label>(form, "NameError").AccessibleName, Is.Not.Empty);
+            AssertDynamicMessageIsExposed(Find<Label>(form, "CodeError"));
+            AssertDynamicMessageIsExposed(Find<Label>(form, "NameError"));
+            AssertDynamicMessageIsExposed(Find<Label>(form, "ValidationSummary"));
         }));
 
         code.Text = "MỚI";
         Assert.That(code.ValidationState, Is.EqualTo(BootstrapValidationState.None));
         Assert.That(Find<Label>(form, "CodeError").Visible, Is.False);
         Assert.That(name.ValidationState, Is.EqualTo(BootstrapValidationState.Invalid));
+    }
+
+    [Test]
+    public void EditForm_AccessibilityErrorsTrackValidationAndClearOnCancel()
+    {
+        using var form = CreateForm();
+        Show(form);
+        var code = Find<BootstrapTextBox>(form, "CodeInput");
+        var name = Find<BootstrapTextBox>(form, "NameInput");
+        var codeError = Find<Label>(form, "CodeError");
+        var nameError = Find<Label>(form, "NameError");
+        var summary = Find<Label>(form, "ValidationSummary");
+        code.Text = "  ";
+        name.Text = string.Empty;
+        Find<BootstrapButton>(form, "SaveButton").PerformClick();
+        Pump();
+
+        Assert.Multiple((Action)(() =>
+        {
+            AssertDynamicMessageIsExposed(codeError);
+            AssertDynamicMessageIsExposed(nameError);
+            AssertDynamicMessageIsExposed(summary);
+            Assert.That(code.ContainsFocus, Is.True);
+        }));
+
+        code.Text = "MỚI";
+        Pump();
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(codeError.Visible, Is.False);
+            Assert.That(codeError.Text, Is.Empty);
+            Assert.That(nameError.Visible, Is.True);
+            AssertDynamicMessageIsExposed(nameError);
+            AssertDynamicMessageIsExposed(summary);
+            Assert.That(summary.AccessibilityObject.Name, Does.Not.Contain("mã nhận diện và tên"));
+        }));
+
+        Find<BootstrapButton>(form, "CancelButton").PerformClick();
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(codeError.Visible, Is.False);
+            Assert.That(codeError.Text, Is.Empty);
+            Assert.That(nameError.Visible, Is.False);
+            Assert.That(nameError.Text, Is.Empty);
+            Assert.That(summary.Visible, Is.False);
+            Assert.That(summary.Text, Is.Empty);
+        }));
+    }
+
+    [Test]
+    public void EditForm_AccessibilityFeedbackReflectsCommittedSave()
+    {
+        using var form = CreateForm();
+        Show(form);
+        var code = Find<BootstrapTextBox>(form, "CodeInput");
+        var name = Find<BootstrapTextBox>(form, "NameInput");
+        var feedback = Find<Label>(form, "SaveFeedback");
+        AssertDynamicMessageIsExposed(feedback);
+        code.Text = "MÃ-ĐÃ-LƯU";
+        name.Text = "Tên đã lưu";
+        Find<BootstrapButton>(form, "SaveButton").PerformClick();
+        AssertDynamicMessageIsExposed(feedback);
+        Assert.That(feedback.AccessibilityObject.Name, Does.Contain("lần 1"));
+
+        var committedFeedback = feedback.Text;
+        code.Text = string.Empty;
+        Find<BootstrapButton>(form, "SaveButton").PerformClick();
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(code.Text, Is.Empty, "Invalid save preserves the draft.");
+            Assert.That(feedback.Text, Is.EqualTo(committedFeedback));
+            AssertDynamicMessageIsExposed(feedback);
+        }));
     }
 
     [Test]
@@ -192,6 +266,13 @@ public sealed class CompositionEditDemoFormTests
     }
 
     private static T Find<T>(Control root, string name) where T : Control => Descendants(root).OfType<T>().Single(c => c.Name == name);
+
+    private static void AssertDynamicMessageIsExposed(Label label)
+    {
+        Assert.That(label.AccessibleName, Is.Null);
+        Assert.That(label.Text, Is.Not.Empty);
+        Assert.That(label.AccessibilityObject.Name, Is.EqualTo(label.Text));
+    }
 
     private static IEnumerable<Control> Descendants(Control root)
     {

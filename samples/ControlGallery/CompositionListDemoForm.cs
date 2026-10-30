@@ -76,7 +76,6 @@ public sealed class CompositionListDemoForm : DemoFormBase
         _filters.Controls.Add(_refresh);
         _filters.Controls.Add(_clear);
         _summary.Name = "ResultSummary";
-        _summary.AccessibleName = "Trạng thái kết quả truy vấn";
         _summary.AutoSize = true;
         _summary.Dock = DockStyle.Fill;
         _summary.Margin = new Padding(0, 6, 0, 8);

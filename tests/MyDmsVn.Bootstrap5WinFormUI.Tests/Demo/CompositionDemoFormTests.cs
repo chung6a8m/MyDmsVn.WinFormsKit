@@ -133,6 +133,28 @@ public sealed class CompositionDemoFormTests
     }
 
     [Test]
+    public void FilterResults_AccessibilitySummaryExposesCurrentStateAndCount()
+    {
+        using var form = CreateList();
+        form.Show();
+        var summary = Find<Label>(form, "ResultSummary");
+        var search = Find<BootstrapTextBox>(form, "SearchInput");
+        var scenario = Find<BootstrapComboBox>(form, "ScenarioSelector");
+
+        AssertSummaryExposesCurrentText(summary, "4 / 4");
+        search.Text = "unmatched";
+        AssertSummaryExposesCurrentText(summary, "0 / 4");
+        scenario.SelectedIndex = 1;
+        AssertSummaryExposesCurrentText(summary, "0 / 0");
+        scenario.SelectedIndex = 2;
+        AssertSummaryExposesCurrentText(summary, "Đang tải", "chưa biết");
+        Assert.That(summary.AccessibilityObject.Name, Does.Not.Contain("0 /"));
+        scenario.SelectedIndex = 3;
+        AssertSummaryExposesCurrentText(summary, "Không khả dụng", "chưa biết");
+        Assert.That(summary.AccessibilityObject.Name, Does.Not.Contain("0 /"));
+    }
+
+    [Test]
     public void FilterResults_NativePerCharacterEnterAndTabKeepQueryState()
     {
         using var form = CreateList();
@@ -220,6 +242,13 @@ public sealed class CompositionDemoFormTests
     }
 
     private static T Find<T>(Control root, string name) where T : Control => Descendants<T>(root).Single(x => x.Name == name);
+
+    private static void AssertSummaryExposesCurrentText(Label summary, params string[] expectedFragments)
+    {
+        Assert.That(summary.AccessibleName, Is.Null);
+        Assert.That(summary.AccessibilityObject.Name, Is.EqualTo(summary.Text));
+        foreach (var fragment in expectedFragments) Assert.That(summary.AccessibilityObject.Name, Does.Contain(fragment));
+    }
 
     private static IEnumerable<T> Descendants<T>(Control root) where T : Control
     {
