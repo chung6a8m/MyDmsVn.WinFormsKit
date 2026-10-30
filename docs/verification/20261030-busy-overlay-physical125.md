@@ -118,3 +118,7 @@ UIAutomationCore ETW544–547 xác định incoming peerPID32820, `codex-compute
 Agent mở representative BUS net48Light/net8Dark và SourceGrid net48Dark/net8Light desktop captures: own windows đúng, card/Cancel đọc được, marker/content có tint và foreground opaque. Đây là agent QA giới hạn, **không là Owner visual/live approval**. Owner cần xem actual demo hoặc chuỗi frame/clip của exact candidate và quyết định riêng; không tự đóng BUS-06.
 
 Owner cho ngoại lệ physical150%/200%/mixed-DPI **chỉ candidate/scope lượt30/10/2026**. Ba mục này ghi NOT RUN/Owner-exempt, không PASS, không suy từ synthetic120/144/192 geometry hoặc ngoại lệ TAB/input scope. Một monitor nên helper vẫn ghi mixed-DPI NOT RUN. Ngoại lệ không là Owner approval toàn feature, không miễn consumer MyDmsVn, hardware/third-party hoặc shared artifact/retention. Những mục ngoài scope đó chưa nghiệm thu. Historical A3/input-popup/96DPI reports giữ nguyên; [plan BUS](../plans/20261029-003-live-busy-overlay.md) sở hữu tiến độ hiện hành.
+
+## Quyết định Owner sau checkpoint này
+
+Ngày30/10/2026, Owner visual/live APPROVED candidate ba603d2 và cho ngoại lệ nơi lưu artifact dùng chung. Shared publication vẫn NOT PUBLISHED nhưng được Owner-exempt, cùng ngoại lệ150/200/mixed-DPI NOT RUN; BUS acceptance đã ACCEPTED trong scope candidate. Các trạng thái PENDING/OPEN phía trên là lịch sử trước quyết định. Xem [Owner decision](20261030-busy-overlay-owner-approval.md) để biết exact SHA, phạm vi, retention local và giới hạn consumer/hardware/third-party.
