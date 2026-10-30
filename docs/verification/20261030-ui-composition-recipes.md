@@ -123,3 +123,9 @@ Candidate source/test `1420f252ca198cd4409e0e945fa6433b30b943b3`, documentation 
 Vẫn **OPEN**: các tổ hợp TFM/theme/DPI/viewport chưa trình diễn trực tiếp, no-match khi lọc, caret/range được đo trực tiếp trong lượt attended, cùng những checks chưa quan sát riêng. Automated native tests/captures vẫn giữ giá trị ở phạm vi đã ghi nhưng không thay các ô attended đó. Không ghi full attended matrix PASS chỉ từ xác nhận tổng quát; không mở rộng decision sang product/SQL/release.
 
 Tiếp theo tại physical100, `net8.0-windows` Light: operator nhập `xyz`, grid báo 0/4 và “Không có kết quả phù hợp bộ lọc”; Ctrl+A cho selected text `xyz` và focus vẫn ở search theo UI Automation. Quan sát này diễn ra sau phản hồi Owner phía trên và chưa có xác nhận attended riêng; vị trí caret/selection start-length không được đo, không dùng whole-string nhập để tuyên bố per-key proof. Vẫn giữ các ô attended tương ứng OPEN.
+
+## Attended continuation — physical 125%, pending Owner outcome — 30/10/2026
+
+Windows Display do Owner đặt 125% trước lượt này. Operator mở Gallery candidate `1420f252ca198cd4409e0e945fa6433b30b943b3` và trình diễn hai TFM ở viewport normal: `net8.0-windows` UIC-01 và UIC-02 ở Light/Dark; `net48` UIC-01 và UIC-02 ở Light/Dark. Các nội dung nhìn thấy gồm nhãn tiếng Việt dài, bảng kết quả, biểu mẫu, vùng ghi chú và Save/Cancel. Không quan sát thấy header chồng, nhãn bị cắt hoặc lệnh chính bị khuất trong lượt này. Sau đó Windows Display được đặt lại 100% và Settings hiển thị 100%.
+
+Lượt này chưa có phản hồi kết quả quan sát riêng của Owner sau phần trình diễn 125%, nên đây là operator observation, **không phải attended PASS**. Matrix và các ô nhỏ/no-match/error/caret chưa được trình diễn trong lượt này vẫn **OPEN**; không thay đổi Owner approval candidate hoặc phạm vi product/SQL/release.
