@@ -27,8 +27,8 @@ Khi bắt đầu implementation, đọc lại HEAD, instructions và gitlinks; c
 
 | Task | Kết quả cần tạo | Phụ thuộc | Implementation | Windows/native verification | Owner acceptance |
 |---|---|---|---|---|---|
-| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; attended matrix OPEN** | **Focused automation PASS hai TFM; physical100/125 captures, bounded review; attended matrix OPEN** | **APPROVED `1420f25`, 2026-10-30** |
-| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; attended matrix OPEN** | **Focused automation PASS hai TFM; physical100/125 captures, bounded review; attended matrix OPEN** | **APPROVED `1420f25`, 2026-10-30** |
+| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; attended matrix PASS (bounded representative scope)** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS** | **APPROVED `1420f25`, 2026-10-30** |
+| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; attended matrix PASS (bounded representative scope)** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS** | **APPROVED `1420f25`, 2026-10-30** |
 
 Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages chỉ điều hướng; không duy trì ledger thứ hai. CMP-T03–CMP-T05 và tiến độ toàn đợt do plan app sở hữu. Approval chọn scope ngày 2026-10-30 không phải approval implementation hoặc native result. Không kế thừa PASS/ACCEPTED của TAB, BUS, input/popup, ba ngoại lệ Business Compact hay A3 cho hai mẫu mới.
 

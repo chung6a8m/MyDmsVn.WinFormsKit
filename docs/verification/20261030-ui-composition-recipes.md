@@ -129,3 +129,9 @@ Tiếp theo tại physical100, `net8.0-windows` Light: operator nhập `xyz`, gr
 Windows Display do Owner đặt 125% trước lượt này. Operator mở Gallery candidate `1420f252ca198cd4409e0e945fa6433b30b943b3` và trình diễn hai TFM ở viewport normal: `net8.0-windows` UIC-01 và UIC-02 ở Light/Dark; `net48` UIC-01 và UIC-02 ở Light/Dark. Các nội dung nhìn thấy gồm nhãn tiếng Việt dài, bảng kết quả, biểu mẫu, vùng ghi chú và Save/Cancel. Owner xác nhận sau lượt này: **“Tôi đã theo dõi lượt 125% và không thấy lỗi”**. Không quan sát thấy header chồng, nhãn bị cắt hoặc lệnh chính bị khuất trong lượt này. Sau đó Windows Display được đặt lại 100% và Settings hiển thị 100%.
 
 Lượt normal 125% nêu trên là **attended PASS** trong phạm vi đã trình diễn. Matrix và các ô nhỏ/no-match/error/caret chưa được trình diễn trong lượt này vẫn **OPEN**; không thay đổi Owner approval candidate hoặc phạm vi product/SQL/release.
+
+## Attended matrix closure — 30/10/2026
+
+Owner tiếp tục theo dõi physical100 `net8.0-windows` Light ở viewport nhỏ. UIC-01 nhận lần lượt `x`, `y`, `z`, hiển thị `0 / 4` và “Không có kết quả phù hợp bộ lọc”; UI Automation ghi focus tại search và selected text `xyz`. UIC-02 xóa mã rồi Save: lỗi bắt buộc nhiều dòng hiện đầy đủ, focus về mã, còn thấy Save/Cancel. Owner xác nhận: **“Tôi đã theo dõi lượt này và không thấy có lỗi, Caret/range đúng vị trí”**. Observation UIA không công bố chỉ số numeric start/length, vì vậy statement về caret/range là kết quả quan sát trực tiếp của Owner, không thay cho proof automation đã ghi.
+
+Theo gate §6 của plan, attended representative matrix là **PASS**: physical100/125; `net48` và `net8.0-windows`; Light/Dark; viewport normal và small; cùng UIC-01 loaded/no-match/unavailable và UIC-02 invalid/valid/cancel tại các đại diện đã ghi trong các lượt trên. Plan quy định không nhân mọi state với toàn bộ ma trận, nên kết quả này không khẳng định từng state ở mọi tổ hợp. Không có product, SQL, package hoặc release acceptance.
