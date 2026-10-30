@@ -189,7 +189,7 @@ public sealed class CompositionListDemoForm : DemoFormBase
         }
         else if (_scenario.SelectedIndex == 3)
         {
-            _grid.EmptyStateText = "Không thể tải dữ liệu. Chọn kịch bản Đã tải để thử lại.";
+            _grid.EmptyStateText = "Không thể tải dữ liệu.";
             _summary.Text = "Không khả dụng — chưa biết số kết quả.";
         }
         else

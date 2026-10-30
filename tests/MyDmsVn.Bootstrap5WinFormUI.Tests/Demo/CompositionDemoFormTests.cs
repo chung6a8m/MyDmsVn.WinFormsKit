@@ -30,6 +30,21 @@ public sealed class CompositionDemoFormTests
     public void TearDown() => BootstrapThemeManager.CurrentTheme = _original!;
 
     [Test]
+    public void FilterResults_UnavailableMessageFitsNarrowGridAndCountRemainsUnknown()
+    {
+        using var form = CreateList();
+        form.ClientSize = new Size(480, 430);
+        form.Show();
+        Find<BootstrapComboBox>(form, "ScenarioSelector").SelectedIndex = 3;
+        Application.DoEvents();
+        var grid = Find<BootstrapDataGridView>(form, "ResultsGrid");
+        using var scaledFont = new Font(grid.Font.FontFamily, grid.Font.SizeInPoints * 1.25f, grid.Font.Style, GraphicsUnit.Point);
+        var textSize = TextRenderer.MeasureText(grid.EmptyStateText, scaledFont);
+        Assert.That(textSize.Width, Is.LessThanOrEqualTo(grid.ClientSize.Width - grid.RowHeadersWidth - 24));
+        Assert.That(Find<Label>(form, "ResultSummary").Text, Does.Contain("chưa biết"));
+    }
+
+    [Test]
     public void FilterResults_SearchExcludesStatusAndStatusFilterRemainsIndependent()
     {
         using var form = CreateList();
