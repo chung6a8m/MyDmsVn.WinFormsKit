@@ -111,3 +111,13 @@ Binary hashes: net48 EXE SHA256 `E4CFE57545C62FEBFE134A514322B1582A7E937FCAC5EE1
 ## Owner decision — 30/10/2026
 
 Owner trực tiếp trả lời **“APPROVE candidate `1420f25`”** cho candidate `1420f252ca198cd4409e0e945fa6433b30b943b3`, sau yêu cầu review hai Gallery recipes. Decision là **APPROVED** cho candidate và phạm vi Gallery này; không suy từ ảnh hay test. Owner không cung cấp kết quả theo từng ô attended matrix, nên các ô chưa có quan sát riêng vẫn **OPEN**, không tự ghi PASS hoặc waived. Không mở rộng decision sang product pilot, SQL, package hay release; runtime app pin `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` giữ độc lập.
+
+## Attended continuation — 30/10/2026
+
+Candidate source/test `1420f252ca198cd4409e0e945fa6433b30b943b3`, documentation HEAD khi bắt đầu `a7d585df651ef6a06a69469d1448b189abacdf63`. Owner xác nhận trước lượt này “Tôi sẽ theo dõi”; sau lượt 100%/125% trả lời **“Đã theo dõi, chưa thấy lỗi”**. Đây là ghi nhận những thao tác cụ thể bên dưới, không khẳng định Owner đã xem từng capture hay từng tổ hợp chưa trình diễn. Owner approval candidate ngày 30/10/2026 giữ nguyên.
+
+- Physical100, `net48`, Light: UIC-01 loaded 4/4; gõ từng phím `k`, `h`, `o` cho 3/4, Enter giữ `kho` và focus; chọn trạng thái đang hoạt động cho 2/4; Clear phục hồi 4/4; dataset rỗng 0/0, loading và unavailable phân biệt, hai trạng thái sau báo chưa biết số kết quả. UIC-02: xóa mã, Save hiện lỗi và focus mã; nhập `DEMO-123`, Save báo lần 1; sửa thành `NHAP-456`, chuyển Dark giữ draft, Cancel phục hồi `DEMO-123`.
+- Physical125, `net8.0-windows`: UIC-01 Light/Dark normal; Dark vùng hẹp sau thu chiều ngang, filter wrap và unavailable hiển thị “Không thể tải dữ liệu.” cùng summary chưa biết số kết quả. UIC-02 Dark vùng hẹp: mã rỗng hiện lỗi nhiều dòng và focus mã, footer còn nhìn thấy. Kích thước live thu bằng thao tác cửa sổ, không đo outer/content chính xác; không gán geometry của ảnh proof trước cho cửa sổ này.
+- Physical125, `net48`: UIC-01 và UIC-02 Light ở viewport normal. Physical100, `net8.0-windows`: UIC-01 và UIC-02 Light ở viewport normal. Windows Display được đặt 125% trong lượt giữa, sau đó khôi phục 100%; Gallery DPI thực 96/120 của cùng binaries đã được đo trong lượt proof candidate `1420f25` ở mục trước.
+
+Vẫn **OPEN**: các tổ hợp TFM/theme/DPI/viewport chưa trình diễn trực tiếp, no-match khi lọc, caret/range được đo trực tiếp trong lượt attended, cùng những checks chưa quan sát riêng. Automated native tests/captures vẫn giữ giá trị ở phạm vi đã ghi nhưng không thay các ô attended đó. Không ghi full attended matrix PASS chỉ từ xác nhận tổng quát; không mở rộng decision sang product/SQL/release.
