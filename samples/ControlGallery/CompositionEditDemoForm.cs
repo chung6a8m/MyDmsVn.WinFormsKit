@@ -76,14 +76,14 @@ public sealed class CompositionEditDemoForm : DemoFormBase
         _notes.ScrollBars = ScrollBars.Vertical;
         _notes.Height = 100;
 
-        ConfigureError(_codeError, "CodeError", "Lỗi mã nhận diện");
-        ConfigureError(_nameError, "NameError", "Lỗi tên hiển thị");
+        ConfigureError(_codeError, "CodeError");
+        ConfigureError(_nameError, "NameError");
         AddField("Mã nhận diện nhóm tham khảo (bắt buộc)", _code, _codeError);
         AddField("Tên hiển thị đầy đủ bằng tiếng Việt (bắt buộc)", _name, _nameError);
         AddField("Nhóm phân loại", _group);
         AddField("Trạng thái", _active);
         AddField("Ghi chú bổ sung cho nhóm tham khảo", _notes);
-        ConfigureError(_validationSummary, "ValidationSummary", "Tổng hợp lỗi nhập liệu");
+        ConfigureError(_validationSummary, "ValidationSummary");
         AddRow(_validationSummary);
 
         _footer.Dock = DockStyle.Fill;
@@ -92,7 +92,6 @@ public sealed class CompositionEditDemoForm : DemoFormBase
         _footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _footer.Margin = new Padding(0, 8, 0, 0);
         _saveFeedback.Name = "SaveFeedback";
-        _saveFeedback.AccessibleName = "Kết quả lưu trong bộ nhớ";
         _saveFeedback.AutoSize = true;
         _saveFeedback.Dock = DockStyle.Top;
         _saveFeedback.Text = "Chưa lưu thay đổi.";
@@ -143,10 +142,9 @@ public sealed class CompositionEditDemoForm : DemoFormBase
         return label;
     }
 
-    private void ConfigureError(BootstrapLabel label, string name, string caption)
+    private void ConfigureError(BootstrapLabel label, string name)
     {
         label.Name = name;
-        label.AccessibleName = caption;
         label.AutoSize = true;
         label.Dock = DockStyle.Top;
         label.TextRole = BootstrapTextRole.Danger;

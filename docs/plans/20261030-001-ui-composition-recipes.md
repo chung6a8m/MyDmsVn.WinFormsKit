@@ -2,7 +2,7 @@
 
 > **For agentic workers:** triển khai từng task theo checkbox, đọc `AGENTS.md` và `docs/TESTING.md`; dùng `superpowers:subagent-driven-development` hoặc `superpowers:executing-plans` nếu có. Việc kích hoạt tài liệu không thay thế implementation, tests hoặc nghiệm thu.
 
-**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01/CMP-T02 đã có samples, tests, route Compositions và recipe guide; focused Windows/native automation PASS trên hai TFM. Owner **APPROVED** candidate `1420f25` ngày 2026-10-30; các quan sát thực tế và giới hạn attended matrix được ghi riêng trong [candidate evidence](../verification/20261030-ui-composition-recipes.md).
+**Trạng thái:** **COMPLETE — bounded composition recipes, 2026-10-30.** CMP-T01/CMP-T02 có samples, tests, route Compositions và recipe guide; focused Windows/native automation PASS trên hai TFM. Owner **APPROVED** candidate visual `1420f25` ngày 2026-10-30. Correction accessibility sau review ở source/test `bdac29b` giữ visual/layout không đổi, có focused automation riêng; không chuyển approval cũ thành approval mới hoặc AT live evidence. Candidate, historical decision và giới hạn được ghi riêng trong [candidate evidence](../verification/20261030-ui-composition-recipes.md).
 
 **Mục tiêu:** tạo hai mẫu WinForms chạy được trong ControlGallery: UIC-01 Filter Results và UIC-02 Compact Edit Form, có hướng dẫn ngắn để consumer chuyển thể qua public APIs.
 
@@ -17,7 +17,7 @@
 | WinFormsKit main | `2521dfe99461e8f6d1954da96ffaed0688027455` |
 | MyDmsVn main | `16c24738a4758ccdceb1f3509f4e37adb0d03464` |
 | Runtime gitlink `vendor/MyDmsVn.WinFormsKit` của MyDmsVn | `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` |
-| Recipe source revision | UIC-01/UIC-02 tại candidate được Owner duyệt và đã publish `1420f252ca198cd4409e0e945fa6433b30b943b3`; links cố định tại [guide](../guides/UI_COMPOSITION_RECIPES.md) |
+| Recipe source revision | UIC-01/UIC-02 sau correction accessibility: `bdac29bf4aca20db6618570ecd9a354630bc2e5f`; visual candidate được Owner duyệt vẫn là `1420f252ca198cd4409e0e945fa6433b30b943b3`; links cố định tại [guide](../guides/UI_COMPOSITION_RECIPES.md) |
 
 Recipe source revision và runtime toolkit pin là hai trường độc lập. SHA baseline của toolkit ở trên chưa phải revision chứa hai mẫu mới. Consumer đọc/chuyển thể source mẫu nhưng chỉ dùng APIs đã có ở runtime pin của mình; không nâng gitlink chỉ để lấy source ví dụ. Nếu cần API/fix thật sự còn thiếu, ghi dependency follow-up riêng và tiếp tục phần không bị chặn.
 
@@ -27,8 +27,8 @@ Khi bắt đầu implementation, đọc lại HEAD, instructions và gitlinks; c
 
 | Task | Kết quả cần tạo | Phụ thuộc | Implementation | Windows/native verification | Owner acceptance |
 |---|---|---|---|---|---|
-| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; attended matrix PASS (bounded representative scope)** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS** | **APPROVED `1420f25`, 2026-10-30** |
-| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; attended matrix PASS (bounded representative scope)** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS** | **APPROVED `1420f25`, 2026-10-30** |
+| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; correction accessibility `bdac29b`** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS; correction 15/15 mỗi TFM** | **APPROVED visual `1420f25`, 2026-10-30; không phải approval correction/AT** |
+| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; correction accessibility `bdac29b`** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS; correction 15/15 mỗi TFM** | **APPROVED visual `1420f25`, 2026-10-30; không phải approval correction/AT** |
 
 Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages chỉ điều hướng; không duy trì ledger thứ hai. CMP-T03–CMP-T05 và tiến độ toàn đợt do plan app sở hữu. Approval chọn scope ngày 2026-10-30 không phải approval implementation hoặc native result. Không kế thừa PASS/ACCEPTED của TAB, BUS, input/popup, ba ngoại lệ Business Compact hay A3 cho hai mẫu mới.
 
@@ -80,10 +80,10 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 - [x] Viết `FilterResults_ClearAndEmptyStatesAreDistinct`: xóa filter phục hồi dữ liệu, empty dataset khác no matches, refresh/query không có hành vi ghi.
 - [x] Chạy discovery và test mới trước implementation; xác nhận thất bại vì hành vi thiếu, không phải lỗi môi trường hoặc selector rỗng.
 - [x] Implement `CompositionListDemoForm()` bằng layout primitives/public controls; đăng ký mục Compositions qua host hiện hữu.
-- [ ] Chạy focused tests; kiểm native gõ từng phím, Enter, Tab/Shift+Tab, đổi bộ lọc và resize để chứng minh buffer/caret/focus cùng lệnh truy vấn.
+  - [x] Chạy focused tests; kiểm native gõ từng phím, Enter, Tab/Shift+Tab, đổi bộ lọc và resize để chứng minh buffer/caret/focus cùng lệnh truy vấn.
 - [x] Kiểm selected row/control identity khi đổi theme; chuyển trang và dispose không để mẫu cũ tiếp tục nhận callback do mình đăng ký.
-- [ ] Ghi recipe: purpose, mô tả vùng, public controls/APIs, cách co giãn, states, ownership, source link tại commit và evidence thực tế; thêm link guide từ `docs/README.md` khi file đã có.
-- [ ] Ghi results/limitations đúng candidate, review và commit riêng UIC-01 cùng tests/hướng dẫn.
+  - [x] Ghi recipe: purpose, mô tả vùng, public controls/APIs, cách co giãn, states, ownership, source link tại commit và evidence thực tế; thêm link guide từ `docs/README.md` khi file đã có.
+  - [x] Ghi results/limitations đúng candidate, review và commit riêng UIC-01 cùng tests/hướng dẫn.
 
 **Done:** mẫu tương tác được trong Gallery thật, filter/summary nhất quán, dùng được ở content nhỏ của host, source recipe dễ tìm và các gate trong mục 6 có bằng chứng tương ứng.
 
@@ -95,17 +95,17 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 
 **Interfaces:** consumes host/recipe contract CMP-T01 và public `BootstrapTextBox`, `BootstrapComboBox`, `BootstrapCheckBox`, `BootstrapButton`, `ValidationState`; produces `CompositionEditDemoForm()` và recipe UIC-02. Stable control names: `CodeInput`, `NameInput`, `GroupInput`, `NotesInput`, `SaveButton`, `CancelButton`, `ValidationSummary`, `SaveFeedback`.
 
-**Nội dung mẫu:** các trường mã, tên, nhóm, trạng thái, ghi chú dùng dữ liệu trung tính. Rule minh họa mã/tên không trắng không phải validation contract của MyDmsVn. Field rows tăng theo label/error, nội dung cuộn cục bộ và footer luôn truy cập được. Save lưu bản sao vào state trong bộ nhớ, Cancel phục hồi snapshot đã lưu và xóa validation cũ. Inline errors và summary có tên truy cập; focus tới lỗi đầu tiên, sửa hợp lệ gỡ lỗi tương ứng. Đổi theme không dựng lại form hoặc mất input/selection.
+**Nội dung mẫu:** các trường mã, tên, nhóm, trạng thái, ghi chú dùng dữ liệu trung tính. Rule minh họa mã/tên không trắng không phải validation contract của MyDmsVn. Field rows tăng theo label/error, nội dung cuộn cục bộ và footer luôn truy cập được. Save lưu bản sao vào state trong bộ nhớ, Cancel phục hồi snapshot đã lưu và xóa validation cũ. Inline errors, summary và feedback cung cấp nội dung `Text` hiện tại qua accessibility API, không dùng tên tĩnh; focus tới lỗi đầu tiên, sửa hợp lệ gỡ lỗi tương ứng. Đổi theme không dựng lại form hoặc mất input/selection.
 
 - [x] Viết `EditForm_InvalidSubmitKeepsDraftAndDoesNotSave`: bỏ mã/tên rồi submit không tăng lần lưu, draft còn nguyên, errors đúng và native focus tới field đầu.
 - [x] Viết `EditForm_ValidSaveAndCancelUseCommittedSnapshot`: save hợp lệ đúng một lần, sửa rồi Cancel phục hồi snapshot vừa lưu và xóa lỗi cũ.
 - [x] Chạy discovery/test để xác nhận thất bại trước implementation vì hành vi thiếu.
 - [x] Implement `CompositionEditDemoForm()` bằng layout primitives và public controls; giữ phần mẫu đủ ngắn để đọc trực tiếp, thêm trang qua host hiện hữu.
 - [x] Chạy focused tests cùng `EditForm_ThemeAndNarrowLayoutPreserveInputAndReachableCommands`.
-- [ ] Kiểm native chuỗi nhập sai → sửa → lưu → sửa tiếp → hủy; long labels, validation nhiều dòng, Tab/Shift+Tab, Light/Dark và content nhỏ.
+  - [x] Kiểm native chuỗi nhập sai → sửa → lưu → sửa tiếp → hủy; long labels, validation nhiều dòng, Tab/Shift+Tab, Light/Dark và content nhỏ.
 - [x] Kiểm theme giữ draft/selection/control identity và đóng trang giải phóng subscriptions/tài nguyên do mẫu sở hữu.
 - [x] Cập nhật recipe UIC-02 và evidence; ghi rõ chuyển thể thành panel/modal là trách nhiệm consumer.
-- [ ] Review và commit riêng UIC-02; cập nhật ledger theo evidence thực tế.
+  - [x] Review và commit riêng UIC-02; cập nhật ledger theo evidence thực tế.
 
 **Done:** người xem chạy được toàn bộ chuỗi nhập/sửa/lưu/hủy, trạng thái và bố cục nhất quán, các gate trong mục 6 có bằng chứng tương ứng.
 
@@ -147,7 +147,7 @@ Không suy số tests kỳ vọng từ plan. Report ghi exact source/test SHA, c
 |---|---|
 | Runtime/visual | Hai composition trong Gallery thật; `net48` và `net8.0-windows`; Light/Dark; Windows physical 100% và 125%; content bình thường và nhỏ của Gallery |
 | UIC-01 | Filter/summary nhất quán; phân biệt empty, no matches, loading, unavailable; gõ từng phím/Enter/đổi bộ lọc giữ raw text/caret/focus; không phát sinh thao tác ghi |
-| UIC-02 | Invalid submit giữ draft và không save; lỗi có tên truy cập, focus đúng; valid Save một lần; Cancel khôi phục committed snapshot và xóa validation cũ |
+| UIC-02 | Invalid submit giữ draft và không save; lỗi/summary/feedback cung cấp nội dung hiện tại qua accessibility API, focus đúng; valid Save một lần; Cancel khôi phục committed snapshot và xóa validation cũ |
 | Layout | Nhãn tiếng Việt dài, mã dài, errors nhiều dòng; nội dung nhận diện/lệnh chính truy cập được; filter row wrap, grid co giãn và form scroll/footer hợp lý |
 | Lifecycle/theme | Đổi theme giữ draft, control identity và selected row khi có; chuyển/đóng Gallery page giải phóng callbacks/subscriptions do mẫu sở hữu |
 | Recipe/handoff | Purpose, public APIs, states, layout, ownership, exact source revision và evidence; app đối chiếu API tại runtime pin trước khi chuyển thể |
@@ -158,11 +158,11 @@ Evidence tương lai ở `docs/verification/20261030-ui-composition-recipes.md` 
 
 ### Checklist hoàn thành toolkit
 
-- [ ] UIC-01/UIC-02 chạy trong ControlGallery hiện hữu, có tests hành vi và native scope phù hợp.
-- [ ] Recipe guide chứa đủ purpose/source/API/states/layout/ownership/evidence và có đường đọc ngắn.
-- [ ] Source production/public API/projects/packages không bị mở rộng ngoài phạm vi được chọn.
-- [ ] Exact recipe source revision được gửi cho app; runtime pin giữ độc lập và không nâng vô tình.
-- [ ] Native results, hạn chế và Owner decision đúng candidate; ledger phản ánh evidence thực tế.
+- [x] UIC-01/UIC-02 chạy trong ControlGallery hiện hữu, có tests hành vi và native scope phù hợp.
+- [x] Recipe guide chứa đủ purpose/source/API/states/layout/ownership/evidence và có đường đọc ngắn.
+- [x] Source production/public API/projects/packages không bị mở rộng ngoài phạm vi được chọn.
+- [x] Exact recipe source revision được gửi cho app; runtime pin giữ độc lập và không nâng vô tình.
+- [x] Native results, hạn chế và Owner decision đúng candidate; ledger phản ánh evidence thực tế.
 
 Hoàn thành toolkit chưa tự đóng toàn đợt adoption. Skill/mapping, pilot và lượt Codex context sạch vẫn do app nghiệm thu trong CMP-T03–CMP-T05.
 
@@ -170,7 +170,7 @@ Hoàn thành toolkit chưa tự đóng toàn đợt adoption. Skill/mapping, pil
 
 Ưu tiên CMP-T01 và app mapping/pilot của UIC-01 trước. CMP-T02 dùng cùng contract recipe sau khi UIC-01 đủ rõ; có thể làm form riêng song song khi contract đã chốt. Một người tích hợp `MainForm`, tests và docs dùng chung; native GUI trên cùng Windows desktop luôn chạy tuần tự.
 
-PR triển khai toolkit dự kiến: “Add reusable list and compact edit composition examples”, gồm CMP-T01/CMP-T02, guide và evidence. Chia commits theo mẫu để review/rollback riêng. Kích hoạt plan là commit tài liệu riêng, không tính vào hai implementation tasks.
+PR toolkit ghi nhận composition recipes đã hoàn tất và correction accessibility sau review. Commit correction source/test `bdac29b` đứng trước evidence/status để app có reference cố định; runtime pin app không đổi. Kích hoạt plan là commit tài liệu lịch sử, không tính vào hai implementation tasks.
 
 App có thể chuẩn bị mapping/skill song song sau khi recipe format rõ, nhưng handoff phải chốt source links tại commit thật. Không yêu cầu app đổi runtime gitlink khi APIs hiện có đã đủ. Pilot giữ production controls và UI Lab hiện hữu; mọi chi tiết sản phẩm nằm trong [plan app](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md).
 

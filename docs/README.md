@@ -1,6 +1,6 @@
 # Tài liệu WinFormsKit
 
-Tài liệu tại đây đi cùng source toolkit. Scope UI Composition Recipes được chọn ngày 2026-10-30 có hai owner: plan toolkit sở hữu CMP-T01/CMP-T02, còn [plan MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu CMP-T03–CMP-T05 và phối hợp skill/mapping/pilot. Không cần repository tài liệu thứ ba. Các [đề xuất ownership A3][ownership] từ MyDmsVn.Docs bên dưới là nguồn lịch sử; source contracts, commands và candidate evidence hiện hành thuộc đúng repo thực thi.
+Tài liệu tại đây đi cùng source toolkit. Scope UI Composition Recipes ngày 2026-10-30 đã COMPLETE trong phạm vi CMP-T01/CMP-T02; plan toolkit sở hữu record/status, còn [plan MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu CMP-T03–CMP-T05 và phối hợp skill/mapping/pilot. Correction accessibility source/test `bdac29b` có evidence riêng; Owner visual approval `1420f25` vẫn là historical decision, không phải AT approval. Không cần repository tài liệu thứ ba. Các [đề xuất ownership A3][ownership] từ MyDmsVn.Docs bên dưới là nguồn lịch sử; source contracts, commands và candidate evidence hiện hành thuộc đúng repo thực thi.
 
 ## Điểm vào
 
@@ -12,7 +12,7 @@ Tài liệu tại đây đi cùng source toolkit. Scope UI Composition Recipes �
 | Notices/license theo component | [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) |
 | Consumer migration và rollback | [CONSUMER_MIGRATION](CONSUMER_MIGRATION.md) |
 | Điều kiện package/distribution | [RELEASING](RELEASING.md) |
-| Công việc mới được chọn ngày 2026-10-30 | [ROADMAP](ROADMAP.md) → [plan UI Composition Recipes](plans/20261030-001-ui-composition-recipes.md) |
+| Composition recipes đã complete và correction/handoff | [ROADMAP](ROADMAP.md) → [plan UI Composition Recipes](plans/20261030-001-ui-composition-recipes.md) |
 | Mẫu filter/results và compact edit có thể chuyển thể | [UI Composition Recipes](guides/UI_COMPOSITION_RECIPES.md), [candidate evidence](verification/20261030-ui-composition-recipes.md) |
 | Skill, Business Compact mapping, pilot và phối hợp hai repo | [Plan app](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) |
 | Scope TAB/BUS trước đó, giữ owner trạng thái và nghiệm thu riêng | [Plan TAB](plans/20261029-002-bootstrap-tabs-hottrack.md), [plan BUS](plans/20261029-003-live-busy-overlay.md) |
