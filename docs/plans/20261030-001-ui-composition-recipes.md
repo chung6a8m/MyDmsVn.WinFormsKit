@@ -2,7 +2,7 @@
 
 > **For agentic workers:** triển khai từng task theo checkbox, đọc `AGENTS.md` và `docs/TESTING.md`; dùng `superpowers:subagent-driven-development` hoặc `superpowers:executing-plans` nếu có. Việc kích hoạt tài liệu không thay thế implementation, tests hoặc nghiệm thu.
 
-**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01 đã có sample, tests và recipe guide; focused Windows/native automation PASS trên hai TFM, Gallery physical100/125 review còn mở như evidence. CMP-T02 đang triển khai ở candidate riêng. Owner acceptance PENDING. Xem [candidate evidence](../verification/20261030-ui-composition-recipes.md).
+**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01/CMP-T02 đã có samples, tests, route Compositions và recipe guide; focused Windows/native automation PASS trên hai TFM. Gallery physical100/125 review và Owner acceptance được ghi riêng trong [candidate evidence](../verification/20261030-ui-composition-recipes.md); chưa có Owner acceptance cho candidate mới.
 
 **Mục tiêu:** tạo hai mẫu WinForms chạy được trong ControlGallery: UIC-01 Filter Results và UIC-02 Compact Edit Form, có hướng dẫn ngắn để consumer chuyển thể qua public APIs.
 
@@ -17,7 +17,7 @@
 | WinFormsKit main | `2521dfe99461e8f6d1954da96ffaed0688027455` |
 | MyDmsVn main | `16c24738a4758ccdceb1f3509f4e37adb0d03464` |
 | Runtime gitlink `vendor/MyDmsVn.WinFormsKit` của MyDmsVn | `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` |
-| Recipe source revision chứa UIC-01/UIC-02 | Chưa có; ghi exact commit sau khi mẫu được triển khai |
+| Recipe source revision | UIC-01 `4bbdeb56f40ead9017098eef787ff605fafeebc4`; integrated UIC-01/UIC-02 `4c4466dca9f8e543119ee9608d509a4fadb104c0` (local branch, chưa publish) |
 
 Recipe source revision và runtime toolkit pin là hai trường độc lập. SHA baseline của toolkit ở trên chưa phải revision chứa hai mẫu mới. Consumer đọc/chuyển thể source mẫu nhưng chỉ dùng APIs đã có ở runtime pin của mình; không nâng gitlink chỉ để lấy source ví dụ. Nếu cần API/fix thật sự còn thiếu, ghi dependency follow-up riêng và tiếp tục phần không bị chặn.
 
@@ -28,7 +28,7 @@ Khi bắt đầu implementation, đọc lại HEAD, instructions và gitlinks; c
 | Task | Kết quả cần tạo | Phụ thuộc | Implementation | Windows/native verification | Owner acceptance |
 |---|---|---|---|---|---|
 | CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; native gates OPEN** | **Focused automation PASS hai TFM; Gallery physical100/125 PENDING** | **PENDING** |
-| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **PLANNED** | **NOT RUN** | **PENDING** |
+| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; native gates OPEN** | **Focused automation PASS hai TFM; Gallery physical100/125 PENDING** | **PENDING** |
 
 Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages chỉ điều hướng; không duy trì ledger thứ hai. CMP-T03–CMP-T05 và tiến độ toàn đợt do plan app sở hữu. Approval chọn scope ngày 2026-10-30 không phải approval implementation hoặc native result. Không kế thừa PASS/ACCEPTED của TAB, BUS, input/popup, ba ngoại lệ Business Compact hay A3 cho hai mẫu mới.
 
@@ -97,17 +97,19 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 
 **Nội dung mẫu:** các trường mã, tên, nhóm, trạng thái, ghi chú dùng dữ liệu trung tính. Rule minh họa mã/tên không trắng không phải validation contract của MyDmsVn. Field rows tăng theo label/error, nội dung cuộn cục bộ và footer luôn truy cập được. Save lưu bản sao vào state trong bộ nhớ, Cancel phục hồi snapshot đã lưu và xóa validation cũ. Inline errors và summary có tên truy cập; focus tới lỗi đầu tiên, sửa hợp lệ gỡ lỗi tương ứng. Đổi theme không dựng lại form hoặc mất input/selection.
 
-- [ ] Viết `EditForm_InvalidSubmitKeepsDraftAndDoesNotSave`: bỏ mã/tên rồi submit không tăng lần lưu, draft còn nguyên, errors đúng và native focus tới field đầu.
-- [ ] Viết `EditForm_ValidSaveAndCancelUseCommittedSnapshot`: save hợp lệ đúng một lần, sửa rồi Cancel phục hồi snapshot vừa lưu và xóa lỗi cũ.
-- [ ] Chạy discovery/test để xác nhận thất bại trước implementation vì hành vi thiếu.
-- [ ] Implement `CompositionEditDemoForm()` bằng layout primitives và public controls; giữ phần mẫu đủ ngắn để đọc trực tiếp, thêm trang qua host hiện hữu.
-- [ ] Chạy focused tests cùng `EditForm_ThemeAndNarrowLayoutPreserveInputAndReachableCommands`.
+- [x] Viết `EditForm_InvalidSubmitKeepsDraftAndDoesNotSave`: bỏ mã/tên rồi submit không tăng lần lưu, draft còn nguyên, errors đúng và native focus tới field đầu.
+- [x] Viết `EditForm_ValidSaveAndCancelUseCommittedSnapshot`: save hợp lệ đúng một lần, sửa rồi Cancel phục hồi snapshot vừa lưu và xóa lỗi cũ.
+- [x] Chạy discovery/test để xác nhận thất bại trước implementation vì hành vi thiếu.
+- [x] Implement `CompositionEditDemoForm()` bằng layout primitives và public controls; giữ phần mẫu đủ ngắn để đọc trực tiếp, thêm trang qua host hiện hữu.
+- [x] Chạy focused tests cùng `EditForm_ThemeAndNarrowLayoutPreserveInputAndReachableCommands`.
 - [ ] Kiểm native chuỗi nhập sai → sửa → lưu → sửa tiếp → hủy; long labels, validation nhiều dòng, Tab/Shift+Tab, Light/Dark và content nhỏ.
-- [ ] Kiểm theme giữ draft/selection/control identity và đóng trang giải phóng subscriptions/tài nguyên do mẫu sở hữu.
-- [ ] Cập nhật recipe UIC-02 và evidence; ghi rõ chuyển thể thành panel/modal là trách nhiệm consumer.
+- [x] Kiểm theme giữ draft/selection/control identity và đóng trang giải phóng subscriptions/tài nguyên do mẫu sở hữu.
+- [x] Cập nhật recipe UIC-02 và evidence; ghi rõ chuyển thể thành panel/modal là trách nhiệm consumer.
 - [ ] Review và commit riêng UIC-02; cập nhật ledger theo evidence thực tế.
 
 **Done:** người xem chạy được toàn bộ chuỗi nhập/sửa/lưu/hủy, trạng thái và bố cục nhất quán, các gate trong mục 6 có bằng chứng tương ứng.
+
+**Implementation disposition:** tests của UIC-02 nằm trong `CompositionEditDemoFormTests.cs`, tách khỏi `CompositionDemoFormTests.cs` theo ownership từng form. Không thêm test project. Native key sequence và layout/theme automation không tự đóng physical-DPI hoặc Owner gates.
 
 ## 5. Commands dự kiến và lựa chọn tests
 

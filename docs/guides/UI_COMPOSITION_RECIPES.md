@@ -6,7 +6,7 @@ Hai mẫu thuộc assembly demo ControlGallery, dùng public controls của UI c
 
 **Purpose:** danh sách tham chiếu chỉ đọc, tìm kiếm và lọc trạng thái cùng một dataset, phản hồi rõ dữ liệu đã biết/chưa biết. Chạy Gallery → **Compositions → UIC-01 Filter Results**.
 
-**Source:** [CompositionListDemoForm.cs](../../samples/ControlGallery/CompositionListDemoForm.cs); revision nguồn chính xác được ghi ở [evidence](../verification/20261030-ui-composition-recipes.md). Link local dùng để đọc working candidate; không coi baseline plan là revision đã chứa mẫu.
+**Source:** [CompositionListDemoForm.cs](../../samples/ControlGallery/CompositionListDemoForm.cs), revision `4bbdeb56f40ead9017098eef787ff605fafeebc4`; source này cũng được giữ trong candidate tích hợp `4c4466dca9f8e543119ee9608d509a4fadb104c0`. Commits hiện là local branch; chỉ dùng URL GitHub theo SHA sau khi source được đẩy lên remote. Xem [evidence](../verification/20261030-ui-composition-recipes.md).
 
 | Vùng | Controls/API công khai | Ownership |
 |---|---|---|
@@ -35,4 +35,31 @@ Hai mẫu thuộc assembly demo ControlGallery, dùng public controls của UI c
 
 ## UIC-02 — Compact Edit Form
 
-Contract mục này do CMP-T02 bổ sung sau khi source và tests tương ứng tồn tại. Không suy rằng một recipe đã được triển khai chỉ từ mục lục hoặc plan.
+**Purpose:** form minh họa bản nháp cục bộ với mã, tên, nhóm, trạng thái và ghi chú. Chạy Gallery → **Compositions → UIC-02 Compact Edit Form**. Rule mã/tên bắt buộc chỉ phục vụ demo, không phải validation contract của MyDmsVn.
+
+**Source:** [CompositionEditDemoForm.cs](../../samples/ControlGallery/CompositionEditDemoForm.cs), revision `4c4466dca9f8e543119ee9608d509a4fadb104c0` trên local branch; source revision độc lập với runtime pin consumer. Xem [evidence](../verification/20261030-ui-composition-recipes.md).
+
+| Vùng | Controls/API công khai | Ownership |
+|---|---|---|
+| Tiêu đề và field rows | `BootstrapLabel.Text`, `MaximumSize`; `BootstrapTextBox.Text`, `Focus`, `ValidationState` | Nhãn/lỗi tăng chiều cao theo nội dung; validation không ghi đè draft |
+| Nhóm/trạng thái/ghi chú | `BootstrapComboBox.Items`, `SelectedIndex`; `BootstrapCheckBox.Checked`; `BootstrapTextBox.Multiline`, `WordWrap`, `ScrollBars` | Một snapshot gồm đủ năm trường; không có service hay DTO sản phẩm |
+| Inline errors và summary | `BootstrapLabel.TextRole`; `BootstrapValidationState.Invalid` | Lỗi có accessible name, focus tới field lỗi đầu tiên; sửa hợp lệ chỉ gỡ lỗi tương ứng |
+| Footer luôn truy cập được | `BootstrapButton.Click`, `Variant`, `Outline`; `BootstrapLabel.Text` | Save chính, Cancel phụ; feedback chỉ tăng lần lưu khi valid |
+| Bố cục/theme | `TableLayoutPanel`, `FlowLayoutPanel`, `Panel.AutoScroll`; `BootstrapThemeManager.ThemeChanged` | Field content cuộn cục bộ, footer nằm ngoài scroll; không dựng lại controls khi đổi theme |
+
+**Compatibility:** TextBox/ComboBox/CheckBox/Button/Label và theme source không đổi giữa runtime MyDmsVn `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` và baseline toolkit `7a1467f`. Các API dùng trong mẫu đã có ở runtime pin; không cần nâng gitlink. `DemoFormBase` và snapshot trong form là chi tiết demo, không phải API production.
+
+**Layout:** một cột AutoSize cho labels, controls và errors. `Panel.AutoScroll` giới hạn vùng fields; footer tự tăng theo feedback và wrapping commands, giữ Save/Cancel ngoài vùng cuộn. `MaximumSize` của nhãn được tính từ vùng content thật để nhãn tiếng Việt/lỗi dài xuống dòng. Không ép minimum width lớn, không sửa private children của composite. Tests kiểm client 360×320; đây là geometry tự động, không thay physical-DPI review.
+
+| State/action | Presentation và dữ liệu |
+|---|---|
+| Initial | Snapshot mẫu có dữ liệu, chưa có lần lưu |
+| Invalid Save | Draft nguyên vẹn, không tăng lần lưu; lỗi field và summary, focus tới lỗi đầu |
+| Correct field | Gỡ lỗi field đã hợp lệ, giữ lỗi field còn lại |
+| Valid Save | Chụp đủ năm trường vào snapshot trong bộ nhớ đúng một lần, cập nhật feedback |
+| Edit then Cancel | Phục hồi snapshot vừa lưu, xóa lỗi/summary cũ; không đóng Gallery |
+| Theme switch | Giữ draft, lựa chọn nhóm, native selection và control identity |
+
+**Lifecycle:** form gỡ subscription global `ThemeChanged` trong `Dispose`; Form sở hữu và dispose cây controls/event local. Không async engine/timer/SQL. Consumer tự chuyển thể thành panel hoặc modal và giữ quyền sở hữu validation nghiệp vụ, dirty-close, authorization, session, cancellation và recovery của mình; không reference assembly demo.
+
+**Verification:** `CompositionEditDemoFormTests` kiểm invalid/valid Save, snapshot đầy đủ, Cancel, Light/Dark khi đang có draft/selection, footer ở content hẹp, disposal và native per-key ABC/Tab/Shift+Tab. [Evidence](../verification/20261030-ui-composition-recipes.md) ghi candidate, kết quả thực tế và các native/Owner gates còn mở.
