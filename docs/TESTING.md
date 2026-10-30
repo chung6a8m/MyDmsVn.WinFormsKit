@@ -113,6 +113,10 @@ Mở ControlGallery hoặc GridGallery làm startup project để kiểm các be
 
 Khi có DPI scope, ghi **physical monitor scale** và **window DPI** riêng. Screenshot không tự chứng minh caret/IME, native focus hoặc per-monitor behavior. Không đem physical/Designer evidence từ baseline cũ sang candidate toolkit, theo [native evidence proposal][native-policy].
 
+### Composition expansion — CEX-K01/K02/K03
+
+[Plan Editable Lines/Master–Detail](plans/20261030-002-editable-lines-master-detail-recipes.md#commands-cho-implementer) giữ proposed fixture names, focused commands, nonempty discovery và handoff riêng UIC-03/UIC-04. Grid owner đã reference GridGallery; controls owner đã reference ControlGallery. [Design](design/20261030-editable-lines-master-detail-compositions.md#6-acceptance-theo-từng-recipe) yêu cầu Light/Dark × physical100/125 × normal/small trên hai TFM cho các candidate mới; [evidence mới](verification/20261030-composition-expansion.md) khởi đầu NOT RUN. Activation docs-only chỉ kiểm diff/links/encoding; không tạo native gate cho bản thân việc cập nhật Markdown hoặc mở lại acceptance các scopes trước.
+
 ### BootstrapTabs và HotTrack — TAB-06
 
 Sau build Controls trên candidate đang xét, discover tests cho cả `net48` và `net8.0-windows`, rồi chạy Controls filter chứa `BootstrapTab`, `Phase16PublicApiBaselineTests`, `NavigationDemoFormTests` và `IntegratedDemo` theo [plan tabs](plans/20261029-002-bootstrap-tabs-hottrack.md#commands-cho-implementer). Dùng `test.ps1` với hang diagnostics 5 phút; nếu gọi `dotnet test` trực tiếp, thêm `--blame-hang --blame-hang-timeout 5m`. Build `-Scope All` để kiểm consumer compile boundary. Ghi discovered/executed/pass/fail/skip cho từng TFM; source compile không chứng minh native behavior.

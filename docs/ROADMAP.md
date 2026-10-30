@@ -1,5 +1,20 @@
 # Công việc hiện hành
 
+## Active — Editable Lines và Master–Detail
+
+User chọn roadmap mở rộng ngày **2026-10-30**. [Plan Editable Lines/Master–Detail](plans/20261030-002-editable-lines-master-detail-recipes.md) sở hữu duy nhất CEX-K01–K03; đọc cùng [design](design/20261030-editable-lines-master-detail-compositions.md) và [evidence](verification/20261030-composition-expansion.md). Activation chỉ docs; recipe implementation/tests/native review chưa được thực hiện trong đợt này. Trang này không giữ bảng trạng thái thứ hai.
+
+Thứ tự thực thi:
+
+1. CEX-K01: **UIC-03 Editable Lines** trong GridGallery, dùng adapters có sẵn; đồng thời app CEX-A01 inventory/compatibility.
+2. CEX-K03 checkpoint UIC-03: focused candidate/native review và handoff cho SAL. A02 mapping/preparation có thể dùng K01 source/results đã freeze; completion tham chiếu handoff/limits UIC-03. Không đợi UIC-04 hoặc aggregate K03 closure.
+3. CEX-K02: **UIC-04 Master–Detail** read-only flat list trong ControlGallery sau K01/feedback SAL sớm hoặc chuẩn bị độc lập. K03 checkpoint UIC-04 bàn giao cho Security mapping.
+4. App đánh giá helper production từ bằng chứng pilots; extraction có điều kiện, clean-context handoff thuộc app.
+
+[Plan MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-002-editable-lines-sal-adoption.md) sở hữu CEX-A01–A05 và phối hợp. Recipe source SHA khác runtime toolkit pin; chưa chọn nâng gitlink, production public API, SourceGrid change hoặc business workflow rewrite. Native gates chỉ cho candidate visual mới/thay đổi của scope này. Master-detail là follow-on đã chọn; helper assessment phải làm nhưng không hứa trước extraction.
+
+## UIC-01/UIC-02 trước đó
+
 Scope **UI Composition Recipes** ngày **2026-10-30** đã **COMPLETE trong phạm vi hẹp**: UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. [Plan](plans/20261030-001-ui-composition-recipes.md) sở hữu duy nhất trạng thái CMP-T01/CMP-T02, file map, evidence và giới hạn. Correction accessibility source/test `bdac29b` không đổi layout/API; Owner visual approval `1420f25` là historical decision riêng, không phải AT approval.
 
 Đợt kích hoạt lịch sử chỉ cập nhật tài liệu và đường đọc; completion hiện có source/tests/evidence theo plan, không cấp product/native AT acceptance ngoài boundary đã ghi. [Plan phối hợp trong MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu CMP-T03–CMP-T05, skill/mapping/pilot và điều phối hai repo. Recipe source revision tách khỏi runtime toolkit pin của app; không nâng gitlink chỉ để lấy source ví dụ. Trang này chỉ điều hướng, không duy trì bảng tiến độ thứ hai và không yêu cầu repo Docs thứ ba.

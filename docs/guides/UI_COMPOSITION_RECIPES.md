@@ -1,6 +1,6 @@
 # UI Composition Recipes
 
-Hai mẫu thuộc assembly demo ControlGallery, dùng public controls của UI core. Consumer đọc và chuyển thể source; không reference assembly demo, không kế thừa `DemoFormBase`. Profile Default/Base14/Base16 là cấu hình Gallery; Business Compact, authorization, session và dữ liệu sản phẩm do app sở hữu.
+Hai mẫu UIC-01/UIC-02 hiện đã triển khai thuộc assembly demo ControlGallery, dùng public controls của UI core. Consumer đọc và chuyển thể source; không reference assembly demo, không kế thừa `DemoFormBase`. Profile Default/Base14/Base16 là cấu hình Gallery; Business Compact, authorization, session và dữ liệu sản phẩm do app sở hữu. UIC-03/UIC-04 bên dưới là entries **PLANNED**, chưa có source/route để chạy tại đợt kích hoạt roadmap.
 
 ## UIC-01 — Filter Results
 
@@ -63,3 +63,19 @@ Hai mẫu thuộc assembly demo ControlGallery, dùng public controls của UI c
 **Lifecycle:** form gỡ subscription global `ThemeChanged` trong `Dispose`; Form sở hữu và dispose cây controls/event local. Không async engine/timer/SQL. Consumer tự chuyển thể thành panel hoặc modal và giữ quyền sở hữu validation nghiệp vụ, dirty-close, authorization, session, cancellation và recovery của mình; không reference assembly demo.
 
 **Verification:** `CompositionEditDemoFormTests` kiểm invalid/valid Save, snapshot đầy đủ, Cancel, Light/Dark khi đang có draft/selection, footer ở content hẹp, disposal, native per-key ABC/Tab/Shift+Tab và nội dung accessibility hiện tại của inline errors/summary/feedback. Với label ẩn và `Text` rỗng, test kiểm visibility/text và không còn lỗi cũ, không giả định provider phải trả tên rỗng. [Evidence](../verification/20261030-ui-composition-recipes.md) ghi candidate, kết quả thực tế và các native/Owner gates còn mở.
+
+## UIC-03 — Editable Lines — PLANNED
+
+**Purpose được chọn:** composition nhiều dòng bản nháp trong GridGallery với lookup/decimal adapters đã có, stable LineId trong model với STT hiển thị, pending input/committed draft/applied snapshot gồm IsMarked, checkbox chỉnh sửa qua existing SourceGrid cell, derived/lock status chỉ đọc và local Apply/Restore. Không tạo Bootstrap composite editor/control per-cell hoặc thay SourceGrid lifecycle. ReferenceId demo dùng int sentinel 0/chưa chọn; Apply chỉ chấp nhận IDs 1/2/3. Dữ liệu/profile/validation/sentinel demo không phải contract SAL.
+
+**Source/route đề xuất, chưa triển khai:** `samples/GridGallery/CompositionEditableLinesDemoForm.cs`; GridGallery → nút `UIC-03 Editable Lines`. Fixture dự kiến: `CompositionEditableLinesDemoFormTests` thuộc grid test owner hiện hữu. Không cần thêm ProjectReference vì grid tests đã reference GridGallery.
+
+**Contract và tiến độ:** [design §3](../design/20261030-editable-lines-master-detail-compositions.md#3-uic-03--editable-lines), [CEX-K01/K03](../plans/20261030-002-editable-lines-master-detail-recipes.md), [evidence NOT RUN](../verification/20261030-composition-expansion.md). Không đưa link source SHA hoặc ghi native PASS trước khi candidate thực sự tồn tại. Handoff UIC-03 riêng để SAL có thể chuẩn bị/triển khai trước UIC-04; recipe source SHA và runtime consumer pin tách biệt.
+
+## UIC-04 — Master–Detail — PLANNED
+
+**Purpose được chọn:** flat master list read-only và detail trung tính theo stable key trong ControlGallery. Hiển thị rõ chưa chọn/loading/loaded/empty/unavailable, không stale detail sau filter/refresh, bố cục hẹp chuyển dọc. Không permission tree, CRUD hoặc product service semantics.
+
+**Source/route đề xuất, chưa triển khai:** `samples/ControlGallery/CompositionMasterDetailDemoForm.cs`; Compositions → `UIC-04 Master–Detail` qua DemoPageHostForm hiện hữu. Fixture dự kiến: `Demo/CompositionMasterDetailDemoFormTests.cs` trong controls test owner.
+
+**Contract và tiến độ:** [design §4](../design/20261030-editable-lines-master-detail-compositions.md#4-uic-04--masterdetail), [CEX-K02/K03](../plans/20261030-002-editable-lines-master-detail-recipes.md), [evidence NOT RUN](../verification/20261030-composition-expansion.md). Đây là follow-on đã chọn, có handoff riêng cho Security mapping; chưa cấp product acceptance. Consumer vẫn sở hữu Business Compact, authorization/session, dirty-close, SQL, Save/Post và helper production.

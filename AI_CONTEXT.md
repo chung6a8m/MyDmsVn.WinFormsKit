@@ -1,5 +1,15 @@
 # Bối cảnh làm việc
 
+## Scope active — Editable Lines và Master–Detail
+
+Đọc [README](README.md) → [ROADMAP](docs/ROADMAP.md) → [plan mở rộng](docs/plans/20261030-002-editable-lines-master-detail-recipes.md) → [design](docs/design/20261030-editable-lines-master-detail-compositions.md) → [evidence](docs/verification/20261030-composition-expansion.md). User đã chọn active roadmap ngày **2026-10-30**; activation là docs-only, các runtime tasks ban đầu PLANNED và native/tests mới NOT RUN.
+
+Ưu tiên **UIC-03 Editable Lines** trong GridGallery dùng lookup/decimal adapters đã có; tiếp theo **UIC-04 Master–Detail** trong ControlGallery với flat list read-only. Plan toolkit sở hữu CEX-K01–K03. Grid tests đã reference GridGallery; controls tests đã reference ControlGallery; không cần test owner/ProjectReference mới. Sample-only state/helpers, stable line identity, pending/committed/applied snapshot, local Apply/Restore là phạm vi; SQL, Save/Post, authorization/session, paste transactions và Business Compact thuộc product.
+
+[Plan app](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-002-editable-lines-sal-adoption.md) sở hữu CEX-A01–A05. A01 bắt đầu ngay; A02 có thể mapping/preparation từ K01 source/results đã freeze, completion đối chiếu K03 handoff riêng UIC-03. Không chặn SAL bằng UIC-04 hoặc trạng thái tổng K03. A03 nhận UIC-04 riêng; A04 phải đánh giá helper, extraction chỉ khi chứng minh lặp lại. Recipe source revision và runtime pin tách biệt. Chưa chọn public API/runtime upgrade; native gates áp cho candidate visual mới/thay đổi của scope, không mở lại scopes cũ.
+
+## UIC-01/UIC-02 đã hoàn tất
+
 Đọc [README](README.md), [ROADMAP](docs/ROADMAP.md), rồi [plan UI Composition Recipes](docs/plans/20261030-001-ui-composition-recipes.md) cho scope được Owner chọn ngày **2026-10-30**. Plan đã **COMPLETE trong phạm vi hẹp** và là owner trạng thái duy nhất của CMP-T01/CMP-T02: hai mẫu trung tính UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. Owner đã APPROVED visual candidate `1420f25` ngày 2026-10-30; correction accessibility source/test `bdac29b` có focused automation riêng, không đổi layout và không là approval AT mới. Evidence ghi rõ captures physical100/125, attended matrix và giới hạn.
 
 Tái sử dụng DemoPageHostForm, public controls/theme và test project hiện hữu; không thêm public production API, framework hoặc dữ liệu nghiệp vụ. [Plan app](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu CMP-T03–CMP-T05, Business Compact mapping, repository skill, pilot Security và phối hợp hai repo. Recipe source revision phải tách khỏi runtime toolkit pin của app; không nâng gitlink chỉ để tham khảo mẫu. Chi tiết contract, file map, tests và future native gates nằm trong plan toolkit; không cần repo Docs thứ ba.

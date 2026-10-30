@@ -2,6 +2,14 @@
 
 Toolkit Windows Forms tập hợp **Bootstrap5WinFormUI** và **BootstrapSourceGrid** trong một repository, giữ hai assembly/public identities và pin engine SourceGrid riêng. Source được nhập từ dependency revisions mà MyDmsVn sử dụng; mapping nằm trong [PROVENANCE](docs/PROVENANCE.md).
 
+## Scope active
+
+[Editable Lines và Master–Detail](docs/plans/20261030-002-editable-lines-master-detail-recipes.md) là roadmap được chọn ngày **2026-10-30**: ưu tiên **UIC-03 Editable Lines** trong GridGallery, tiếp theo **UIC-04 Master–Detail** read-only trong ControlGallery. [Design](docs/design/20261030-editable-lines-master-detail-compositions.md) chốt contracts/file map; [evidence mới](docs/verification/20261030-composition-expansion.md) đang NOT RUN. Activation này chỉ cập nhật tài liệu, chưa implement recipe hoặc nâng runtime pin.
+
+Plan toolkit sở hữu CEX-K01–K03; [plan MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-002-editable-lines-sal-adoption.md) sở hữu SAL pilot, Security mapping và helper assessment có điều kiện. Handoff theo từng recipe: SAL được chuẩn bị từ UIC-03 source/results đã freeze và hoàn tất theo UIC-03 acceptance/limits, không chờ UIC-04 hoặc toàn bộ K03 đóng. Điểm bắt đầu tiếp theo: [ROADMAP](docs/ROADMAP.md).
+
+## UIC-01/UIC-02 đã hoàn tất
+
 Scope [UI Composition Recipes](docs/plans/20261030-001-ui-composition-recipes.md) ngày **2026-10-30** đã **COMPLETE trong phạm vi hẹp**: UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. Correction accessibility sau review ở source/test `bdac29b` giữ layout/API/runtime pin không đổi và có evidence focused riêng; Owner visual approval `1420f25` vẫn là historical candidate decision, không phải AT approval. [Plan phối hợp trong MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu skill, Business Compact mapping và pilot sản phẩm. Recipe source revision tách khỏi runtime toolkit pin; không cần nâng gitlink để đọc mẫu.
 
 ## Các scope trước
