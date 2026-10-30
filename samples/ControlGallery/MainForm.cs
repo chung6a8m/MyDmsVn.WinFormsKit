@@ -339,7 +339,8 @@ public sealed class MainForm : DemoFormBase
             "Compositions",
             "Reusable public-control layouts with local sample data and explicit state ownership.",
             () => new DemoPageHostForm(
-                new DemoPageSection("UIC-01 Filter Results", () => new CompositionListDemoForm())));
+                new DemoPageSection("UIC-01 Filter Results", () => new CompositionListDemoForm()),
+                new DemoPageSection("UIC-02 Compact Edit Form", () => new CompositionEditDemoForm())));
     }
 
     private BootstrapSidebarItem AddPage(string title, string description, Func<Form> createForm)

@@ -153,8 +153,15 @@ public sealed class CompositionDemoFormTests
         var sidebar = Descendants<BootstrapSidebar>(main).Single();
         sidebar.SelectedItem = sidebar.Items.Single(x => x.Text == "Compositions");
         var hosted = Descendants<Form>(main).Single(x => x.GetType().Name == "CompositionListDemoForm");
+        var edit = Descendants<Form>(main).Single(x => x.GetType().Name == "CompositionEditDemoForm");
+        var tabs = Descendants<TabControl>(main).Single();
+        Assert.That(tabs.TabPages.Count, Is.EqualTo(2));
+        tabs.SelectedIndex = 1;
+        Application.DoEvents();
+        Assert.That(edit.Visible, Is.True);
         sidebar.SelectedItem = sidebar.Items[0];
         Assert.That(hosted.IsDisposed, Is.True);
+        Assert.That(edit.IsDisposed, Is.True);
         var prior = hosted.BackColor;
         BootstrapThemeManager.CurrentTheme = DemoThemeFactory.Create(BootstrapThemeMode.Light);
         Assert.That(hosted.BackColor, Is.EqualTo(prior), "Disposed sample must unsubscribe from theme callbacks.");
