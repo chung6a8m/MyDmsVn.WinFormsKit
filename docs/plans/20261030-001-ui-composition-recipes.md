@@ -2,7 +2,7 @@
 
 > **For agentic workers:** triển khai từng task theo checkbox, đọc `AGENTS.md` và `docs/TESTING.md`; dùng `superpowers:subagent-driven-development` hoặc `superpowers:executing-plans` nếu có. Việc kích hoạt tài liệu không thay thế implementation, tests hoặc nghiệm thu.
 
-**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. Commit kích hoạt chỉ tạo plan và cập nhật đường đọc; chưa triển khai samples, tests, recipe guide hoặc evidence. CMP-T01/CMP-T02 bắt đầu ở PLANNED; Windows/native verification NOT RUN và Owner acceptance PENDING.
+**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01/CMP-T02 đã có samples, tests, route Compositions và recipe guide; focused Windows/native automation PASS trên hai TFM. Owner **APPROVED** candidate `1420f25` ngày 2026-10-30; các quan sát thực tế và giới hạn attended matrix được ghi riêng trong [candidate evidence](../verification/20261030-ui-composition-recipes.md).
 
 **Mục tiêu:** tạo hai mẫu WinForms chạy được trong ControlGallery: UIC-01 Filter Results và UIC-02 Compact Edit Form, có hướng dẫn ngắn để consumer chuyển thể qua public APIs.
 
@@ -17,7 +17,7 @@
 | WinFormsKit main | `2521dfe99461e8f6d1954da96ffaed0688027455` |
 | MyDmsVn main | `16c24738a4758ccdceb1f3509f4e37adb0d03464` |
 | Runtime gitlink `vendor/MyDmsVn.WinFormsKit` của MyDmsVn | `433e5b53f979e37cc6b69bad6dfcde0975c7ecaf` |
-| Recipe source revision chứa UIC-01/UIC-02 | Chưa có; ghi exact commit sau khi mẫu được triển khai |
+| Recipe source revision | UIC-01/UIC-02 tại candidate được Owner duyệt và đã publish `1420f252ca198cd4409e0e945fa6433b30b943b3`; links cố định tại [guide](../guides/UI_COMPOSITION_RECIPES.md) |
 
 Recipe source revision và runtime toolkit pin là hai trường độc lập. SHA baseline của toolkit ở trên chưa phải revision chứa hai mẫu mới. Consumer đọc/chuyển thể source mẫu nhưng chỉ dùng APIs đã có ở runtime pin của mình; không nâng gitlink chỉ để lấy source ví dụ. Nếu cần API/fix thật sự còn thiếu, ghi dependency follow-up riêng và tiếp tục phần không bị chặn.
 
@@ -27,8 +27,8 @@ Khi bắt đầu implementation, đọc lại HEAD, instructions và gitlinks; c
 
 | Task | Kết quả cần tạo | Phụ thuộc | Implementation | Windows/native verification | Owner acceptance |
 |---|---|---|---|---|---|
-| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **PLANNED** | **NOT RUN** | **PENDING** |
-| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **PLANNED** | **NOT RUN** | **PENDING** |
+| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; attended matrix PASS (bounded representative scope)** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS** | **APPROVED `1420f25`, 2026-10-30** |
+| CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **IMPLEMENTED; attended matrix PASS (bounded representative scope)** | **Focused automation PASS hai TFM; physical100/125 captures, attended representative matrix PASS** | **APPROVED `1420f25`, 2026-10-30** |
 
 Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages chỉ điều hướng; không duy trì ledger thứ hai. CMP-T03–CMP-T05 và tiến độ toàn đợt do plan app sở hữu. Approval chọn scope ngày 2026-10-30 không phải approval implementation hoặc native result. Không kế thừa PASS/ACCEPTED của TAB, BUS, input/popup, ba ngoại lệ Business Compact hay A3 cho hai mẫu mới.
 
@@ -47,16 +47,16 @@ Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages 
 
 ## 3. File map
 
-Các đường dẫn gắn nhãn “mới, PLANNED” chưa tồn tại tại baseline và không được trình bày như source/evidence đã có. File triển khai chỉ tạo khi thực hiện task tương ứng.
+Các files dưới đây đã được tạo trong candidate; task status và gates chỉ lấy từ ledger ở mục 1.
 
 | File | Hành động và trách nhiệm |
 |---|---|
 | `samples/ControlGallery/MainForm.cs` | CMP-T01/T02: thêm mục “Compositions” bằng `DemoPageHostForm`/`DemoPageSection` hiện hữu |
-| `samples/ControlGallery/CompositionListDemoForm.cs` | Mới, PLANNED — CMP-T01: UIC-01, dữ liệu giả và trạng thái cục bộ |
-| `samples/ControlGallery/CompositionEditDemoForm.cs` | Mới, PLANNED — CMP-T02: UIC-02, validation và lưu/hủy cục bộ |
-| `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Demo/CompositionDemoFormTests.cs` | Mới, PLANNED — tests hành vi hai mẫu; STA, tuần tự, khôi phục theme |
-| `docs/guides/UI_COMPOSITION_RECIPES.md` | Mới, PLANNED — mục lục, contract và source links của UIC-01/UIC-02 |
-| `docs/verification/20261030-ui-composition-recipes.md` | Mới, PLANNED — candidate, commands/results thực tế, native observations và giới hạn |
+| `samples/ControlGallery/CompositionListDemoForm.cs` | Đã tạo — CMP-T01: UIC-01, dữ liệu giả và trạng thái cục bộ |
+| `samples/ControlGallery/CompositionEditDemoForm.cs` | Đã tạo — CMP-T02: UIC-02, validation và lưu/hủy cục bộ |
+| `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Demo/CompositionDemoFormTests.cs` | Đã tạo — tests UIC-01; UIC-02 nằm trong CompositionEditDemoFormTests.cs; STA, tuần tự, khôi phục theme |
+| `docs/guides/UI_COMPOSITION_RECIPES.md` | Đã tạo — mục lục, contract và source links của UIC-01/UIC-02 |
+| `docs/verification/20261030-ui-composition-recipes.md` | Đã tạo — candidate, commands/results thực tế, native observations và giới hạn |
 | `docs/plans/20261030-001-ui-composition-recipes.md` | Tạo trong đợt kích hoạt; owner trạng thái CMP-T01/CMP-T02 |
 | `docs/ROADMAP.md` | Kích hoạt đường vào plan này; không sao chép task ledger |
 | `AGENTS.md`, `AI_CONTEXT.md`, `README.md`, `docs/README.md` | Kích hoạt đường đọc; bổ sung link guide sau khi guide thực sự tồn tại |
@@ -75,13 +75,13 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 
 **Nội dung mẫu:** header có tiêu đề và nhóm lệnh truy vấn; search/status/xóa bộ lọc wrap khi hẹp; `BootstrapDataGridView` chỉ đọc chiếm diện tích còn lại, có cột mã/tên/nhóm/trạng thái. Dữ liệu giả xác định có tiếng Việt dài và mã dài. Lựa chọn dữ liệu để minh họa loaded, empty dataset, no matches, loading và error/unavailable nằm ngoài vùng nội dung mẫu. Không thêm pagination; recipe dẫn tới `PaginationDemoForm` khi consumer có contract phù hợp.
 
-- [ ] Đọc lại baseline, ghi mapping controls/APIs của UIC-01 và chỉ rõ API nào có ở app runtime pin.
-- [ ] Viết `FilterResults_QueryChangesRowsCountWithoutResettingSearchBuffer`: thay search/status cho rows/count đúng, giữ raw text/caret/focus; unavailable không hiện tổng 0 như một kết quả thành công.
-- [ ] Viết `FilterResults_ClearAndEmptyStatesAreDistinct`: xóa filter phục hồi dữ liệu, empty dataset khác no matches, refresh/query không có hành vi ghi.
-- [ ] Chạy discovery và test mới trước implementation; xác nhận thất bại vì hành vi thiếu, không phải lỗi môi trường hoặc selector rỗng.
-- [ ] Implement `CompositionListDemoForm()` bằng layout primitives/public controls; đăng ký mục Compositions qua host hiện hữu.
+- [x] Đọc lại baseline, ghi mapping controls/APIs của UIC-01 và chỉ rõ API nào có ở app runtime pin.
+- [x] Viết `FilterResults_QueryChangesRowsCountWithoutResettingSearchBuffer`: thay search/status cho rows/count đúng, giữ raw text/caret/focus; unavailable không hiện tổng 0 như một kết quả thành công.
+- [x] Viết `FilterResults_ClearAndEmptyStatesAreDistinct`: xóa filter phục hồi dữ liệu, empty dataset khác no matches, refresh/query không có hành vi ghi.
+- [x] Chạy discovery và test mới trước implementation; xác nhận thất bại vì hành vi thiếu, không phải lỗi môi trường hoặc selector rỗng.
+- [x] Implement `CompositionListDemoForm()` bằng layout primitives/public controls; đăng ký mục Compositions qua host hiện hữu.
 - [ ] Chạy focused tests; kiểm native gõ từng phím, Enter, Tab/Shift+Tab, đổi bộ lọc và resize để chứng minh buffer/caret/focus cùng lệnh truy vấn.
-- [ ] Kiểm selected row/control identity khi đổi theme; chuyển trang và dispose không để mẫu cũ tiếp tục nhận callback do mình đăng ký.
+- [x] Kiểm selected row/control identity khi đổi theme; chuyển trang và dispose không để mẫu cũ tiếp tục nhận callback do mình đăng ký.
 - [ ] Ghi recipe: purpose, mô tả vùng, public controls/APIs, cách co giãn, states, ownership, source link tại commit và evidence thực tế; thêm link guide từ `docs/README.md` khi file đã có.
 - [ ] Ghi results/limitations đúng candidate, review và commit riêng UIC-01 cùng tests/hướng dẫn.
 
@@ -97,28 +97,30 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 
 **Nội dung mẫu:** các trường mã, tên, nhóm, trạng thái, ghi chú dùng dữ liệu trung tính. Rule minh họa mã/tên không trắng không phải validation contract của MyDmsVn. Field rows tăng theo label/error, nội dung cuộn cục bộ và footer luôn truy cập được. Save lưu bản sao vào state trong bộ nhớ, Cancel phục hồi snapshot đã lưu và xóa validation cũ. Inline errors và summary có tên truy cập; focus tới lỗi đầu tiên, sửa hợp lệ gỡ lỗi tương ứng. Đổi theme không dựng lại form hoặc mất input/selection.
 
-- [ ] Viết `EditForm_InvalidSubmitKeepsDraftAndDoesNotSave`: bỏ mã/tên rồi submit không tăng lần lưu, draft còn nguyên, errors đúng và native focus tới field đầu.
-- [ ] Viết `EditForm_ValidSaveAndCancelUseCommittedSnapshot`: save hợp lệ đúng một lần, sửa rồi Cancel phục hồi snapshot vừa lưu và xóa lỗi cũ.
-- [ ] Chạy discovery/test để xác nhận thất bại trước implementation vì hành vi thiếu.
-- [ ] Implement `CompositionEditDemoForm()` bằng layout primitives và public controls; giữ phần mẫu đủ ngắn để đọc trực tiếp, thêm trang qua host hiện hữu.
-- [ ] Chạy focused tests cùng `EditForm_ThemeAndNarrowLayoutPreserveInputAndReachableCommands`.
+- [x] Viết `EditForm_InvalidSubmitKeepsDraftAndDoesNotSave`: bỏ mã/tên rồi submit không tăng lần lưu, draft còn nguyên, errors đúng và native focus tới field đầu.
+- [x] Viết `EditForm_ValidSaveAndCancelUseCommittedSnapshot`: save hợp lệ đúng một lần, sửa rồi Cancel phục hồi snapshot vừa lưu và xóa lỗi cũ.
+- [x] Chạy discovery/test để xác nhận thất bại trước implementation vì hành vi thiếu.
+- [x] Implement `CompositionEditDemoForm()` bằng layout primitives và public controls; giữ phần mẫu đủ ngắn để đọc trực tiếp, thêm trang qua host hiện hữu.
+- [x] Chạy focused tests cùng `EditForm_ThemeAndNarrowLayoutPreserveInputAndReachableCommands`.
 - [ ] Kiểm native chuỗi nhập sai → sửa → lưu → sửa tiếp → hủy; long labels, validation nhiều dòng, Tab/Shift+Tab, Light/Dark và content nhỏ.
-- [ ] Kiểm theme giữ draft/selection/control identity và đóng trang giải phóng subscriptions/tài nguyên do mẫu sở hữu.
-- [ ] Cập nhật recipe UIC-02 và evidence; ghi rõ chuyển thể thành panel/modal là trách nhiệm consumer.
+- [x] Kiểm theme giữ draft/selection/control identity và đóng trang giải phóng subscriptions/tài nguyên do mẫu sở hữu.
+- [x] Cập nhật recipe UIC-02 và evidence; ghi rõ chuyển thể thành panel/modal là trách nhiệm consumer.
 - [ ] Review và commit riêng UIC-02; cập nhật ledger theo evidence thực tế.
 
 **Done:** người xem chạy được toàn bộ chuỗi nhập/sửa/lưu/hủy, trạng thái và bố cục nhất quán, các gate trong mục 6 có bằng chứng tương ứng.
 
+**Implementation disposition:** tests của UIC-02 nằm trong `CompositionEditDemoFormTests.cs`, tách khỏi `CompositionDemoFormTests.cs` theo ownership từng form. Không thêm test project. Native key sequence và layout/theme automation không tự đóng physical-DPI hoặc Owner gates.
+
 ## 5. Commands dự kiến và lựa chọn tests
 
-Các lệnh dưới đây dành cho implementation tương lai trên checkout Windows có desktop tương tác; **chưa chạy trong commit kích hoạt tài liệu**. Test names/class là đề xuất mới. Chỉ dùng selector sau khi source tồn tại và discovery thực tế không rỗng. Dùng NUnit project hiện hữu, STA/NonParallelizable, restore global theme trong teardown; native GUI tuần tự, finite pumping và hang diagnostics theo [TESTING](../TESTING.md).
+Các lệnh dưới đây là recipe chạy lại trên checkout Windows có desktop tương tác; kết quả thực tế và configuration của candidate nằm trong evidence. Chỉ dùng selector sau khi source tồn tại và discovery thực tế không rỗng. Dùng NUnit project hiện hữu, STA/NonParallelizable, restore global theme trong teardown; native GUI tuần tự, finite pumping và hang diagnostics theo [TESTING](../TESTING.md).
 
 ```powershell
 $kitTests = 'tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj'
 dotnet restore MyDmsVn.WinFormsKit.Controls.sln --locked-mode
 if ($LASTEXITCODE -ne 0) { throw 'Locked restore failed.' }
 
-$recipeFilter = 'FullyQualifiedName~CompositionDemoFormTests'
+$recipeFilter = 'FullyQualifiedName~CompositionDemoFormTests|FullyQualifiedName~CompositionEditDemoFormTests'
 foreach ($tfm in @('net48', 'net8.0-windows')) {
     dotnet test $kitTests -c Debug -f $tfm --no-restore --list-tests --filter $recipeFilter
     if ($LASTEXITCODE -ne 0) { throw 'Recipe test discovery failed.' }

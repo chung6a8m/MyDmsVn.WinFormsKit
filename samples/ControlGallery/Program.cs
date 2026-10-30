@@ -22,6 +22,11 @@ internal static class Program
             BusyOverlayDemoProof.Run(args[1]);
             return;
         }
+        if (args.Length == 2 && args[0] == "--composition-proof")
+        {
+            CompositionDemoProof.Run(args[1]);
+            return;
+        }
         Application.Run(new MainForm());
     }
 }

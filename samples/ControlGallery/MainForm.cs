@@ -80,13 +80,13 @@ public sealed class MainForm : DemoFormBase
     private void ConfigureHeader()
     {
         _header.Dock = DockStyle.Top;
-        _header.Height = 82;
+        _header.Height = 150;
         _header.Padding = new Padding(12, 10, 12, 8);
-        _header.ColumnCount = 3;
-        _header.RowCount = 1;
+        _header.ColumnCount = 2;
+        _header.RowCount = 2;
         _header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         _header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        _header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _header.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         _header.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         _navigationToggle.AutoSize = true;
@@ -123,7 +123,7 @@ public sealed class MainForm : DemoFormBase
         _settings.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         _settings.Dock = DockStyle.Fill;
         _settings.FlowDirection = FlowDirection.LeftToRight;
-        _settings.WrapContents = false;
+        _settings.WrapContents = true;
         _settings.Margin = Padding.Empty;
         _settings.Padding = Padding.Empty;
 
@@ -164,7 +164,8 @@ public sealed class MainForm : DemoFormBase
 
         _header.Controls.Add(_navigationToggle, 0, 0);
         _header.Controls.Add(_titleBlock, 1, 0);
-        _header.Controls.Add(_settings, 2, 0);
+        _header.Controls.Add(_settings, 0, 1);
+        _header.SetColumnSpan(_settings, 2);
     }
 
     private void ConfigureNavigation()
@@ -334,6 +335,13 @@ public sealed class MainForm : DemoFormBase
             "Navigation / BootstrapTabs",
             "So sánh tab cũ và BootstrapTabs với HotTrack, kiểu hiển thị, trang đóng được và native overflow.",
             () => new BootstrapTabsDemoForm());
+
+        AddPage(
+            "Compositions",
+            "Reusable public-control layouts with local sample data and explicit state ownership.",
+            () => new DemoPageHostForm(
+                new DemoPageSection("UIC-01 Filter Results", () => new CompositionListDemoForm()),
+                new DemoPageSection("UIC-02 Compact Edit Form", () => new CompositionEditDemoForm())));
     }
 
     private BootstrapSidebarItem AddPage(string title, string description, Func<Form> createForm)

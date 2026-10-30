@@ -40,7 +40,8 @@ public sealed class IntegratedDemoApplicationTests
         "DataGrid",
         "Pagination",
         "Navigation / Tabs",
-        "Navigation / BootstrapTabs"
+        "Navigation / BootstrapTabs",
+        "Compositions"
     };
 
     [Test]
