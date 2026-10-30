@@ -2,7 +2,7 @@
 
 Toolkit Windows Forms tập hợp **Bootstrap5WinFormUI** và **BootstrapSourceGrid** trong một repository, giữ hai assembly/public identities và pin engine SourceGrid riêng. Source được nhập từ dependency revisions mà MyDmsVn sử dụng; mapping nằm trong [PROVENANCE](docs/PROVENANCE.md).
 
-Công việc mới được chọn ngày **2026-10-30**: [UI Composition Recipes](docs/plans/20261030-001-ui-composition-recipes.md), gồm UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. Plan ACTIVE sở hữu CMP-T01/CMP-T02, file map, tests và native gates; commit kích hoạt chỉ cập nhật tài liệu. Hai mẫu sẽ dùng host/public controls hiện hữu và dữ liệu trung tính, không thêm public production API/framework. [Plan phối hợp trong MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu skill, Business Compact mapping và pilot sản phẩm. Recipe source revision tách khỏi runtime toolkit pin; không cần nâng gitlink để đọc mẫu.
+Công việc mới được chọn ngày **2026-10-30**: [UI Composition Recipes](docs/plans/20261030-001-ui-composition-recipes.md), gồm UIC-01 Filter Results và UIC-02 Compact Edit Form trong ControlGallery. Plan ACTIVE sở hữu CMP-T01/CMP-T02, file map, tests và native gates; commit kích hoạt chỉ cập nhật tài liệu. Hai mẫu dùng host/public controls hiện hữu và dữ liệu trung tính, không thêm public production API/framework. [Plan phối hợp trong MyDmsVn](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) sở hữu skill, Business Compact mapping và pilot sản phẩm. Recipe source revision tách khỏi runtime toolkit pin; không cần nâng gitlink để đọc mẫu.
 
 ## Các scope trước
 

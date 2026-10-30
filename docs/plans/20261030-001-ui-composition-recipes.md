@@ -47,16 +47,16 @@ Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages 
 
 ## 3. File map
 
-Các đường dẫn gắn nhãn “mới, PLANNED” chưa tồn tại tại baseline và không được trình bày như source/evidence đã có. File triển khai chỉ tạo khi thực hiện task tương ứng.
+Các files dưới đây đã được tạo trong candidate; task status và gates chỉ lấy từ ledger ở mục 1.
 
 | File | Hành động và trách nhiệm |
 |---|---|
 | `samples/ControlGallery/MainForm.cs` | CMP-T01/T02: thêm mục “Compositions” bằng `DemoPageHostForm`/`DemoPageSection` hiện hữu |
-| `samples/ControlGallery/CompositionListDemoForm.cs` | Mới, PLANNED — CMP-T01: UIC-01, dữ liệu giả và trạng thái cục bộ |
-| `samples/ControlGallery/CompositionEditDemoForm.cs` | Mới, PLANNED — CMP-T02: UIC-02, validation và lưu/hủy cục bộ |
-| `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Demo/CompositionDemoFormTests.cs` | Mới, PLANNED — tests hành vi hai mẫu; STA, tuần tự, khôi phục theme |
-| `docs/guides/UI_COMPOSITION_RECIPES.md` | Mới, PLANNED — mục lục, contract và source links của UIC-01/UIC-02 |
-| `docs/verification/20261030-ui-composition-recipes.md` | Mới, PLANNED — candidate, commands/results thực tế, native observations và giới hạn |
+| `samples/ControlGallery/CompositionListDemoForm.cs` | Đã tạo — CMP-T01: UIC-01, dữ liệu giả và trạng thái cục bộ |
+| `samples/ControlGallery/CompositionEditDemoForm.cs` | Đã tạo — CMP-T02: UIC-02, validation và lưu/hủy cục bộ |
+| `tests/MyDmsVn.Bootstrap5WinFormUI.Tests/Demo/CompositionDemoFormTests.cs` | Đã tạo — tests UIC-01; UIC-02 nằm trong CompositionEditDemoFormTests.cs; STA, tuần tự, khôi phục theme |
+| `docs/guides/UI_COMPOSITION_RECIPES.md` | Đã tạo — mục lục, contract và source links của UIC-01/UIC-02 |
+| `docs/verification/20261030-ui-composition-recipes.md` | Đã tạo — candidate, commands/results thực tế, native observations và giới hạn |
 | `docs/plans/20261030-001-ui-composition-recipes.md` | Tạo trong đợt kích hoạt; owner trạng thái CMP-T01/CMP-T02 |
 | `docs/ROADMAP.md` | Kích hoạt đường vào plan này; không sao chép task ledger |
 | `AGENTS.md`, `AI_CONTEXT.md`, `README.md`, `docs/README.md` | Kích hoạt đường đọc; bổ sung link guide sau khi guide thực sự tồn tại |
@@ -113,14 +113,14 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 
 ## 5. Commands dự kiến và lựa chọn tests
 
-Các lệnh dưới đây dành cho implementation tương lai trên checkout Windows có desktop tương tác; **chưa chạy trong commit kích hoạt tài liệu**. Test names/class là đề xuất mới. Chỉ dùng selector sau khi source tồn tại và discovery thực tế không rỗng. Dùng NUnit project hiện hữu, STA/NonParallelizable, restore global theme trong teardown; native GUI tuần tự, finite pumping và hang diagnostics theo [TESTING](../TESTING.md).
+Các lệnh dưới đây là recipe chạy lại trên checkout Windows có desktop tương tác; kết quả thực tế và configuration của candidate nằm trong evidence. Chỉ dùng selector sau khi source tồn tại và discovery thực tế không rỗng. Dùng NUnit project hiện hữu, STA/NonParallelizable, restore global theme trong teardown; native GUI tuần tự, finite pumping và hang diagnostics theo [TESTING](../TESTING.md).
 
 ```powershell
 $kitTests = 'tests/MyDmsVn.Bootstrap5WinFormUI.Tests/MyDmsVn.Bootstrap5WinFormUI.Tests.csproj'
 dotnet restore MyDmsVn.WinFormsKit.Controls.sln --locked-mode
 if ($LASTEXITCODE -ne 0) { throw 'Locked restore failed.' }
 
-$recipeFilter = 'FullyQualifiedName~CompositionDemoFormTests'
+$recipeFilter = 'FullyQualifiedName~CompositionDemoFormTests|FullyQualifiedName~CompositionEditDemoFormTests'
 foreach ($tfm in @('net48', 'net8.0-windows')) {
     dotnet test $kitTests -c Debug -f $tfm --no-restore --list-tests --filter $recipeFilter
     if ($LASTEXITCODE -ne 0) { throw 'Recipe test discovery failed.' }
