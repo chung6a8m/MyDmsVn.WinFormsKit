@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -32,6 +32,31 @@ public sealed class IntegratedDemoTypographyLayoutTests
         {
             BootstrapThemeManager.CurrentTheme = _originalTheme;
         }
+    }
+
+    [Test]
+    public void NarrowHeaderKeepsTitleMenuAndSettingsVisibleWithoutOverlap()
+    {
+        BootstrapThemeManager.CurrentTheme = DemoThemeFactory.Create(BootstrapThemeMode.Light, DemoTypographyPreset.Base16Px);
+        using var form = new MainForm();
+        form.Size = new Size(900, 600);
+        form.Show();
+        Application.DoEvents();
+        var title = FindControls<Label>(form).Single(x => x.AccessibleName == "Current demo page title");
+        var menu = FindControls<Button>(form).Single(x => x.AccessibleName == "Toggle demo navigation");
+        var theme = FindControls<ComboBox>(form).Single(x => x.Items.Contains("Light") && x.Items.Contains("Dark"));
+        var settings = theme.Parent!;
+        var titleBounds = title.RectangleToScreen(title.ClientRectangle);
+        var menuBounds = menu.RectangleToScreen(menu.ClientRectangle);
+        var settingsBounds = settings.RectangleToScreen(settings.ClientRectangle);
+        Assert.Multiple((Action)(() =>
+        {
+            Assert.That(title.Width, Is.GreaterThan(80));
+            Assert.That(titleBounds.IntersectsWith(menuBounds), Is.False);
+            Assert.That(settingsBounds.IntersectsWith(menuBounds), Is.False);
+            Assert.That(settingsBounds.IntersectsWith(titleBounds), Is.False);
+            Assert.That(settings.Parent!.ClientRectangle.Contains(settings.Bounds), Is.True);
+        }));
     }
 
     [TestCase((int)DemoTypographyPreset.Default, 9f, 900, 600)]
