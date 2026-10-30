@@ -84,7 +84,10 @@ Owner decision **PENDING**: visual QA của agent không phải approval; Owner 
 | Gate | Trạng thái | Cần gì tiếp theo |
 |---|---|---|
 | Hai TFM × Light/Dark tại physical125%, representative150/200%, mixed-DPI | NOT RUN / BLOCKED BY ENVIRONMENT | Desktop/monitor có scale tương ứng; chạy native matrix và ghi actual HWND DPI, không thay bằng synthetic geometry |
-| SourceGrid dưới overlay | NOT RUN / thiếu integration scenario | Host có adapter ProjectReference, editor/grid instance riêng; xác minh live/input/lifecycle thật, UI core không phụ thuộc adapter |
+| SourceGrid dưới overlay | PASS tại actual96 DPI; physical/mixed-DPI còn mở | [Evidence SourceGrid candidate mới](20261030-sourcegrid-busy-overlay.md): GridGallery exact EXE, hai TFM×Light/Dark live/fallback, thêm net48x86 live; editor/admission/live pixels/cancel/reedit đã kiểm, không suy sang hardware/third-party hoặc Owner |
 | Shared/durable artifact URL và retention | NOT PUBLISHED / thiếu destination và retention policy | Chọn nơi lưu artifact cho Owner/reviewer, upload đúng candidate, ghi URL/hash/retention rồi kiểm mở lại; giữ local pack trước cleanup |
 | Owner visual/live approval | PENDING / cần Owner quyết định | Owner xem actual gallery/demo hoặc chuỗi frame/clip của exact candidate tại các DPI đã yêu cầu; ghi phạm vi và quyết định, không suy từ automated PASS |
 | BUS-06 và BUS feature acceptance | OPEN | Chỉ đóng sau các gate trên; commit implementation/docs không tự là nghiệm thu |
+## Cập nhật SourceGrid ngày 30/10/2026
+
+Các mục SourceGrid NOT RUN trong kết quả BUS-06 phía trên mô tả candidate lịch sử đó. Candidate working tree mới trên HEAD 5e13a3d có [evidence SourceGrid](20261030-sourcegrid-busy-overlay.md) riêng: Build All, grid full265/265 mỗi target, native live5/fallback4 tại96 DPI đã PASS; UI core không phụ thuộc adapter. Gate SourceGrid96 DPI hiện đã đạt trong scope demo GridGallery. Physical125/150/200/mixed-DPI, hardware/third-party, shared durable artifacts, consumer MyDmsVn và Owner approval vẫn mở; không đổi kết quả historical BUS-06 hoặc đóng feature acceptance.

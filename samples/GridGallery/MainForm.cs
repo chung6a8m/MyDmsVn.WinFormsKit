@@ -24,6 +24,9 @@ public sealed partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
+        var busyButton = new Button { Name = "busyOverlayButton", Text = "Live Busy Overlay", AutoSize = true };
+        busyButton.Click += (_, _) => { var demo = new BusyOverlayDemoForm(); demo.Show(this); };
+        _toolbar.Controls.Add(busyButton);
         _textEditor = _grid.BootstrapEditors.CreateTextBox(typeof(string));
         _textEditor.BootstrapControl.PlaceholderText = "Customer name";
         _textEditor.BootstrapControl.ShowClearButton = true;

@@ -199,6 +199,8 @@ Matrix BUS cần hai TFM × Light/Dark × physical100/125 với actual native/ma
 
 ## Báo cáo kết quả
 
+SourceGrid-under-overlay thuộc grid test owner: `BusyOverlayDemoFormTests` chứa regression ownership/admission/live data và hai case launch exact GridGallery EXE Light/Dark (STA, tuần tự, watchdog60s; hang diagnostics5m). `dotnet test tests/MyDmsVn.BootstrapSourceGrid.Tests/MyDmsVn.BootstrapSourceGrid.Tests.csproj -c Release -f <TFM> --no-build --blame-hang --blame-hang-timeout 5m` chạy toàn suite. Route proof thủ công: `samples/GridGallery/bin/Release/<TFM>/MyDmsVn.BootstrapSourceGrid.Demo.exe --scenario sourcegrid-busy-live <absolute-output> Light|Dark`. Dùng desktop tương tác, không launch hidden; proof có bounded own-title activation trước SendInput/keyboard, không đổi foreground-lock policy. Negative build override `ApplicationManifest` bằng absolute `samples/GridGallery/app.no-layered.manifest`, output riêng, rồi chạy `--scenario sourcegrid-busy-fallback`; rebuild positive trước suite tiếp theo. [Evidence SourceGrid](verification/20261030-sourcegrid-busy-overlay.md) ghi exact commands, counts, executable hashes và phạm vi96 DPI; fallback không nhận live-pixel PASS.
+
 Mỗi lần nghiệm thu ghi candidate SHA, engine pin, OS/SDK/runtime, configuration/framework/bitness, commands/filter, discovered/executed/pass/fail/skip và limitations. Ghi warm hay clean restore; với manual observations ghi gallery, thao tác và kỳ vọng quan sát được. Raw TRX/dumps/logs giữ ngoài Git; chỉ commit bản tóm tắt đã rà soát.
 
 Build chưa chạy là `NOT RUN`; thiếu nền tảng bắt buộc là `BLOCKED`; cases skipped được ghi đúng số lượng/lý do. Results của toolkit không chứng minh app consumer đã migration hoặc public package đã đủ điều kiện phát hành.

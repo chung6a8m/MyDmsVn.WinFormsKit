@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế chung, mục 1–2, 4–5](../design/20261029-tabs-hottrack-live-busy-overlay.md). [Plan TAB](20261029-002-bootstrap-tabs-hottrack.md) có thể chạy song song; chỉ tích hợp shared files theo một integrator.
 
-**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation và strict resource gate 5/5 PASS sau attribution/cleanup prefix RCWs; physical/mixed-DPI còn mở; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, physical125/SourceGrid còn mở; BUS-06 có implementation/docs/API và focused verification, acceptance còn PENDING; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
+**Baseline:** toolkit `8e7f1854d85d80fbaecc3d9d9167bb8ebcd94921`. **Trạng thái:** BUS-01–03 đã triển khai, qua review và có proof live/fallback ở actual96 DPI trên hai TFM (net48 thêm x86); các sửa Important về minimum Cancel width và zero-sized client có regression/evidence riêng. BUS-04 đã có implementation và strict resource gate 5/5 PASS sau attribution/cleanup prefix RCWs; physical/mixed-DPI còn mở; BUS-05 có demo/tests và runtime prerequisite proof96 DPI provisional, SourceGrid96 DPI đã PASS theo evidence riêng, physical125 còn mở; BUS-06 có implementation/docs/API và focused verification, acceptance còn PENDING; physical125/150/200%, mixed-DPI và Owner acceptance toàn feature còn mở. Chỉ plan task này sở hữu tiến độ BUS.
 
 ## Global Constraints
 
@@ -152,10 +152,10 @@ BUS-04 chưa DONE: strict resource gate đã PASS 5/5 trên candidate sửa PR #
 - [x] Hiển thị message nghiệp vụ đơn giản, spinner/cancel rõ; khu diagnostics riêng báo RenderMode, actual DPI và fallback khi có. So sánh host cũ opaque bằng content instance riêng, không reparent cùng Content giữa hai owners.
 - [x] Wire ApplicationManifest rõ trong csproj cho hai targets; net48 chọn App.config, giữ net8 DPI API hiện hành. Kiểm embedded manifest của built EXE và runtime context ở cả hai TFM. Không thêm DPI manifest cũ ghi đè App.config/SetHighDpiMode.
 - [ ] Vì DPI awareness gallery net48 thay đổi, chạy IntegratedDemoTypography/Layout và đại diện input/navigation ở physical 100/125; ghi regression nếu layout cũ đổi. Không gọi manifest XML tồn tại là proof runtime DPI đúng.
-- [ ] Bổ sung bước nghiệm thu SourceGrid bằng consumer/test host có reference adapter nếu cần xác nhận use case sản phẩm; UI core không thêm dependency BSG. Không tuyên bố đã hỗ trợ hardware/third-party rendering chưa có native evidence; integration với MyDmsVn là PR riêng.
+- [x] Bổ sung SourceGrid integration trong GridGallery bằng public host API, grid/editor/content riêng; hai TFM×Light/Dark live/fallback và net48x86 live tại actual96 DPI đã PASS theo [evidence SourceGrid](../verification/20261030-sourcegrid-busy-overlay.md). UI core không thêm dependency BSG; physical125/150/200/mixed-DPI, hardware/third-party và consumer MyDmsVn vẫn chưa nghiệm thu.
 - [x] Commit `feat: add live busy overlay gallery and manifest setup`.
 
-Candidate BUS-05: source/demo/tests đã triển khai provisional khi BUS-04 resource gate còn BLOCKED (gate resource sau đó đạt 5/5 trong sửa PR #5; không thay physical acceptance); runtime gallery EXE96 DPI hai TFM có embedded manifest + executable context + PerMonitorV2/NativeLayered. Physical125 và SourceGrid acceptance NOT RUN, không nhận full BUS acceptance. Xem [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md).
+Candidate BUS-05: source/demo/tests đã triển khai provisional khi BUS-04 resource gate còn BLOCKED (gate resource sau đó đạt 5/5 trong sửa PR #5; không thay physical acceptance); runtime gallery EXE96 DPI hai TFM có embedded manifest + executable context + PerMonitorV2/NativeLayered. SourceGrid integration96 DPI đã PASS theo [evidence mới](../verification/20261030-sourcegrid-busy-overlay.md); Physical125 NOT RUN, không nhận full BUS acceptance. Xem [evidence BUS-05](../verification/20261030-live-busy-overlay-demo.md).
 
 ### BUS-06 — Contract, API và acceptance
 
