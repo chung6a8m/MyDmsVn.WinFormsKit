@@ -2,7 +2,7 @@
 
 > **For agentic workers:** triển khai từng task theo checkbox, đọc `AGENTS.md` và `docs/TESTING.md`; dùng `superpowers:subagent-driven-development` hoặc `superpowers:executing-plans` nếu có. Việc kích hoạt tài liệu không thay thế implementation, tests hoặc nghiệm thu.
 
-**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. Commit kích hoạt chỉ tạo plan và cập nhật đường đọc; chưa triển khai samples, tests, recipe guide hoặc evidence. CMP-T01/CMP-T02 bắt đầu ở PLANNED; Windows/native verification NOT RUN và Owner acceptance PENDING.
+**Trạng thái:** **ACTIVE**, được Owner chọn ngày **2026-10-30**. CMP-T01 đã có sample, tests và recipe guide; focused Windows/native automation PASS trên hai TFM, Gallery physical100/125 review còn mở như evidence. CMP-T02 đang triển khai ở candidate riêng. Owner acceptance PENDING. Xem [candidate evidence](../verification/20261030-ui-composition-recipes.md).
 
 **Mục tiêu:** tạo hai mẫu WinForms chạy được trong ControlGallery: UIC-01 Filter Results và UIC-02 Compact Edit Form, có hướng dẫn ngắn để consumer chuyển thể qua public APIs.
 
@@ -27,7 +27,7 @@ Khi bắt đầu implementation, đọc lại HEAD, instructions và gitlinks; c
 
 | Task | Kết quả cần tạo | Phụ thuộc | Implementation | Windows/native verification | Owner acceptance |
 |---|---|---|---|---|---|
-| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **PLANNED** | **NOT RUN** | **PENDING** |
+| CMP-T01 | UIC-01 Filter Results, định dạng recipe và route Compositions | Baseline/contract của plan này | **IMPLEMENTED; native gates OPEN** | **Focused automation PASS hai TFM; Gallery physical100/125 PENDING** | **PENDING** |
 | CMP-T02 | UIC-02 Compact Edit Form và recipe tương ứng | Contract recipe CMP-T01 | **PLANNED** | **NOT RUN** | **PENDING** |
 
 Plan này là owner duy nhất của trạng thái CMP-T01/CMP-T02. Entry pages chỉ điều hướng; không duy trì ledger thứ hai. CMP-T03–CMP-T05 và tiến độ toàn đợt do plan app sở hữu. Approval chọn scope ngày 2026-10-30 không phải approval implementation hoặc native result. Không kế thừa PASS/ACCEPTED của TAB, BUS, input/popup, ba ngoại lệ Business Compact hay A3 cho hai mẫu mới.
@@ -75,13 +75,13 @@ Không thêm project, package hoặc reference cho hai mẫu. Chỉ tách file d
 
 **Nội dung mẫu:** header có tiêu đề và nhóm lệnh truy vấn; search/status/xóa bộ lọc wrap khi hẹp; `BootstrapDataGridView` chỉ đọc chiếm diện tích còn lại, có cột mã/tên/nhóm/trạng thái. Dữ liệu giả xác định có tiếng Việt dài và mã dài. Lựa chọn dữ liệu để minh họa loaded, empty dataset, no matches, loading và error/unavailable nằm ngoài vùng nội dung mẫu. Không thêm pagination; recipe dẫn tới `PaginationDemoForm` khi consumer có contract phù hợp.
 
-- [ ] Đọc lại baseline, ghi mapping controls/APIs của UIC-01 và chỉ rõ API nào có ở app runtime pin.
-- [ ] Viết `FilterResults_QueryChangesRowsCountWithoutResettingSearchBuffer`: thay search/status cho rows/count đúng, giữ raw text/caret/focus; unavailable không hiện tổng 0 như một kết quả thành công.
-- [ ] Viết `FilterResults_ClearAndEmptyStatesAreDistinct`: xóa filter phục hồi dữ liệu, empty dataset khác no matches, refresh/query không có hành vi ghi.
-- [ ] Chạy discovery và test mới trước implementation; xác nhận thất bại vì hành vi thiếu, không phải lỗi môi trường hoặc selector rỗng.
-- [ ] Implement `CompositionListDemoForm()` bằng layout primitives/public controls; đăng ký mục Compositions qua host hiện hữu.
+- [x] Đọc lại baseline, ghi mapping controls/APIs của UIC-01 và chỉ rõ API nào có ở app runtime pin.
+- [x] Viết `FilterResults_QueryChangesRowsCountWithoutResettingSearchBuffer`: thay search/status cho rows/count đúng, giữ raw text/caret/focus; unavailable không hiện tổng 0 như một kết quả thành công.
+- [x] Viết `FilterResults_ClearAndEmptyStatesAreDistinct`: xóa filter phục hồi dữ liệu, empty dataset khác no matches, refresh/query không có hành vi ghi.
+- [x] Chạy discovery và test mới trước implementation; xác nhận thất bại vì hành vi thiếu, không phải lỗi môi trường hoặc selector rỗng.
+- [x] Implement `CompositionListDemoForm()` bằng layout primitives/public controls; đăng ký mục Compositions qua host hiện hữu.
 - [ ] Chạy focused tests; kiểm native gõ từng phím, Enter, Tab/Shift+Tab, đổi bộ lọc và resize để chứng minh buffer/caret/focus cùng lệnh truy vấn.
-- [ ] Kiểm selected row/control identity khi đổi theme; chuyển trang và dispose không để mẫu cũ tiếp tục nhận callback do mình đăng ký.
+- [x] Kiểm selected row/control identity khi đổi theme; chuyển trang và dispose không để mẫu cũ tiếp tục nhận callback do mình đăng ký.
 - [ ] Ghi recipe: purpose, mô tả vùng, public controls/APIs, cách co giãn, states, ownership, source link tại commit và evidence thực tế; thêm link guide từ `docs/README.md` khi file đã có.
 - [ ] Ghi results/limitations đúng candidate, review và commit riêng UIC-01 cùng tests/hướng dẫn.
 

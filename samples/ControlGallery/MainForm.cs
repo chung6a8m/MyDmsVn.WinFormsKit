@@ -334,6 +334,12 @@ public sealed class MainForm : DemoFormBase
             "Navigation / BootstrapTabs",
             "So sánh tab cũ và BootstrapTabs với HotTrack, kiểu hiển thị, trang đóng được và native overflow.",
             () => new BootstrapTabsDemoForm());
+
+        AddPage(
+            "Compositions",
+            "Reusable public-control layouts with local sample data and explicit state ownership.",
+            () => new DemoPageHostForm(
+                new DemoPageSection("UIC-01 Filter Results", () => new CompositionListDemoForm())));
     }
 
     private BootstrapSidebarItem AddPage(string title, string description, Func<Form> createForm)

@@ -13,6 +13,7 @@ Tài liệu tại đây đi cùng source toolkit. Scope UI Composition Recipes �
 | Consumer migration và rollback | [CONSUMER_MIGRATION](CONSUMER_MIGRATION.md) |
 | Điều kiện package/distribution | [RELEASING](RELEASING.md) |
 | Công việc mới được chọn ngày 2026-10-30 | [ROADMAP](ROADMAP.md) → [plan UI Composition Recipes](plans/20261030-001-ui-composition-recipes.md) |
+| Mẫu filter/results và compact edit có thể chuyển thể | [UI Composition Recipes](guides/UI_COMPOSITION_RECIPES.md), [candidate evidence](verification/20261030-ui-composition-recipes.md) |
 | Skill, Business Compact mapping, pilot và phối hợp hai repo | [Plan app](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261030-001-business-compact-composition-adoption.md) |
 | Scope TAB/BUS trước đó, giữ owner trạng thái và nghiệm thu riêng | [Plan TAB](plans/20261029-002-bootstrap-tabs-hottrack.md), [plan BUS](plans/20261029-003-live-busy-overlay.md) |
 | Contract/API, native paint, HotTrack và phương án 3B live busy overlay | [Thiết kế tabs/HotTrack/live overlay](design/20261029-tabs-hottrack-live-busy-overlay.md) |
